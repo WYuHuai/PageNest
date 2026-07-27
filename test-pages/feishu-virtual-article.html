@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <title>飞书虚拟块定位测试</title>
+  <style>
+    #scroller {height: 220px; overflow-y: auto}
+    [data-block-id] {min-height: 280px}
+    img {width: 160px; height: 100px}
+  </style>
+</head>
+<body>
+  <div id="scroller">
+    <div class="docx-page-block">
+      <div data-block-id="block-a"><p>第一段，图片应在本段之后。</p></div>
+      <div data-block-id="block-b">
+        <p>第二段，包含重复图片。</p>
+        <img alt="第二张" src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxNjAiIGhlaWdodD0iMTAwIj48cmVjdCB3aWR0aD0iMTYwIiBoZWlnaHQ9IjEwMCIgZmlsbD0iIzY2NTdkOSIvPjwvc3ZnPg==">
+      </div>
+      <div data-block-id="block-c"><p>最后一段。</p></div>
+    </div>
+  </div>
+  <pre id="result">pending</pre>
+  <script src="../extension/extractor.js"></script>
+  <script>
+    setTimeout(() => {
+      const image = document.createElement("img");
+      image.alt = "稍后加载的第一张";
+      image.src = "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxNjAiIGhlaWdodD0iMTAwIj48cmVjdCB3aWR0aD0iMTYwIiBoZWlnaHQ9IjEwMCIgZmlsbD0iIzY2NTdkOSIvPjwvc3ZnPg==";
+      document.querySelector('[data-block-id="block-a"]').append(image);
+    }, 220);
+    collectPage().then(article => {
+      document.getElementById("result").textContent = JSON.stringify({
+        capture_version: article.capture_version,
+        policy: article.image_placement_policy,
+        method: article.extraction_method,
+        images: article.images.map(image => image.position_id),
+        markers: [...new DOMParser().parseFromString(article.article_html, "text/html").querySelectorAll("[data-hermes-image-id]")].map(node => node.getAttribute("data-hermes-image-id")),
+        html: article.article_html
+      });
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,57 @@
+# Python environments, bytecode, test and lint caches
+.venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.coverage
+.coverage.*
+coverage.xml
+htmlcov/
+
+# Local secrets and machine-specific configuration
+.env
+.env.*
+!.env.example
+local-server/.env
+
+# Runtime data, diagnostics and visual test artifacts
+local-server/logs/
+local-server/runtime/
+test-output/
+.visual-check/
+*.log
+*.dmp
+*.tmp
+*.bak
+
+# Browser profiles and local databases
+edge-profile/
+browser-profile/
+Crashpad/
+Cookies
+History
+Login Data
+Web Data
+Local State
+*.db
+*.sqlite
+*.sqlite3
+
+# Collected pages, downloaded media and release outputs
+*.hermes
+*.mp4
+*.webm
+*.mov
+*.avi
+*.mkv
+dist/
+release/
+*.zip
+*.sha256
+
+# OS metadata
+.DS_Store
+Thumbs.db
+Desktop.ini

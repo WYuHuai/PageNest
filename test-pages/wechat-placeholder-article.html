@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <title>微信占位图过滤测试</title>
+  <style>img { display:block; width:900px; height:60px }</style>
+</head>
+<body>
+  <article id="js_content">
+    <h1>微信图文测试</h1>
+    <p>正文开始，下面只有一张真实图片。这里补充足够长度的微信文章正文，用于验证正文识别、图片位置和懒加载占位图过滤逻辑。收藏器应当保留真实图片，同时彻底删除页面末尾无内容的透明占位图片。这段测试文字不会进入用户知识库，只用于本地浏览器自动验证。</p>
+    <img alt="真实图片" src="data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%3E%3Crect%20width%3D%22160%22%20height%3D%22100%22%20fill%3D%22red%22%2F%3E%3C%2Fsvg%3E">
+    <p>正文结束。</p><p>微信正文内容用于测试图片提取顺序与占位图过滤。微信正文内容用于测试图片提取顺序与占位图过滤。微信正文内容用于测试图片提取顺序与占位图过滤。微信正文内容用于测试图片提取顺序与占位图过滤。微信正文内容用于测试图片提取顺序与占位图过滤。微信正文内容用于测试图片提取顺序与占位图过滤。微信正文内容用于测试图片提取顺序与占位图过滤。微信正文内容用于测试图片提取顺序与占位图过滤。微信正文内容用于测试图片提取顺序与占位图过滤。微信正文内容用于测试图片提取顺序与占位图过滤。微信正文内容用于测试图片提取顺序与占位图过滤。微信正文内容用于测试图片提取顺序与占位图过滤。微信正文内容用于测试图片提取顺序与占位图过滤。微信正文内容用于测试图片提取顺序与占位图过滤。微信正文内容用于测试图片提取顺序与占位图过滤。微信正文内容用于测试图片提取顺序与占位图过滤。微信正文内容用于测试图片提取顺序与占位图过滤。微信正文内容用于测试图片提取顺序与占位图过滤。微信正文内容用于测试图片提取顺序与占位图过滤。微信正文内容用于测试图片提取顺序与占位图过滤。</p>
+    <img class="placeholder" alt="" src="data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%3E%3C%2Fsvg%3E">
+<img class="placeholder" alt="" src="data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%3E%3C%2Fsvg%3E">
+<img class="placeholder" alt="" src="data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%3E%3C%2Fsvg%3E">
+<img class="placeholder" alt="" src="data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%3E%3C%2Fsvg%3E">
+<img class="placeholder" alt="" src="data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%3E%3C%2Fsvg%3E">
+<img class="placeholder" alt="" src="data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%3E%3C%2Fsvg%3E">
+<img class="placeholder" alt="" src="data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%3E%3C%2Fsvg%3E">
+<img class="placeholder" alt="" src="data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%3E%3C%2Fsvg%3E">
+<img class="placeholder" alt="" src="data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%3E%3C%2Fsvg%3E">
+<img class="placeholder" alt="" src="data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%3E%3C%2Fsvg%3E">
+<img class="placeholder" alt="" src="data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%3E%3C%2Fsvg%3E">
+<img class="placeholder" alt="" src="data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%3E%3C%2Fsvg%3E">
+<img class="placeholder" alt="" src="data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%3E%3C%2Fsvg%3E">
+<img class="placeholder" alt="" src="data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%3E%3C%2Fsvg%3E">
+<img class="placeholder" alt="" src="data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%3E%3C%2Fsvg%3E">
+<img class="placeholder" alt="" src="data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%3E%3C%2Fsvg%3E">
+<img class="placeholder" alt="" src="data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%3E%3C%2Fsvg%3E">
+<img class="placeholder" alt="" src="data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%3E%3C%2Fsvg%3E">
+  </article>
+  <pre id="result">pending</pre>
+  <script src="../extension/extractor.js"></script>
+  <script>
+    collectPage().then(article => {
+      document.getElementById("result").textContent = JSON.stringify({
+        imageCount: article.images.length,
+        markerCount: (article.article_html.match(/data-hermes-image-id/g) || []).length,
+        emptyPlaceholderCount: article.article_html.split("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%3E%3C%2Fsvg%3E").length - 1,
+        method: article.extraction_method
+      });
+    });
+  </script>
+</body>
+</html>

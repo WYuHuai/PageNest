@@ -1,0 +1,37 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.11"
+          cache: pip
+          cache-dependency-path: |
+            local-server/requirements.txt
+            local-server/requirements-dev.txt
+      - run: python -m pip install -r local-server/requirements-dev.txt
+      - run: python -m pip check
+      - run: python -m pytest -q
+      - run: node --check extension/extractor.js
+      - run: node --check extension/capture-selection.js
+      - run: node --check extension/popup.js
+      - run: node --check extension/media-capture.js
+      - run: node tests/test_capture_selection.js
+      - run: node tests/test_media_capture.js
+      - run: node tests/test_canvas_capture.js
+      - run: node tests/test_obsidian_plugin.js
+      - run: node --check obsidian-plugin/hermes-page-viewer/main.js
+      - run: python -c "import json, pathlib; [json.loads(pathlib.Path(p).read_text(encoding='utf-8')) for p in ('extension/manifest.json','obsidian-plugin/hermes-page-viewer/manifest.json')]"

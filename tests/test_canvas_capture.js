@@ -35,7 +35,7 @@ function fakeCanvas(width = 0, height = 0, content = false, rect = null) {
   return canvas;
 }
 
-const source = fs.readFileSync(path.resolve(__dirname, "../extension/extractor.js"), "utf8");
+const source = fs.readFileSync(path.resolve(__dirname, "../extension/core/canvas.js"), "utf8");
 const start = source.indexOf("  function trimmedCanvasResult");
 const end = source.indexOf("  async function collectCanvasImages", start);
 assert.ok(start >= 0 && end > start, "canvas helper functions must be present");

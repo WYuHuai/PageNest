@@ -25,13 +25,10 @@ jobs:
       - run: python -m pip install -r local-server/requirements-dev.txt
       - run: python -m pip check
       - run: python -m pytest -q
-      - run: node --check extension/extractor.js
-      - run: node --check extension/capture-selection.js
-      - run: node --check extension/popup.js
-      - run: node --check extension/media-capture.js
-      - run: node tests/test_capture_selection.js
-      - run: node tests/test_media_capture.js
-      - run: node tests/test_canvas_capture.js
-      - run: node tests/test_obsidian_plugin.js
-      - run: node --check obsidian-plugin/hermes-page-viewer/main.js
+      - name: Check all JavaScript syntax
+        shell: bash
+        run: find extension obsidian-plugin tests -name '*.js' -print0 | xargs -0 -n1 node --check
+      - name: Run all JavaScript tests
+        shell: bash
+        run: for test in tests/test_*.js; do node "$test"; done
       - run: python -c "import json, pathlib; [json.loads(pathlib.Path(p).read_text(encoding='utf-8')) for p in ('extension/manifest.json','obsidian-plugin/hermes-page-viewer/manifest.json')]"

@@ -1,0 +1,1 @@
+HermesAdapters.registerGeneric("generic", () => true);

@@ -47,7 +47,7 @@ const root = {
   },
 };
 
-const source = fs.readFileSync(path.resolve(__dirname, "../extension/extractor.js"), "utf8");
+const source = fs.readFileSync(path.resolve(__dirname, "../extension/core/extractor-core.js"), "utf8");
 const start = source.indexOf("  function externalLinkLabel");
 const end = source.indexOf("  function collectImages", start);
 assert.ok(start >= 0 && end > start, "link normalization helpers must be present");

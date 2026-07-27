@@ -55,7 +55,18 @@ async function identify() {
   [tab]=await chrome.tabs.query({active:true,currentWindow:true});
   if(!/^https?:/.test(tab.url||"")) throw new Error("浏览器内部页面不能采集，请打开普通网页后重试");
   const target={tabId:tab.id,allFrames:true};
-  await chrome.scripting.executeScript({target,files:["media-capture.js","extractor.js"]});
+  await chrome.scripting.executeScript({target,files:[
+    "media-capture.js",
+    "core/extractor-core.js",
+    "core/canvas.js",
+    "core/adapter-registry.js",
+    "adapters/bilibili.js",
+    "adapters/feishu.js",
+    "adapters/wechat.js",
+    "adapters/csdn.js",
+    "adapters/generic.js",
+    "extractor.js",
+  ]});
   const captures=await chrome.scripting.executeScript({
     target,
     func:async()=>{

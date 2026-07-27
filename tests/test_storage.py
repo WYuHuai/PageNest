@@ -125,7 +125,7 @@ def test_code_blocks_are_readable_copyable_and_external_links_survive():
     assert "\u6253\u5f00 GitHub \u94fe\u63a5" in rendered
     assert "script-src 'nonce-hermes-offline'" in rendered
     assert '<script nonce="hermes-offline">' in rendered
-    assert 'window.parent.postMessage({type: "hermes-copy"' in rendered
+    assert 'window.parent.postMessage({type: "hermes-copy"' not in rendered
 
 
 @pytest.mark.asyncio

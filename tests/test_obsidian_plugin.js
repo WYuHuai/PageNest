@@ -5,8 +5,7 @@ const path = require("node:path");
 let viewFactory;
 let frame;
 let copiedText = "";
-let frameLoadHandler;
-let frameClickHandler;
+let refreshHandler;
 const listeners = new Map();
 
 Object.defineProperty(globalThis, "navigator", {
@@ -70,7 +69,12 @@ const plugin = new HermesPageViewerPlugin();
 plugin.onload();
 assert.equal(typeof viewFactory, "function");
 
-const refresh = {addEventListener() {}};
+const refresh = {
+  addEventListener(type, listener) {
+    assert.equal(type, "click");
+    refreshHandler = listener;
+  },
+};
 const toolbar = {
   createSpan() {},
   createEl(tag) {
@@ -84,61 +88,61 @@ const contentEl = {
   createDiv() { return toolbar; },
   createEl(tag, options) {
     assert.equal(tag, "iframe");
-frame = {
+    frame = {
       contentWindow: {},
-      contentDocument: {
-        addEventListener(type, listener, capture) {
-          assert.equal(type, "click");
-          assert.equal(capture, true);
-          frameClickHandler = listener;
-        },
-      },
       srcdoc: "",
       attributes: options.attr,
-      addEventListener(type, listener) {
-        assert.equal(type, "load");
-        frameLoadHandler = listener;
-      },
     };
     return frame;
   },
 };
 
+function channelFrom(page) {
+  return page.match(/channel: "([a-f0-9]{64})"/)?.[1] || "";
+}
+
 (async () => {
   const view = viewFactory({contentEl});
-  await view.setViewData("<pre>const answer = 42;</pre>");
+  await view.setViewData("<!doctype html><body><pre>const answer = 42;</pre></body>");
 
-  assert.equal(frame.attributes.sandbox, "allow-popups allow-scripts allow-same-origin");
-  assert.equal(frame.attributes.allow, "clipboard-write");
-  assert.equal(frame.srcdoc, "<pre>const answer = 42;</pre>");
-  frameLoadHandler();
-  const code = {
-    innerText: "const direct = true;",
-    querySelectorAll() { return []; },
-  };
-  const shell = {querySelector(selector) { assert.equal(selector, "pre"); return code; }};
-  const button = {
-    textContent: "复制代码",
-    closest(selector) { assert.equal(selector, '[data-hermes-kind="code-shell"]'); return shell; },
-  };
-  let prevented = false;
-  let stopped = false;
-  await frameClickHandler({
-    target: {closest(selector) { assert.equal(selector, "[data-hermes-copy]"); return button; }},
-    preventDefault() { prevented = true; },
-    stopImmediatePropagation() { stopped = true; },
-  });
-  assert.equal(copiedText, "const direct = true;");
-  assert.equal(button.textContent, "已复制");
-  assert.equal(prevented, true);
-  assert.equal(stopped, true);
+  assert.equal(frame.attributes.sandbox, "allow-popups allow-scripts");
+  assert.equal(frame.attributes.allow, undefined);
+  assert.match(frame.srcdoc, /data-hermes-copy-bridge/);
+  assert.match(frame.srcdoc, /<pre>const answer = 42;<\/pre>/);
+  assert.ok(frame.srcdoc.indexOf("data-hermes-copy-bridge") < frame.srcdoc.indexOf("</body>"));
+  const firstChannel = channelFrom(frame.srcdoc);
+  assert.equal(firstChannel.length, 64);
 
   const handler = listeners.get("message");
   assert.equal(typeof handler, "function");
-  await handler({source: frame.contentWindow, data: {type: "hermes-copy", text: "const answer = 42;"}});
+  await handler({
+    source: frame.contentWindow,
+    data: {type: "hermes-copy", channel: firstChannel, text: "const answer = 42;"},
+  });
   assert.equal(copiedText, "const answer = 42;");
 
-  await handler({source: {}, data: {type: "hermes-copy", text: "blocked"}});
+  await handler({
+    source: frame.contentWindow,
+    data: {type: "hermes-copy", channel: "wrong", text: "blocked"},
+  });
+  await handler({
+    source: {},
+    data: {type: "hermes-copy", channel: firstChannel, text: "blocked"},
+  });
+  await handler({
+    source: frame.contentWindow,
+    data: {type: "hermes-copy", channel: firstChannel, text: "x".repeat(5 * 1024 * 1024 + 1)},
+  });
+  assert.equal(copiedText, "const answer = 42;");
+
+  refreshHandler();
+  const secondChannel = channelFrom(frame.srcdoc);
+  assert.equal(secondChannel.length, 64);
+  assert.notEqual(secondChannel, firstChannel);
+  await handler({
+    source: frame.contentWindow,
+    data: {type: "hermes-copy", channel: firstChannel, text: "stale"},
+  });
   assert.equal(copiedText, "const answer = 42;");
 
   view.clear();

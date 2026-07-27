@@ -1,8 +1,26 @@
 const { Plugin, TextFileView } = require("obsidian");
+const { randomBytes } = require("node:crypto");
 
 const VIEW_TYPE = "hermes-page-view";
 const COPY_MESSAGE = "hermes-copy";
+const COPY_CHANNEL_BYTES = 32;
 const MAX_COPY_LENGTH = 5 * 1024 * 1024;
+
+function copyBridgeScript(channel) {
+  return `<script nonce="hermes-offline" data-hermes-copy-bridge>
+window.hermesCopyText = function (text) {
+  window.parent.postMessage({type: "${COPY_MESSAGE}", channel: "${channel}", text: text}, "*");
+};
+</script>`;
+}
+
+function withCopyBridge(page, channel) {
+  const bridge = copyBridgeScript(channel);
+  const bodyEnd = page.toLowerCase().lastIndexOf("</body>");
+  return bodyEnd < 0
+    ? `${page}${bridge}`
+    : `${page.slice(0, bodyEnd)}${bridge}${page.slice(bodyEnd)}`;
+}
 
 class HermesPageView extends TextFileView {
   constructor(leaf) {
@@ -62,47 +80,31 @@ class HermesPageView extends TextFileView {
     const frame = this.contentEl.createEl("iframe", {
       cls: "hermes-page-frame",
       attr: {
-        sandbox: "allow-popups allow-scripts allow-same-origin",
-        allow: "clipboard-write",
+        sandbox: "allow-popups allow-scripts",
         referrerpolicy: "no-referrer",
         title: this.getDisplayText(),
       },
     });
 
+    let copyChannel = "";
     this.copyHandler = async (event) => {
-      if (event.source !== frame.contentWindow || event.data?.type !== COPY_MESSAGE) return;
+      if (
+        event.source !== frame.contentWindow
+        || event.data?.type !== COPY_MESSAGE
+        || event.data.channel !== copyChannel
+      ) return;
       const text = event.data.text;
       if (typeof text !== "string" || text.length > MAX_COPY_LENGTH) return;
       await this.copyText(text);
     };
     window.addEventListener("message", this.copyHandler);
 
-    frame.addEventListener("load", () => {
-      const frameDocument = frame.contentDocument;
-      if (!frameDocument) return;
-      frameDocument.addEventListener("click", async (event) => {
-        const button = event.target?.closest?.("[data-hermes-copy]");
-        if (!button) return;
-        const code = button.closest('[data-hermes-kind="code-shell"]')?.querySelector("pre");
-        if (!code) return;
-        event.preventDefault();
-        event.stopImmediatePropagation();
-        const lines = code.querySelectorAll('[data-hermes-kind="code-line"]');
-        const text = lines.length
-          ? Array.from(lines, (line) => line.innerText || line.textContent || "").join("\n")
-          : (code.innerText || code.textContent || "");
-        if (text.length > MAX_COPY_LENGTH) return;
-        await this.copyText(text);
-        const original = button.textContent;
-        button.textContent = "已复制";
-        setTimeout(() => { button.textContent = original; }, 1200);
-      }, true);
-    });
-
-    frame.srcdoc = this.data;
-    refresh.addEventListener("click", () => {
-      frame.srcdoc = this.data;
-    });
+    const loadFrame = () => {
+      copyChannel = randomBytes(COPY_CHANNEL_BYTES).toString("hex");
+      frame.srcdoc = withCopyBridge(this.data, copyChannel);
+    };
+    loadFrame();
+    refresh.addEventListener("click", loadFrame);
   }
 }
 

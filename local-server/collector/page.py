@@ -45,10 +45,6 @@ CODE_BLOCK_CSS = """
 
 COPY_SCRIPT = """<script nonce="hermes-offline">
 async function hermesCopyText(text) {
-  if (window.parent !== window) {
-    window.parent.postMessage({type: "hermes-copy", text: text}, "*");
-    return;
-  }
   try {
     await navigator.clipboard.writeText(text);
     return;

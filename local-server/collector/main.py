@@ -1,3 +1,4 @@
+import asyncio
 import logging
 import subprocess
 from pathlib import Path
@@ -7,11 +8,14 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse
 from .config import organizer_configuration, save_organizer_configuration, settings
 from .hermes import probe, probe_connection
+from .limits import MAX_CONCURRENT_COLLECTIONS, MAX_REQUEST_BYTES
 from .models import ArticleInput, OrganizerSettingsInput
+from .request_limits import RequestSizeLimitMiddleware
 from .storage import collect
 from .vault import DEFAULT_CATEGORY, list_vault_folders
 
 app = FastAPI(title="Hermes Obsidian Web Collector", version="1.7.4")
+app.add_middleware(RequestSizeLimitMiddleware, max_bytes=MAX_REQUEST_BYTES)
 app.add_middleware(
     CORSMiddleware,
     allow_origin_regex=r"^chrome-extension://[a-p]{32}$",
@@ -19,12 +23,18 @@ app.add_middleware(
     allow_headers=["Authorization", "Content-Type"],
 )
 logger = logging.getLogger("uvicorn.error")
+collection_slots = asyncio.Semaphore(MAX_CONCURRENT_COLLECTIONS)
 
 
 def auth(authorization: str = Header(default="")):
     expected = settings.local_collector_token
     if not expected or authorization != f"Bearer {expected}":
         raise HTTPException(401, "收藏器令牌不正确，请检查插件设置与 .env")
+
+
+async def collection_slot():
+    async with collection_slots:
+        yield
 
 
 @app.get("/api/health")
@@ -105,7 +115,11 @@ b {{ color: #9ddcff; }}
 
 
 @app.post("/api/collect")
-async def collect_api(article: ArticleInput, _: None = Depends(auth)):
+async def collect_api(
+    article: ArticleInput,
+    _: None = Depends(auth),
+    _slot: None = Depends(collection_slot),
+):
     started = perf_counter()
     try:
         result = await collect(article)

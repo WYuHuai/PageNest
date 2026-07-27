@@ -1,66 +1,88 @@
-from typing import Literal
-from pydantic import BaseModel, Field, HttpUrl
+from typing import Annotated, Literal
+
+from pydantic import AfterValidator, BaseModel, Field
+
+from .limits import (
+    MAX_ARTICLE_HTML_CHARS,
+    MAX_ARTICLE_TEXT_CHARS,
+    MAX_HEADINGS,
+    MAX_IMAGES,
+    MAX_MEDIA_ITEMS,
+    MAX_NOTE_CHARS,
+    MAX_SELECTED_TEXT_CHARS,
+    MAX_TITLE_CHARS,
+    MAX_URL_CHARS,
+)
+
+
+def _resource_url(value: str) -> str:
+    if not value.startswith(("data:", "blob:")) and len(value) > MAX_URL_CHARS:
+        raise ValueError("资源 URL 过长")
+    return value
+
+
+ResourceUrl = Annotated[str, AfterValidator(_resource_url)]
 
 
 class ImageInput(BaseModel):
-    position_id: str = ""
-    original_url: str = ""
-    resolved_url: str = ""
-    current_src: str = ""
-    alt: str = ""
-    caption: str = ""
-    nearby_text: str = ""
-    width: int = 0
-    height: int = 0
-    order: int = 0
-    source_type: str = "img"
-    content_hash: str = ""
+    position_id: str = Field(default="", max_length=256)
+    original_url: ResourceUrl = ""
+    resolved_url: ResourceUrl = ""
+    current_src: ResourceUrl = ""
+    alt: str = Field(default="", max_length=MAX_TITLE_CHARS)
+    caption: str = Field(default="", max_length=MAX_NOTE_CHARS)
+    nearby_text: str = Field(default="", max_length=MAX_NOTE_CHARS)
+    width: int = Field(default=0, ge=0)
+    height: int = Field(default=0, ge=0)
+    order: int = Field(default=0, ge=0)
+    source_type: str = Field(default="img", max_length=64)
+    content_hash: str = Field(default="", max_length=128)
     data_url: str = ""
 
 
 class MediaInput(BaseModel):
-    position_id: str = ""
+    position_id: str = Field(default="", max_length=256)
     kind: Literal["video"] = "video"
-    source_url: str = ""
-    page_url: str = ""
-    poster_url: str = ""
+    source_url: ResourceUrl = ""
+    page_url: str = Field(default="", max_length=MAX_URL_CHARS)
+    poster_url: ResourceUrl = ""
     data_url: str = ""
-    mime_type: str = ""
-    duration: float = 0
-    width: int = 0
-    height: int = 0
-    order: int = 0
+    mime_type: str = Field(default="", max_length=256)
+    duration: float = Field(default=0, ge=0)
+    width: int = Field(default=0, ge=0)
+    height: int = Field(default=0, ge=0)
+    order: int = Field(default=0, ge=0)
 
 
 class ArticleInput(BaseModel):
-    capture_version: int = 1
+    capture_version: int = Field(default=1, ge=1)
     image_placement_policy: Literal["fallback", "strict"] = "fallback"
     page_variant: Literal["standard", "bilibili-opus", "feishu-document"] = "standard"
-    title: str = "未命名文章"
-    author: str = ""
-    published_at: str = ""
-    site_name: str = ""
-    url: str
-    canonical_url: str = ""
-    language: str = ""
-    selected_text: str = ""
-    user_note: str = ""
-    article_html: str = ""
-    article_text: str = ""
-    headings: list[str] = []
-    images: list[ImageInput] = []
-    media: list[MediaInput] = []
-    captured_at: str
-    extraction_method: str = ""
-    extraction_warning: str = ""
+    title: str = Field(default="未命名文章", max_length=MAX_TITLE_CHARS)
+    author: str = Field(default="", max_length=MAX_TITLE_CHARS)
+    published_at: str = Field(default="", max_length=256)
+    site_name: str = Field(default="", max_length=MAX_TITLE_CHARS)
+    url: str = Field(max_length=MAX_URL_CHARS)
+    canonical_url: str = Field(default="", max_length=MAX_URL_CHARS)
+    language: str = Field(default="", max_length=64)
+    selected_text: str = Field(default="", max_length=MAX_SELECTED_TEXT_CHARS)
+    user_note: str = Field(default="", max_length=MAX_NOTE_CHARS)
+    article_html: str = Field(default="", max_length=MAX_ARTICLE_HTML_CHARS)
+    article_text: str = Field(default="", max_length=MAX_ARTICLE_TEXT_CHARS)
+    headings: list[str] = Field(default_factory=list, max_length=MAX_HEADINGS)
+    images: list[ImageInput] = Field(default_factory=list, max_length=MAX_IMAGES)
+    media: list[MediaInput] = Field(default_factory=list, max_length=MAX_MEDIA_ITEMS)
+    captured_at: str = Field(max_length=256)
+    extraction_method: str = Field(default="", max_length=MAX_TITLE_CHARS)
+    extraction_warning: str = Field(default="", max_length=MAX_NOTE_CHARS)
     mode: Literal["quick", "deep", "original"] = "quick"
-    category: str = "auto"
+    category: str = Field(default="auto", max_length=MAX_TITLE_CHARS)
 
 
 class OrganizerSettingsInput(BaseModel):
-    api_url: str = ""
-    model_name: str = ""
-    api_key: str | None = None
+    api_url: str = Field(default="", max_length=MAX_URL_CHARS)
+    model_name: str = Field(default="", max_length=MAX_TITLE_CHARS)
+    api_key: str | None = Field(default=None, max_length=MAX_NOTE_CHARS)
 
 
 class ImageNote(BaseModel):
@@ -78,18 +100,17 @@ class HermesResult(BaseModel):
     normalized_title: str = ""
     one_sentence_summary: str = ""
     abstract: str = ""
-    key_points: list[str] = []
-    actionable_methods: list[str] = []
-    tools_and_platforms: list[str] = []
-    people_and_organizations: list[str] = []
-    keywords: list[str] = []
-    obsidian_tags: list[str] = []
+    key_points: list[str] = Field(default_factory=list)
+    actionable_methods: list[str] = Field(default_factory=list)
+    tools_and_platforms: list[str] = Field(default_factory=list)
+    people_and_organizations: list[str] = Field(default_factory=list)
+    keywords: list[str] = Field(default_factory=list)
+    obsidian_tags: list[str] = Field(default_factory=list)
     content_type: str = ""
     timeliness: str = ""
-    relation_to_user_projects: list[str] = []
+    relation_to_user_projects: list[str] = Field(default_factory=list)
     inspiration_value: str = ""
-    image_notes: list[ImageNote] = []
-    limitations: list[str] = []
-    recommended_followups: list[str] = []
+    image_notes: list[ImageNote] = Field(default_factory=list)
+    limitations: list[str] = Field(default_factory=list)
+    recommended_followups: list[str] = Field(default_factory=list)
     confidence: float = Field(default=0.0, ge=0, le=1)
-

@@ -4,18 +4,17 @@ import mimetypes
 import tempfile
 from dataclasses import dataclass
 from pathlib import Path
-from urllib.parse import unquote_to_bytes
+from urllib.parse import urlsplit
 
 import httpx
 import imageio_ffmpeg
 from bs4 import BeautifulSoup
 from yt_dlp import YoutubeDL
 
+from .config import settings
+from .limits import MAX_MEDIA_BYTES, MEDIA_TIMEOUT
 from .models import ArticleInput, MediaInput
-
-
-MAX_VIDEO_BYTES = 150 * 1024 * 1024
-VIDEO_TIMEOUT = 120
+from .network import decode_data_url, fetch_bytes, validate_download_url
 
 
 @dataclass
@@ -25,16 +24,6 @@ class SavedMedia:
     poster_url: str = ""
     error: str = ""
 
-
-def _data_bytes(value: str) -> tuple[bytes, str]:
-    header, encoded = value.split(",", 1)
-    mime = header[5:].split(";", 1)[0]
-    body = (
-        base64.b64decode(encoded)
-        if ";base64" in header.lower()
-        else unquote_to_bytes(encoded)
-    )
-    return body, mime
 
 
 def _video_data_url(body: bytes, mime: str) -> str:
@@ -56,7 +45,7 @@ def _download_with_ytdlp(page_url: str, directory: Path) -> tuple[bytes, str]:
         "no_warnings": True,
         "socket_timeout": 20,
         "retries": 1,
-        "max_filesize": MAX_VIDEO_BYTES,
+        "max_filesize": MAX_MEDIA_BYTES,
     }
     with YoutubeDL(options) as downloader:
         info = downloader.extract_info(page_url, download=True)
@@ -67,15 +56,20 @@ def _download_with_ytdlp(page_url: str, directory: Path) -> tuple[bytes, str]:
             raise ValueError("视频提取器没有生成可播放文件")
         filename = candidates[0]
     body = filename.read_bytes()
-    if not body or len(body) > MAX_VIDEO_BYTES:
+    if not body or len(body) > MAX_MEDIA_BYTES:
         raise ValueError("视频为空或超过 150 MB 单文件限制")
     mime = mimetypes.guess_type(filename.name)[0] or "video/mp4"
     return body, mime
 
 
+def _bilibili_page(url: str) -> bool:
+    host = (urlsplit(url).hostname or "").lower()
+    return host == "bilibili.com" or host.endswith(".bilibili.com")
+
+
 async def _download_direct(item: MediaInput, article_url: str) -> tuple[bytes, str]:
     if item.data_url:
-        return _data_bytes(item.data_url)
+        return decode_data_url(item.data_url, max_bytes=MAX_MEDIA_BYTES)
     if not item.source_url or item.source_url.startswith("blob:"):
         raise ValueError("播放器只暴露了 blob 流，需使用页面视频提取")
     headers = {
@@ -83,13 +77,16 @@ async def _download_direct(item: MediaInput, article_url: str) -> tuple[bytes, s
         "User-Agent": "Mozilla/5.0 HermesObsidianCollector/1.0",
     }
     timeout = httpx.Timeout(60, connect=8, pool=8)
-    async with httpx.AsyncClient(timeout=timeout, follow_redirects=True, headers=headers) as client:
-        response = await client.get(item.source_url)
-        response.raise_for_status()
-        body = response.content
-        mime = response.headers.get("content-type", "").split(";", 1)[0]
-    if not body or len(body) > MAX_VIDEO_BYTES:
-        raise ValueError("视频为空或超过 150 MB 单文件限制")
+    async with httpx.AsyncClient(timeout=timeout, follow_redirects=False, headers=headers) as client:
+        download = await fetch_bytes(
+            client,
+            item.source_url,
+            max_bytes=MAX_MEDIA_BYTES,
+            allow_local_networks=settings.allow_local_network_downloads,
+        )
+    body, mime = download.body, download.content_type
+    if not body:
+        raise ValueError("视频为空")
     if not mime.startswith("video/"):
         mime = item.mime_type if item.mime_type.startswith("video/") else "video/mp4"
     return body, mime
@@ -99,12 +96,18 @@ async def save_media(article: ArticleInput) -> list[SavedMedia]:
     saved: list[SavedMedia] = []
     for item in sorted(article.media, key=lambda value: value.order):
         try:
-            async with asyncio.timeout(VIDEO_TIMEOUT):
+            async with asyncio.timeout(MEDIA_TIMEOUT):
                 try:
                     body, mime = await _download_direct(item, article.url)
                 except Exception:
                     if not item.page_url:
                         raise
+                    if not _bilibili_page(item.page_url):
+                        raise ValueError("仅 B 站页面允许使用视频提取器")
+                    await validate_download_url(
+                        item.page_url,
+                        allow_local_networks=settings.allow_local_network_downloads,
+                    )
                     with tempfile.TemporaryDirectory(prefix="hermes-video-") as temporary:
                         body, mime = await asyncio.to_thread(
                             _download_with_ytdlp,

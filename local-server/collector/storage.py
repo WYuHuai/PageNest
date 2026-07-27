@@ -9,23 +9,22 @@ from collections import Counter
 from datetime import datetime
 from pathlib import Path
 from time import perf_counter
-from urllib.parse import unquote_to_bytes, urlsplit, urlunsplit
+from urllib.parse import urlsplit, urlunsplit
 import httpx
 from bs4 import BeautifulSoup
 from PIL import Image
 from io import BytesIO
 from .config import settings
 from .hermes import call_hermes
+from .limits import IMAGE_BATCH_TIMEOUT, IMAGE_DOWNLOAD_CONCURRENCY, IMAGE_ITEM_TIMEOUT, MAX_IMAGE_BYTES
 from .models import ArticleInput
 from .media import place_media, save_media
+from .network import decode_data_url, fetch_bytes
 from .page import render_page, sanitize_content
 from .security import inside_vault, safe_title
 from .vault import DEFAULT_CATEGORY, require_vault_folder, select_vault_folder
 
 
-IMAGE_CONCURRENCY = 10
-IMAGE_ITEM_TIMEOUT = 8
-IMAGE_BATCH_TIMEOUT = 30
 
 
 def normalize_url(url: str) -> str:
@@ -39,14 +38,7 @@ def content_hash(text: str) -> str:
 
 
 def _data_bytes(value: str) -> tuple[bytes, str]:
-    header, encoded = value.split(",", 1)
-    mime = header[5:].split(";", 1)[0]
-    body = (
-        base64.b64decode(encoded)
-        if ";base64" in header.lower()
-        else unquote_to_bytes(encoded)
-    )
-    return body, mime
+    return decode_data_url(value, max_bytes=MAX_IMAGE_BYTES)
 
 
 def _placeholder_svg(body: bytes) -> bool:
@@ -84,9 +76,13 @@ async def _download_image(client: httpx.AsyncClient, semaphore: asyncio.Semaphor
                 if source.startswith("data:"):
                     body, mime = _data_bytes(source)
                 else:
-                    response = await client.get(source)
-                    response.raise_for_status()
-                    body, mime = response.content, response.headers.get("content-type", "")
+                    download = await fetch_bytes(
+                        client,
+                        source,
+                        max_bytes=MAX_IMAGE_BYTES,
+                        allow_local_networks=settings.allow_local_network_downloads,
+                    )
+                    body, mime = download.body, download.content_type
         return index, item, source, body, mime, ""
     except Exception as exc:
         return index, item, source, None, "", f"{type(exc).__name__}: {exc}"
@@ -99,10 +95,10 @@ async def save_images(article: ArticleInput, assets: Path) -> tuple[list[dict], 
     if not ordered:
         return saved, replacements
 
-    semaphore = asyncio.Semaphore(IMAGE_CONCURRENCY)
+    semaphore = asyncio.Semaphore(IMAGE_DOWNLOAD_CONCURRENCY)
     timeout = httpx.Timeout(10, connect=4, pool=4)
     headers = {"Referer": article.url, "User-Agent": "Mozilla/5.0 HermesObsidianCollector/1.0"}
-    async with httpx.AsyncClient(timeout=timeout, follow_redirects=True, headers=headers) as client:
+    async with httpx.AsyncClient(timeout=timeout, follow_redirects=False, headers=headers) as client:
         tasks = {
             asyncio.create_task(_download_image(client, semaphore, index, item)): (index, item)
             for index, item in enumerate(ordered)

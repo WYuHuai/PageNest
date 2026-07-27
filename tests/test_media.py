@@ -63,6 +63,19 @@ async def test_direct_video_data_is_preserved():
 
 
 @pytest.mark.asyncio
+async def test_private_video_url_is_rejected_without_a_network_request():
+    article = make_article(media=[
+        MediaInput(position_id="video-1", source_url="http://127.0.0.1/private.mp4")
+    ])
+
+    saved = await save_media(article)
+
+    assert len(saved) == 1
+    assert "UnsafeDownloadUrl" in saved[0].error
+    assert not saved[0].data_url
+
+
+@pytest.mark.asyncio
 async def test_animated_gif_keeps_all_frames(tmp_path: Path):
     output = BytesIO()
     frames = [

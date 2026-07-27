@@ -51,35 +51,33 @@ async def test_single_offline_page_and_duplicate(tmp_path: Path, monkeypatch):
     assert second['duplicate'] is True
 
 @pytest.mark.asyncio
-async def test_image_downloads_are_concurrent():
+async def test_image_downloads_are_concurrent(monkeypatch):
     body = base64.b64decode(PNG.split(",", 1)[1])
+    active = 0
+    peak = 0
 
-    class Response:
-        content = body
-        headers = {"content-type": "image/png"}
+    class Download:
+        content_type = "image/png"
 
-        def raise_for_status(self):
-            return None
+        def __init__(self, content):
+            self.body = content
 
-    class Client:
-        active = 0
-        peak = 0
+    async def fake_fetch(_client, _source, **_options):
+        nonlocal active, peak
+        active += 1
+        peak = max(peak, active)
+        await asyncio.sleep(0.02)
+        active -= 1
+        return Download(body)
 
-        async def get(self, _source):
-            self.active += 1
-            self.peak = max(self.peak, self.active)
-            await asyncio.sleep(0.02)
-            self.active -= 1
-            return Response()
-
-    client = Client()
+    monkeypatch.setattr(storage, "fetch_bytes", fake_fetch)
     semaphore = asyncio.Semaphore(3)
     items = [ImageInput(resolved_url=f"https://example.test/{index}.png") for index in range(6)]
     results = await asyncio.gather(*[
-        _download_image(client, semaphore, index, item)
+        _download_image(object(), semaphore, index, item)
         for index, item in enumerate(items)
     ])
-    assert client.peak == 3
+    assert peak == 3
     assert all(result[3] == body and not result[5] for result in results)
 
 

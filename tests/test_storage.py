@@ -4,9 +4,11 @@ from pathlib import Path
 import pytest
 from collector.config import settings
 from collector.models import ArticleInput, HermesResult, ImageInput
-from collector.page import render_page, sanitize_content
-from collector import storage
-from collector.storage import _data_bytes, _download_image, collect, place_unreferenced_images, prune_invalid_images, save_images
+from collector.rendering import render_page
+from collector.sanitizer import sanitize_content
+from collector import images, storage
+from collector.images import _data_bytes, _download_image, place_unreferenced_images, prune_invalid_images, save_images
+from collector.storage import collect
 
 PNG = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAGQAAABkCAIAAAD/gAIDAAAAzElEQVR4nO3QMQEAAAgDINc/9K3hHFQgE7OTTCZTiUwlMpXIVCJTiUwlMpXIVCJTiUwlMpXIVCJTiUwlMpXIVCJTiUwlMpXIVCJTiUwlMpXIVCJTiUwlMpXIVCJTiUwlMpXIVCJTiUwlMpXIVCJTiUwlMpXIVCJTiUwlMpXIVCJTiUwlMpXIVCJTiUwlMpXIVCJTiUwlMpXIVCJTiUwlMpXIVCJTiUwlMpXIVCJTiUwlMpXIVCJTiUwlMpXIVCJTiUwlMpXIVCJTiUwlMpXIVCJTiUwlMpXIVCJTiUwlMpXIVCJTiUwF/rcBwoT3zMAAAAAASUVORK5CYII="
 
@@ -70,7 +72,7 @@ async def test_image_downloads_are_concurrent(monkeypatch):
         active -= 1
         return Download(body)
 
-    monkeypatch.setattr(storage, "fetch_bytes", fake_fetch)
+    monkeypatch.setattr(images, "fetch_bytes", fake_fetch)
     semaphore = asyncio.Semaphore(3)
     items = [ImageInput(resolved_url=f"https://example.test/{index}.png") for index in range(6)]
     results = await asyncio.gather(*[

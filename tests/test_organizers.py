@@ -1,5 +1,5 @@
 from collector.config import settings
-from collector.hermes import QUICK_RESULT_KEYS, request_payload, request_timeout, result_schema
+from collector.organizers import QUICK_RESULT_KEYS, request_payload, request_timeout, result_schema
 
 
 def test_http_timeout_outlives_outer_model_deadline():

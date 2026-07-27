@@ -7,8 +7,9 @@ from PIL import Image
 
 from collector.media import SavedMedia, place_media, save_media
 from collector.models import ArticleInput, MediaInput
-from collector.page import sanitize_content
-from collector.storage import _asset_data_url, collect, save_images
+from collector.sanitizer import sanitize_content
+from collector.images import _asset_data_url, save_images
+from collector.storage import collect
 from collector.config import settings
 from collector.models import ImageInput
 

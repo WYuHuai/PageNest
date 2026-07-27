@@ -1,5 +1,6 @@
 from collector.models import ArticleInput
-from collector.page import CODE_BLOCK_CSS, render_page, sanitize_content
+from collector.rendering import render_page
+from collector.sanitizer import CODE_BLOCK_CSS, sanitize_content
 
 
 def article() -> ArticleInput:

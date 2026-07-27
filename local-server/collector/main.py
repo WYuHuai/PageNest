@@ -7,7 +7,7 @@ from fastapi import Depends, FastAPI, Header, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse
 from .config import organizer_configuration, save_organizer_configuration, settings
-from .hermes import probe, probe_connection
+from .organizers import probe, probe_connection
 from .limits import MAX_CONCURRENT_COLLECTIONS, MAX_REQUEST_BYTES
 from .models import ArticleInput, OrganizerSettingsInput
 from .request_limits import RequestSizeLimitMiddleware

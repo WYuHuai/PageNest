@@ -1,8 +1,5 @@
-import html
 import logging
-import os
 import subprocess
-from datetime import date
 from pathlib import Path
 from time import perf_counter
 from fastapi import Depends, FastAPI, Header, HTTPException
@@ -15,7 +12,12 @@ from .storage import collect
 from .vault import DEFAULT_CATEGORY, list_vault_folders
 
 app = FastAPI(title="Hermes Obsidian Web Collector", version="1.7.4")
-app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["GET", "POST"], allow_headers=["*"])
+app.add_middleware(
+    CORSMiddleware,
+    allow_origin_regex=r"^chrome-extension://[a-p]{32}$",
+    allow_methods=["GET", "POST"],
+    allow_headers=["Authorization", "Content-Type"],
+)
 logger = logging.getLogger("uvicorn.error")
 
 
@@ -73,32 +75,33 @@ async def folders(_: None = Depends(auth)):
     }
 
 
-def vault_stats():
-    vault = settings.vault
-    if not vault or not vault.is_dir():
-        return {"writable": False, "today": 0, "pending": 0, "recent": []}
-    files = sorted(vault.glob("**/*.hermes"), key=lambda path: path.stat().st_mtime, reverse=True)
-    pending = vault / Path(DEFAULT_CATEGORY)
-    return {
-        "writable": os.access(vault, os.W_OK),
-        "today": sum(datetime_from(path).date() == date.today() for path in files),
-        "pending": len(list(pending.glob("*.hermes"))) if pending.exists() else 0,
-        "recent": [str(path.relative_to(vault)) for path in files[:5]],
-    }
-
-
-def datetime_from(path: Path):
-    from datetime import datetime
-    return datetime.fromtimestamp(path.stat().st_mtime)
-
-
 @app.get("/status", response_class=HTMLResponse)
 async def status_page():
-    hermes = await probe(); stats = vault_stats(); vault = str(settings.vault) if settings.vault else "未配置"
-    recent = "".join(f"<li>{html.escape(item)}</li>" for item in stats["recent"]) or "<li>暂无</li>"
-    vault_label = html.escape(vault)
-    log_path = html.escape(str(Path(__file__).parents[1] / "logs"))
-    return f'''<!doctype html><meta charset="utf-8"><title>网页收藏器状态</title><style>body{{font:16px system-ui;background:#11152a;color:#eef;max-width:850px;margin:40px auto;padding:24px}}section{{background:#1b2140;padding:20px;border-radius:16px;margin:14px 0}}b{{color:#9ddcff}}code{{word-break:break-all}}</style><h1>Hermes Obsidian 网页收藏器</h1><section><p>本地服务：<b>正常</b></p><p>Hermes：<b>{'在线' if hermes['online'] else '离线'}</b> · {hermes['message']}</p><p>模型：{hermes['model']}</p><p>图片输入：{'已验证' if hermes['vision'] else '尚未验证'}</p></section><section><p>Obsidian 仓库：<code>{vault_label}</code></p><p>可写：{'是' if stats['writable'] else '否'}</p><p>今日收藏：{stats['today']} · 待整理：{stats['pending']}</p><h3>最近五篇</h3><ul>{recent}</ul></section><section><p>日志位置：<code>{log_path}</code></p></section>'''
+    vault = settings.vault
+    vault_ready = bool(vault and vault.is_dir())
+    return f'''<!doctype html>
+<html lang="zh-CN">
+<meta charset="utf-8">
+<title>网页收藏器状态</title>
+<style>
+body {{
+  font: 16px system-ui;
+  background: #11152a;
+  color: #eef;
+  max-width: 850px;
+  margin: 40px auto;
+  padding: 24px;
+}}
+section {{ background: #1b2140; padding: 20px; border-radius: 16px; }}
+b {{ color: #9ddcff; }}
+</style>
+<h1>Hermes Obsidian 网页收藏器</h1>
+<section>
+  <p>本地服务：<b>正常</b></p>
+  <p>Obsidian 仓库：<b>{'已配置' if vault_ready else '未配置'}</b></p>
+  <p>智能整理：<b>{'已配置' if settings.hermes_api_url else '未配置'}</b></p>
+</section>
+</html>'''
 
 
 @app.post("/api/collect")

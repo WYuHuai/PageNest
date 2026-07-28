@@ -56,6 +56,13 @@ def _quoted_env_value(value: str) -> str:
     return f'"{escaped}"'
 
 
+def _is_secure_organizer_url(parts) -> bool:
+    return parts.scheme == "https" or (
+        parts.scheme == "http"
+        and parts.hostname in {"127.0.0.1", "::1", "localhost"}
+    )
+
+
 def save_organizer_configuration(api_url: str, model_name: str, api_key: str | None) -> dict:
     api_url = api_url.strip().rstrip("/")
     model_name = model_name.strip()
@@ -63,6 +70,8 @@ def save_organizer_configuration(api_url: str, model_name: str, api_key: str | N
         parts = urlsplit(api_url)
         if parts.scheme not in {"http", "https"} or not parts.netloc or parts.username or parts.password:
             raise ValueError("Base URL 必须是有效的 http/https 地址，且不能在地址中包含账号密码")
+        if not _is_secure_organizer_url(parts):
+            raise ValueError("远程智能整理接口必须使用 HTTPS；HTTP 仅允许 localhost 或回环地址")
         if not model_name:
             raise ValueError("填写 Base URL 后必须填写模型名称")
     resolved_key = settings.hermes_api_key if api_key is None else api_key.strip()

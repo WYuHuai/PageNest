@@ -1,3 +1,5 @@
+import pytest
+
 from collector import config
 
 
@@ -29,12 +31,29 @@ def test_generic_organizer_settings_are_persisted_without_exposing_key(tmp_path,
 
 
 def test_generic_organizer_settings_reject_invalid_url():
-    try:
+    with pytest.raises(ValueError, match="http/https"):
         config.save_organizer_configuration("file:///unsafe", "model", "")
-    except ValueError as exc:
-        assert "http/https" in str(exc)
-    else:
-        raise AssertionError("invalid URL was accepted")
+
+
+def test_generic_organizer_settings_reject_remote_http():
+    with pytest.raises(ValueError, match="HTTPS"):
+        config.save_organizer_configuration("http://api.example.test/v1", "model", "")
+
+
+@pytest.mark.parametrize(
+    "api_url",
+    [
+        "http://localhost:1234/v1",
+        "http://127.0.0.1:1234/v1",
+        "http://[::1]:1234/v1",
+    ],
+)
+def test_generic_organizer_settings_allow_loopback_http(api_url, tmp_path, monkeypatch):
+    monkeypatch.setattr(config, "ENV_FILE", tmp_path / ".env")
+
+    saved = config.save_organizer_configuration(api_url, "local-model", "")
+
+    assert saved["api_url"] == api_url
 
 
 def test_default_env_file_uses_explicit_override(tmp_path, monkeypatch):

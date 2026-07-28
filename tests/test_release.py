@@ -44,6 +44,7 @@ def test_release_packages_have_expected_roots(tmp_path):
         names = set(archive.namelist())
         assert "manifest.json" in names
         assert "icons/icon128.png" in names
+        assert "connection-config.js" in names
         validate_archive_entries(list(names))
 
     with zipfile.ZipFile(viewer) as archive:

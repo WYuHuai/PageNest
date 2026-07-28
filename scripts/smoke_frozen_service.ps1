@@ -38,8 +38,6 @@ $start.FileName = $executable
 $start.WorkingDirectory = $bundle
 $start.UseShellExecute = $false
 $start.CreateNoWindow = $true
-$start.RedirectStandardOutput = $true
-$start.RedirectStandardError = $true
 $process = [Diagnostics.Process]::new()
 $process.StartInfo = $start
 $previousConfig = $env:PAGENEST_CONFIG_FILE
@@ -67,7 +65,7 @@ try {
         Start-Sleep -Milliseconds 500
     }
     if (-not $health.ok) {
-        throw "Frozen service health check failed: $($process.StandardError.ReadToEnd())"
+        throw "Frozen service health check failed; inspect $bundle\logs\service.log"
     }
 
     $payload = @{

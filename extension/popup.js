@@ -3,7 +3,8 @@ let tab;
 const $ = id => document.getElementById(id);
 
 async function getSettings() {
-  return chrome.storage.local.get({server:"http://127.0.0.1:8765", token:""});
+  const installed=globalThis.PAGENEST_CONNECTION||{};
+  return chrome.storage.local.get({server:installed.server||"http://127.0.0.1:8765", token:installed.token||""});
 }
 
 function fillSettings(data) {
@@ -119,7 +120,7 @@ async function api(path, body) {
     return data;
   } catch(error) {
     if(error.name==="AbortError") throw new Error("保存超过 5 分钟，已停止等待；已落盘的离线页面不会丢失");
-    if(error instanceof TypeError) throw new Error("本地收藏服务未启动，请双击“启动网页收藏器.bat”后重试");
+    if(error instanceof TypeError) throw new Error("本地收藏服务未启动，请从开始菜单启动 PageNest 后重试");
     throw error;
   } finally {
     clearTimeout(timeout);

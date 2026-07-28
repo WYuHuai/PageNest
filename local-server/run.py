@@ -1,4 +1,8 @@
+import logging
 import os
+import sys
+from logging.handlers import RotatingFileHandler
+from pathlib import Path
 
 import uvicorn
 
@@ -12,5 +16,27 @@ def service_port() -> int:
     return port
 
 
+def frozen_logging() -> dict:
+    if not getattr(sys, "frozen", False):
+        return {}
+    log_directory = Path(sys.executable).with_name("logs")
+    log_directory.mkdir(exist_ok=True)
+    handler = RotatingFileHandler(
+        log_directory / "service.log",
+        maxBytes=2 * 1024 * 1024,
+        backupCount=3,
+        encoding="utf-8",
+    )
+    handler.setFormatter(logging.Formatter("%(asctime)s %(levelname)s %(name)s %(message)s"))
+    logging.basicConfig(level=logging.INFO, handlers=[handler], force=True)
+    return {"log_config": None}
+
+
 if __name__ == "__main__":
-    uvicorn.run(app, host="127.0.0.1", port=service_port(), reload=False)
+    uvicorn.run(
+        app,
+        host="127.0.0.1",
+        port=service_port(),
+        reload=False,
+        **frozen_logging(),
+    )

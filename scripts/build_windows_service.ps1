@@ -19,6 +19,7 @@ $sourceRoot = Join-Path $repository "local-server"
 & $python -m PyInstaller `
     --noconfirm `
     --onedir `
+    --noconsole `
     --name PageNestService `
     --distpath $OutputRoot `
     --workpath $workRoot `

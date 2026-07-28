@@ -1,5 +1,5 @@
-<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width"><title>保存到 Obsidian</title><link rel="stylesheet" href="popup.css"></head><body>
-<main><header><div class="logo">H</div><div><h1>保存到 Obsidian</h1><p><span id="extensionVersion"></span> · <span id="domain">正在读取当前网页…</span></p></div></header>
+<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width"><title>PageNest</title><link rel="stylesheet" href="popup.css"></head><body>
+<main><header><div class="logo">P</div><div><h1>PageNest</h1><p><span id="extensionVersion"></span> · <span id="domain">正在读取当前网页…</span></p></div></header>
 <section class="card"><h2 id="title">当前网页</h2><div class="stats"><span id="status">正在识别网页正文……</span><span id="length">— 字</span><span id="images">— 张图片</span></div></section>
 <label>保存模式<select id="mode"><option value="original">完整保存网页（不调用 AI，推荐）</option><option value="quick">完整保存 + AI 文字总结</option><option value="deep">完整保存 + AI 图文总结</option></select></label>
 <label>保存位置</label><div class="folder-row"><select id="category"><option value="auto">智能整理自动判断</option><option value="阅读记录/待整理">阅读记录/待整理</option></select><button id="refreshFolders" type="button">刷新</button></div><small id="folderStatus">正在读取 Obsidian 文件夹…</small>
@@ -19,4 +19,4 @@
 <label>API Key<input id="aiKey" type="password" autocomplete="off" placeholder="本地模型通常留空"></label>
 <button id="saveAiSettings">保存并测试智能整理接口</button><small id="aiConnection"></small>
 </details>
-</main><script src="capture-selection.js"></script><script src="popup.js"></script></body></html>
+</main><script src="capture-selection.js"></script><script src="connection-config.js"></script><script src="popup.js"></script></body></html>

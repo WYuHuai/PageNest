@@ -9,6 +9,8 @@ All notable user-facing changes are recorded here.
 - Add a per-user Windows installer that bundles the Python runtime and local
   service, installs the viewer into a selected vault, preconfigures the browser
   extension connection, and enables startup at Windows sign-in.
+- Add the PageNest brand icon to the extension, service, installer, and documentation.
+- Prevent frozen-service startup crashes when Windows provides no console streams.
 
 ## 1.7.4 - 2026-07-27
 

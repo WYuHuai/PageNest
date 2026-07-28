@@ -24,6 +24,9 @@ New-Item -ItemType Directory -Path (Join-Path $vault ".obsidian") -Force | Out-N
 
 $serviceProcess = $null
 $previousPort = $env:PAGENEST_PORT
+$previousPath = $env:PATH
+$previousPythonHome = $env:PYTHONHOME
+$previousPythonPath = $env:PYTHONPATH
 try {
     $setupArguments = @(
         '/VERYSILENT',
@@ -90,6 +93,9 @@ try {
     $port = $listener.LocalEndpoint.Port
     $listener.Stop()
     $env:PAGENEST_PORT = [string]$port
+    $env:PATH = "$env:SystemRoot\System32;$env:SystemRoot"
+    $env:PYTHONHOME = $null
+    $env:PYTHONPATH = $null
     $start = [Diagnostics.ProcessStartInfo]::new()
     $start.FileName = $service
     $start.WorkingDirectory = Split-Path -Parent $service
@@ -101,6 +107,9 @@ try {
         throw "Installed standalone service did not start"
     }
     $env:PAGENEST_PORT = $previousPort
+    $env:PATH = $previousPath
+    $env:PYTHONHOME = $previousPythonHome
+    $env:PYTHONPATH = $previousPythonPath
 
     $headers = @{ Authorization = "Bearer $token" }
     $baseUrl = "http://127.0.0.1:$port"
@@ -165,6 +174,7 @@ try {
     Write-Output "Windows installer smoke passed"
     Write-Output "Installer: $installerPath"
     Write-Output "Standalone service: passed"
+    Write-Output "Bundled runtime without Python on PATH: passed"
     Write-Output "Unicode vault: passed"
     Write-Output "Viewer installation: passed"
     Write-Output "Extension preconfiguration: passed"
@@ -173,6 +183,9 @@ try {
 }
 finally {
     $env:PAGENEST_PORT = $previousPort
+    $env:PATH = $previousPath
+    $env:PYTHONHOME = $previousPythonHome
+    $env:PYTHONPATH = $previousPythonPath
     if ($serviceProcess -and -not $serviceProcess.HasExited) {
         $serviceProcess.Kill()
         $serviceProcess.WaitForExit()

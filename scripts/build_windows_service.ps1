@@ -15,12 +15,14 @@ if (-not $OutputRoot) {
 $workRoot = Join-Path $repository "build\pyinstaller"
 $entryPoint = Join-Path $repository "local-server\run.py"
 $sourceRoot = Join-Path $repository "local-server"
+$icon = Join-Path $repository "installer\PageNest.ico"
 
 & $python -m PyInstaller `
     --noconfirm `
     --onedir `
     --noconsole `
     --name PageNestService `
+    --icon $icon `
     --distpath $OutputRoot `
     --workpath $workRoot `
     --specpath $workRoot `

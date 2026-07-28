@@ -1,18 +1,17 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" role="img" aria-labelledby="title">
   <title id="title">PageNest icon</title>
   <defs>
-    <linearGradient id="background" x1="100" y1="80" x2="900" y2="940" gradientUnits="userSpaceOnUse">
-      <stop stop-color="#1D2650"/>
-      <stop offset="1" stop-color="#080C1C"/>
+    <linearGradient id="nest" x1="180" y1="420" x2="850" y2="880" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#4F46E5"/>
+      <stop offset="1" stop-color="#4338CA"/>
     </linearGradient>
-    <linearGradient id="mark" x1="250" y1="190" x2="780" y2="830" gradientUnits="userSpaceOnUse">
-      <stop stop-color="#A995FF"/>
-      <stop offset="0.55" stop-color="#6F8FFF"/>
-      <stop offset="1" stop-color="#45D7F2"/>
+    <linearGradient id="inner" x1="260" y1="610" x2="770" y2="790" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#14B8A6"/>
+      <stop offset="1" stop-color="#0D9488"/>
     </linearGradient>
   </defs>
-  <rect x="52" y="52" width="920" height="920" rx="220" fill="url(#background)"/>
-  <rect x="76" y="76" width="872" height="872" rx="196" fill="none" stroke="#FFFFFF" stroke-opacity=".08" stroke-width="8"/>
-  <path d="M246 200h96v248h340V200h96v624l-48-40-48 40V560H342v264h-96z" fill="url(#mark)"/>
-  <path d="M342 448h340v112H342z" fill="#EAF3FF" fill-opacity=".96"/>
+  <path d="M174 410c0-42 34-76 76-76h524c42 0 76 34 76 76v182c0 180-146 326-326 326h-24c-180 0-326-146-326-326V410z" fill="url(#nest)"/>
+  <path d="M236 596c92 0 126 112 276 112s184-112 276-112c18 0 32 14 32 32 0 132-134 238-308 238S204 760 204 628c0-18 14-32 32-32z" fill="url(#inner)"/>
+  <path d="M300 176h326l174 174v282c0 45-21 88-57 116L512 928 281 748c-36-28-57-71-57-116V252c0-42 34-76 76-76z" fill="#FFFFFF"/>
+  <path d="M626 176v106c0 38 30 68 68 68h106z" fill="#4F46E5"/>
 </svg>

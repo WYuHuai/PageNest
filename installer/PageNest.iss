@@ -27,6 +27,7 @@ ArchitecturesInstallIn64BitMode=x64compatible
 MinVersion=10.0
 CloseApplications=yes
 RestartApplications=no
+SetupIconFile=PageNest.ico
 UninstallDisplayIcon={app}\Service\PageNestService.exe
 
 [Languages]

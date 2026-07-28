@@ -42,15 +42,24 @@ $process = [Diagnostics.Process]::new()
 $process.StartInfo = $start
 $previousConfig = $env:PAGENEST_CONFIG_FILE
 $previousPort = $env:PAGENEST_PORT
+$previousPath = $env:PATH
+$previousPythonHome = $env:PYTHONHOME
+$previousPythonPath = $env:PYTHONPATH
 
 try {
     $env:PAGENEST_CONFIG_FILE = $config
     $env:PAGENEST_PORT = [string]$port
+    $env:PATH = "$env:SystemRoot\System32;$env:SystemRoot"
+    $env:PYTHONHOME = $null
+    $env:PYTHONPATH = $null
     if (-not $process.Start()) {
         throw "Frozen service did not start"
     }
     $env:PAGENEST_CONFIG_FILE = $previousConfig
     $env:PAGENEST_PORT = $previousPort
+    $env:PATH = $previousPath
+    $env:PYTHONHOME = $previousPythonHome
+    $env:PYTHONPATH = $previousPythonPath
 
     $headers = @{ Authorization = "Bearer $token" }
     $baseUrl = "http://127.0.0.1:$port"
@@ -100,6 +109,9 @@ try {
 finally {
     $env:PAGENEST_CONFIG_FILE = $previousConfig
     $env:PAGENEST_PORT = $previousPort
+    $env:PATH = $previousPath
+    $env:PYTHONHOME = $previousPythonHome
+    $env:PYTHONPATH = $previousPythonPath
     if ($process -and -not $process.HasExited) {
         $process.Kill()
         $process.WaitForExit()

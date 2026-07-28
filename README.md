@@ -1,5 +1,7 @@
 # PageNest
 
+<p align="center"><img src="docs/assets/pagenest-icon-256.png" alt="PageNest" width="128"></p>
+
 [简体中文](README.zh-CN.md) · [Installation](#quick-start) ·
 [Supported sites](docs/supported-sites.md) ·
 [Architecture](docs/architecture.md) · [Roadmap](ROADMAP.md)

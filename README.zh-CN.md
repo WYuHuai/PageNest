@@ -1,5 +1,7 @@
 # PageNest
 
+<p align="center"><img src="docs/assets/pagenest-icon-256.png" alt="PageNest" width="128"></p>
+
 [English](README.md) · [快速安装](#快速安装) ·
 [支持网站](docs/supported-sites.md) ·
 [技术架构](docs/architecture.md) · [路线图](ROADMAP.md)

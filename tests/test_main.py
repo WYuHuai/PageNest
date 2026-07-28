@@ -90,3 +90,36 @@ def test_public_status_hides_local_and_organizer_details(tmp_path, monkeypatch):
         "logs",
     ):
         assert private_value not in response.text
+
+
+def test_pairing_is_disabled_without_trusted_store_ids(monkeypatch):
+    monkeypatch.setattr(settings, "pagenest_extension_ids", "")
+    monkeypatch.setattr(settings, "local_collector_token", "private-token")
+
+    response = client.get(
+        "/api/pair",
+        headers={"Origin": "chrome-extension://" + "a" * 32},
+    )
+
+    assert response.status_code == 404
+    assert "private-token" not in response.text
+
+
+def test_pairing_returns_token_only_to_trusted_store_extension(monkeypatch):
+    trusted_id = "a" * 32
+    monkeypatch.setattr(settings, "pagenest_extension_ids", trusted_id)
+    monkeypatch.setattr(settings, "local_collector_token", "private-token")
+
+    allowed = client.get(
+        "/api/pair",
+        headers={"Origin": f"chrome-extension://{trusted_id}"},
+    )
+    denied = client.get(
+        "/api/pair",
+        headers={"Origin": "chrome-extension://" + "b" * 32},
+    )
+
+    assert allowed.status_code == 200
+    assert allowed.json() == {"token": "private-token"}
+    assert denied.status_code == 403
+    assert "private-token" not in denied.text

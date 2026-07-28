@@ -1,6 +1,9 @@
 #ifndef AppVersion
 #define AppVersion "1.7.4"
 #endif
+#ifndef ExtensionIds
+#define ExtensionIds ""
+#endif
 
 #define AppName "PageNest"
 #define ServiceBundle "..\build\windows-service\PageNestService"
@@ -173,10 +176,11 @@ var
 begin
   VaultValue := SelectedVault;
   StringChangeEx(VaultValue, '\', '/', True);
-  SetArrayLength(Lines, 3);
+  SetArrayLength(Lines, 4);
   Lines[0] := 'OBSIDIAN_VAULT_PATH="' + VaultValue + '"';
   Lines[1] := 'LOCAL_COLLECTOR_TOKEN=' + CollectorToken;
   Lines[2] := 'ALLOW_LOCAL_NETWORK_DOWNLOADS=false';
+  Lines[3] := 'PAGENEST_EXTENSION_IDS={#ExtensionIds}';
   ConfigPath := ExpandConstant('{app}\Service\.env');
   if not SaveStringsToUTF8FileWithoutBOM(ConfigPath, Lines, False) then
     RaiseException('无法写入 PageNest 本地服务配置。');

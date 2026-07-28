@@ -63,7 +63,7 @@ authorizes copy requests for the current render.
 | Boundary | Protection |
 | --- | --- |
 | Website → extension | Site adapters validate the extracted capture |
-| Extension → service | Bearer token, restricted CORS, bounded request models |
+| Extension → service | Bearer token, restricted CORS, bounded request models; optional pairing requires exact configured store IDs |
 | Service → network | HTTP(S)-only URL validation, DNS/IP checks, redirect checks, byte limits |
 | Service → vault | Resolved paths constrained to the configured vault |
 | `.pagenest` → Obsidian | Sanitized HTML, restricted iframe, no remote images |

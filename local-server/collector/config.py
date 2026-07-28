@@ -22,6 +22,7 @@ ORGANIZER_ENV_NAMES = {
     "HERMES_MODEL_NAME": "hermes_model_name",
     "HERMES_API_KEY": "hermes_api_key",
 }
+EXTENSION_ID_PATTERN = re.compile(r"^[a-p]{32}$")
 
 
 class Settings(BaseSettings):
@@ -29,6 +30,7 @@ class Settings(BaseSettings):
     hermes_api_url: str = ""
     hermes_api_key: str = ""
     local_collector_token: str = ""
+    pagenest_extension_ids: str = ""
     allow_local_network_downloads: bool = False
     hermes_model_name: str = "Qwen3.6-35B-A3B"
     model_config = SettingsConfigDict(env_file=ENV_FILE, extra="ignore")
@@ -41,6 +43,30 @@ class Settings(BaseSettings):
 
 
 settings = Settings()
+
+
+def trusted_extension_origins() -> set[str]:
+    values = {
+        value.strip().lower()
+        for value in settings.pagenest_extension_ids.split(",")
+        if value.strip()
+    }
+    invalid = values - {
+        value for value in values if EXTENSION_ID_PATTERN.fullmatch(value)
+    }
+    if invalid:
+        raise ValueError(
+            "PAGENEST_EXTENSION_IDS contains an invalid Chromium extension ID"
+        )
+    return {f"chrome-extension://{value}" for value in values}
+
+
+def extension_origin_regex() -> str:
+    origins = trusted_extension_origins()
+    if not origins:
+        return r"^chrome-extension://[a-p]{32}$"
+    escaped = "|".join(re.escape(origin) for origin in sorted(origins))
+    return f"^(?:{escaped})$"
 
 
 def organizer_configuration() -> dict:

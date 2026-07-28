@@ -6,7 +6,13 @@ from time import perf_counter
 from fastapi import Depends, FastAPI, Header, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse
-from .config import organizer_configuration, save_organizer_configuration, settings
+from .config import (
+    extension_origin_regex,
+    organizer_configuration,
+    save_organizer_configuration,
+    settings,
+    trusted_extension_origins,
+)
 from .organizers import probe, probe_connection
 from .limits import MAX_CONCURRENT_COLLECTIONS, MAX_REQUEST_BYTES
 from .models import ArticleInput, OrganizerSettingsInput
@@ -18,7 +24,7 @@ app = FastAPI(title="PageNest Web Collector", version="1.7.4")
 app.add_middleware(RequestSizeLimitMiddleware, max_bytes=MAX_REQUEST_BYTES)
 app.add_middleware(
     CORSMiddleware,
-    allow_origin_regex=r"^chrome-extension://[a-p]{32}$",
+    allow_origin_regex=extension_origin_regex(),
     allow_methods=["GET", "POST"],
     allow_headers=["Authorization", "Content-Type"],
 )
@@ -47,6 +53,18 @@ async def health(_: None = Depends(auth)):
         "folder_count": len(list_vault_folders(vault)) if configured else 0,
         "hermes": await probe(),
     }
+
+
+@app.get("/api/pair")
+async def pair_extension(origin: str = Header(default="")):
+    allowed = trusted_extension_origins()
+    if not allowed:
+        raise HTTPException(404, "商店扩展自动配对尚未启用")
+    if origin not in allowed:
+        raise HTTPException(403, "该扩展来源无权配对")
+    if not settings.local_collector_token:
+        raise HTTPException(503, "本地收藏器尚未生成连接令牌")
+    return {"token": settings.local_collector_token}
 
 
 @app.get("/api/ai-settings")

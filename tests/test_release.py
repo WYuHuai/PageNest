@@ -124,3 +124,15 @@ def test_store_package_is_upload_ready(tmp_path):
     assert (output / "reviewer-notes.md").is_file()
     assert (output / "screenshot-01-capture-1280x800.png").is_file()
     assert package.name in (output / "SHA256SUMS.txt").read_text("utf-8")
+
+
+def test_installer_accepts_only_explicit_store_extension_ids():
+    script = (ROOT / "scripts" / "build_windows_installer.ps1").read_text("utf-8")
+    definition = (ROOT / "installer" / "PageNest.iss").read_text("utf-8")
+    example = (ROOT / "local-server" / ".env.example").read_text("utf-8")
+
+    assert "[string]$ExtensionIds" in script
+    assert "^[a-p]{32}(,[a-p]{32})*$" in script
+    assert '"/DExtensionIds=$ExtensionIds"' in script
+    assert "PAGENEST_EXTENSION_IDS={#ExtensionIds}" in definition
+    assert "PAGENEST_EXTENSION_IDS=" in example

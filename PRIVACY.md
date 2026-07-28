@@ -22,8 +22,10 @@ PageNest does not collect browsing history from inactive tabs.
 - Saved `.pagenest` files are written only to the Obsidian vault and folder
   selected by the user.
 - The Windows installer stores the random collector token in the local service
-  configuration and its installed extension copy. Settings entered manually in
-  the extension are stored in browser local storage.
+  configuration and its bundled extension copy. A store build can obtain that
+  token from the loopback pairing endpoint only when its exact extension ID was
+  allowlisted in the installer. Extension settings are stored in browser local
+  storage.
 - Organizer API keys are stored only in the local service `.env` file and are
   never returned to the extension.
 - Temporary downloads and service logs stay on the user's device.

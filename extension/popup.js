@@ -3,8 +3,7 @@ let tab;
 const $ = id => document.getElementById(id);
 
 async function getSettings() {
-  const installed=globalThis.PAGENEST_CONNECTION||{};
-  return chrome.storage.local.get({server:installed.server||"http://127.0.0.1:8765", token:installed.token||""});
+  return PageNestConnection.load();
 }
 
 function fillSettings(data) {

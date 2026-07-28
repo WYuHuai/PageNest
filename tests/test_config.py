@@ -1,3 +1,5 @@
+import re
+
 import pytest
 
 from collector import config
@@ -70,3 +72,24 @@ def test_default_env_file_lives_next_to_frozen_executable(tmp_path, monkeypatch)
     monkeypatch.setattr(config.sys, "executable", str(executable))
 
     assert config.default_env_file() == tmp_path / ".env"
+
+
+def test_extension_origin_regex_restricts_configured_store_ids(monkeypatch):
+    first = "a" * 32
+    second = "p" * 32
+    monkeypatch.setattr(config.settings, "pagenest_extension_ids", f"{first},{second}")
+
+    assert config.trusted_extension_origins() == {
+        f"chrome-extension://{first}",
+        f"chrome-extension://{second}",
+    }
+    pattern = re.compile(config.extension_origin_regex())
+    assert pattern.fullmatch(f"chrome-extension://{first}")
+    assert not pattern.fullmatch("chrome-extension://" + "b" * 32)
+
+
+def test_extension_origin_regex_rejects_invalid_ids(monkeypatch):
+    monkeypatch.setattr(config.settings, "pagenest_extension_ids", "not-an-extension")
+
+    with pytest.raises(ValueError, match="invalid Chromium extension ID"):
+        config.extension_origin_regex()

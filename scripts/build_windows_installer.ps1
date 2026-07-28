@@ -1,5 +1,6 @@
 param(
-    [switch]$SkipServiceBuild
+    [switch]$SkipServiceBuild,
+    [string]$ExtensionIds = ""
 )
 
 $ErrorActionPreference = "Stop"
@@ -11,6 +12,9 @@ if (-not $SkipServiceBuild) {
 
 $manifest = Get-Content -Raw -Encoding UTF8 (Join-Path $repository "release-manifest.json") | ConvertFrom-Json
 $version = [string]$manifest.release
+if ($ExtensionIds -and $ExtensionIds -notmatch '^[a-p]{32}(,[a-p]{32})*$') {
+    throw "ExtensionIds must be a comma-separated list of Chromium extension IDs"
+}
 $compilerCandidates = @(
     (Join-Path $env:LOCALAPPDATA "Programs\Inno Setup 6\ISCC.exe"),
     (Join-Path ${env:ProgramFiles(x86)} "Inno Setup 6\ISCC.exe"),
@@ -21,7 +25,10 @@ if (-not $compiler) {
     throw "Inno Setup 6 compiler was not found. Install JRSoftware.InnoSetup with winget."
 }
 
-& $compiler "/DAppVersion=$version" (Join-Path $repository "installer\PageNest.iss")
+& $compiler `
+    "/DAppVersion=$version" `
+    "/DExtensionIds=$ExtensionIds" `
+    (Join-Path $repository "installer\PageNest.iss")
 if ($LASTEXITCODE -ne 0) { throw "Inno Setup failed with exit code $LASTEXITCODE" }
 
 $installer = Join-Path $repository "release\v$version\PageNest-Setup-$version.exe"

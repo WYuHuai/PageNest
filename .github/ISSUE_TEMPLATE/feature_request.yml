@@ -1,0 +1,43 @@
+name: Feature request
+description: Suggest a focused improvement to collection, viewing, or installation
+title: "[Feature]: "
+labels:
+  - enhancement
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem
+      description: What user problem is not solved today?
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed behavior
+      description: Describe the smallest useful outcome, not an implementation mandate.
+    validations:
+      required: true
+  - type: dropdown
+    id: component
+    attributes:
+      label: Primary component
+      options:
+        - Browser extension
+        - Windows local service
+        - Obsidian viewer
+        - Installation and packaging
+        - Documentation
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives or workarounds
+  - type: checkboxes
+    id: scope
+    attributes:
+      label: Scope confirmation
+      options:
+        - label: This request does not include private page data or credentials.
+          required: true

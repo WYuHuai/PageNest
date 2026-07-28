@@ -21,6 +21,10 @@ local-server/logs/
 local-server/runtime/
 test-output/
 .visual-check/
+screenshots/
+screenshot*.png
+screenshot*.jpg
+screenshot*.jpeg
 *.log
 *.dmp
 *.tmp
@@ -50,6 +54,7 @@ Local State
 dist/
 build/
 release/
+release-ci/
 *.zip
 *.sha256
 

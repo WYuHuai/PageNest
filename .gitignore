@@ -25,6 +25,7 @@ screenshots/
 screenshot*.png
 screenshot*.jpg
 screenshot*.jpeg
+!store/assets/*.png
 *.log
 *.dmp
 *.tmp

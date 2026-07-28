@@ -45,3 +45,15 @@
 - [ ] Optional source-service ZIP contains `.env.example`, not `.env`.
 - [ ] Windows installer signing and SmartScreen expectations are documented.
 - [ ] The Inno Setup compiler license is suitable for the intended distribution.
+## Browser stores
+
+- [ ] Run `python scripts/package_store.py` and verify the SHA-256 checksum.
+- [ ] Replace every `<GITHUB_OWNER>` placeholder in the listing material.
+- [ ] Publish `PRIVACY.md` at the exact stable HTTPS URL submitted to the store.
+- [ ] Upload `pagenest-web-store-v1.7.4.zip`; do not upload the full kit folder.
+- [ ] Upload the 1280x800 screenshot and 440x280 promotional image.
+- [ ] Complete the single-purpose, permission, remote-code, and data-use fields
+      using `store/privacy-disclosures.md`.
+- [ ] Give reviewers the local-service setup in `store/reviewer-notes.md` without
+      including a real connection token.
+- [ ] Repeat the reviewer flow on a clean Windows 10/11 virtual machine.

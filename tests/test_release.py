@@ -1,8 +1,10 @@
+import json
 import zipfile
 
 import pytest
 from PIL import Image
 
+from scripts.package_store import build_store_kit
 from scripts.package_release import (
     ROOT,
     build_release,
@@ -91,3 +93,34 @@ def test_windows_icon_contains_required_sizes():
             (128, 128),
             (256, 256),
         }
+
+def test_store_assets_match_required_dimensions():
+    expected = {
+        "icon-128.png": (128, 128),
+        "promo-small-440x280.png": (440, 280),
+        "promo-marquee-1400x560.png": (1400, 560),
+        "screenshot-01-capture-1280x800.png": (1280, 800),
+    }
+    for name, size in expected.items():
+        with Image.open(ROOT / "store" / "assets" / name) as image:
+            assert image.size == size
+
+
+def test_store_package_is_upload_ready(tmp_path):
+    package, output = build_store_kit(tmp_path)
+
+    with zipfile.ZipFile(package) as archive:
+        names = set(archive.namelist())
+        manifest = json.loads(archive.read("manifest.json"))
+        assert "manifest.json" in names
+        assert "icons/icon128.png" in names
+        assert "tabs" not in manifest["permissions"]
+        assert not any(name.startswith("store/") for name in names)
+        validate_archive_entries(list(names))
+
+    assert (output / "listing.en-US.md").is_file()
+    assert (output / "listing.zh-CN.md").is_file()
+    assert (output / "privacy-disclosures.md").is_file()
+    assert (output / "reviewer-notes.md").is_file()
+    assert (output / "screenshot-01-capture-1280x800.png").is_file()
+    assert package.name in (output / "SHA256SUMS.txt").read_text("utf-8")

@@ -127,7 +127,7 @@ Read the detailed [support matrix and limitations](docs/supported-sites.md).
 
 | Permission | Why PageNest needs it |
 | --- | --- |
-| `activeTab`, `tabs` | Identify and capture the page the user explicitly opens |
+| `activeTab` | Identify and capture the page the user explicitly opens |
 | `scripting` | Run the extractor and site adapter in that page |
 | `storage` | Remember the local service address, token, and user settings |
 | `clipboardWrite` | Copy paths and code when the user asks |

@@ -11,6 +11,11 @@ All notable user-facing changes are recorded here.
   extension connection, and enables startup at Windows sign-in.
 - Add the PageNest brand icon to the extension, service, installer, and documentation.
 - Prevent frozen-service startup crashes when Windows provides no console streams.
+- Add a reproducible Chrome Web Store and Edge Add-ons submission kit with
+  bilingual listing copy, privacy disclosures, reviewer notes, promotional
+  assets, and a verified upload ZIP.
+- Require HTTPS for remote AI organizer endpoints while retaining HTTP support
+  for local loopback model servers.
 
 ## 1.7.4 - 2026-07-27
 

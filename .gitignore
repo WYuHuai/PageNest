@@ -48,6 +48,7 @@ Local State
 *.avi
 *.mkv
 dist/
+build/
 release/
 *.zip
 *.sha256

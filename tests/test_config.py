@@ -35,3 +35,19 @@ def test_generic_organizer_settings_reject_invalid_url():
         assert "http/https" in str(exc)
     else:
         raise AssertionError("invalid URL was accepted")
+
+
+def test_default_env_file_uses_explicit_override(tmp_path, monkeypatch):
+    override = tmp_path / "custom.env"
+    monkeypatch.setenv("PAGENEST_CONFIG_FILE", str(override))
+
+    assert config.default_env_file() == override.resolve()
+
+
+def test_default_env_file_lives_next_to_frozen_executable(tmp_path, monkeypatch):
+    executable = tmp_path / "PageNestService.exe"
+    monkeypatch.delenv("PAGENEST_CONFIG_FILE", raising=False)
+    monkeypatch.setattr(config.sys, "frozen", True, raising=False)
+    monkeypatch.setattr(config.sys, "executable", str(executable))
+
+    assert config.default_env_file() == tmp_path / ".env"

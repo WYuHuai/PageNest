@@ -1,11 +1,22 @@
+import os
 import re
+import sys
 from pathlib import Path
 from urllib.parse import urlsplit
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
-ENV_FILE = Path(__file__).parents[1] / ".env"
+def default_env_file() -> Path:
+    override = os.getenv("PAGENEST_CONFIG_FILE", "").strip()
+    if override:
+        return Path(override).expanduser().resolve()
+    if getattr(sys, "frozen", False):
+        return Path(sys.executable).with_name(".env")
+    return Path(__file__).parents[1] / ".env"
+
+
+ENV_FILE = default_env_file()
 ORGANIZER_ENV_NAMES = {
     "HERMES_API_URL": "hermes_api_url",
     "HERMES_MODEL_NAME": "hermes_model_name",

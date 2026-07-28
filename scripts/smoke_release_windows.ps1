@@ -30,7 +30,15 @@ if ($listener) {
     throw "Smoke-test port is already in use: $Port"
 }
 
-$temporaryParent = [System.IO.Path]::GetFullPath([System.IO.Path]::GetTempPath()).TrimEnd("\")
+$localAppDataTemp = Join-Path (
+    [Environment]::GetFolderPath([Environment+SpecialFolder]::LocalApplicationData)
+) "Temp"
+$temporaryParent = if (Test-Path -LiteralPath $localAppDataTemp -PathType Container) {
+    [System.IO.Path]::GetFullPath($localAppDataTemp).TrimEnd("\")
+}
+else {
+    [System.IO.Path]::GetFullPath([System.IO.Path]::GetTempPath()).TrimEnd("\")
+}
 $workspace = Join-Path $temporaryParent "hermes-release-smoke-$([guid]::NewGuid().ToString('N'))"
 $extensionRoot = Join-Path $workspace "extension"
 $viewerRoot = Join-Path $workspace "viewer"
@@ -89,14 +97,19 @@ try {
     $serviceDirectory = Join-Path $serverRoot "local-server"
     $environmentFile = Join-Path $serviceDirectory ".env"
     $token = [guid]::NewGuid().ToString("N")
-    @(
+    $environmentLines = @(
         "OBSIDIAN_VAULT_PATH=$($vaultRoot.Replace('\', '/'))",
         "LOCAL_COLLECTOR_TOKEN=$token",
         "ALLOW_LOCAL_NETWORK_DOWNLOADS=false",
         "HERMES_API_URL=",
         "HERMES_MODEL_NAME=",
         "HERMES_API_KEY="
-    ) | Set-Content -Encoding UTF8 $environmentFile
+    )
+    [System.IO.File]::WriteAllLines(
+        $environmentFile,
+        $environmentLines,
+        (New-Object System.Text.UTF8Encoding($false))
+    )
 
     $systemPython = (Get-Command python -ErrorAction Stop).Source
     & $systemPython -m venv (Join-Path $serviceDirectory ".venv")
@@ -104,27 +117,23 @@ try {
         throw "Could not create clean smoke-test virtual environment"
     }
     $smokePython = Join-Path $serviceDirectory ".venv\Scripts\python.exe"
-    & $smokePython -m pip install --disable-pip-version-check -r (
+    & $smokePython -m pip install --disable-pip-version-check --retries 5 --timeout 60 --prefer-binary -r (
         Join-Path $serviceDirectory "requirements.txt"
     )
     if ($LASTEXITCODE -ne 0) {
         throw "Could not install runtime requirements in clean environment"
     }
 
-    $stdout = Join-Path $workspace "service.stdout.log"
-    $stderr = Join-Path $workspace "service.stderr.log"
-    $serviceProcess = Start-Process `
-        -FilePath $smokePython `
-        -ArgumentList @(
-            "-m", "uvicorn", "collector.main:app",
-            "--host", "127.0.0.1",
-            "--port", "$Port"
-        ) `
-        -WorkingDirectory $serviceDirectory `
-        -RedirectStandardOutput $stdout `
-        -RedirectStandardError $stderr `
-        -WindowStyle Hidden `
-        -PassThru
+    $startInfo = New-Object System.Diagnostics.ProcessStartInfo
+    $startInfo.FileName = $smokePython
+    $startInfo.Arguments = "-m uvicorn collector.main:app --host 127.0.0.1 --port $Port"
+    $startInfo.WorkingDirectory = $serviceDirectory
+    $startInfo.UseShellExecute = $false
+    $startInfo.CreateNoWindow = $true
+    $serviceProcess = [System.Diagnostics.Process]::Start($startInfo)
+    if (-not $serviceProcess) {
+        throw "Could not start the clean local service"
+    }
 
     $baseUrl = "http://127.0.0.1:$Port"
     $ready = $false
@@ -141,7 +150,7 @@ try {
         }
     }
     if (-not $ready) {
-        throw "Clean local service did not become ready. See $stderr"
+        throw "Clean local service did not become ready"
     }
 
     $headers = @{ Authorization = "Bearer $token" }
@@ -163,22 +172,32 @@ try {
         images = @()
         media = @()
         mode = "original"
-        category = "阅读记录/待整理"
+        category = "auto"
         user_note = "Disposable clean-install verification"
     } | ConvertTo-Json -Depth 8
-    $result = Invoke-RestMethod `
+    $resultResponse = Invoke-WebRequest `
+        -UseBasicParsing `
         -Method Post `
         -Uri "$baseUrl/api/collect" `
         -Headers $headers `
         -ContentType "application/json; charset=utf-8" `
         -Body ([Text.Encoding]::UTF8.GetBytes($payload))
+    $resultJson = [Text.Encoding]::UTF8.GetString(
+        $resultResponse.RawContentStream.ToArray()
+    )
+    $result = $resultJson | ConvertFrom-Json
 
     $page = [System.IO.Path]::GetFullPath($result.page_path)
-    if (-not $page.StartsWith([System.IO.Path]::GetFullPath($vaultRoot))) {
+    $vaultPrefix = [System.IO.Path]::GetFullPath($vaultRoot).TrimEnd("\") + "\"
+    if (-not $page.StartsWith($vaultPrefix, [StringComparison]::OrdinalIgnoreCase)) {
         throw "Smoke collection escaped the disposable vault"
     }
-    if (-not (Test-Path -LiteralPath $page -PathType Leaf) -or $result.single_file -ne $true) {
-        throw "Smoke collection did not create one .hermes file"
+    $pageExists = Test-Path -LiteralPath $page -PathType Leaf
+    if (-not $pageExists -or $result.single_file -ne $true) {
+        throw (
+            "Smoke collection result invalid: page_exists={0}, single_file={1}, page={2}" -f
+            $pageExists, $result.single_file, $page
+        )
     }
     $offlinePage = Get-Content -Raw -Encoding UTF8 $page
     if (

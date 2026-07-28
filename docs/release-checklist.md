@@ -3,23 +3,27 @@
 ## Source
 
 - [ ] Working tree is clean and the release commit is on `main`.
-- [ ] Python, JavaScript, manifest, version, and package checks pass.
+- [ ] Python, JavaScript, manifest, version, package, frozen-service, and
+      installer checks pass.
 - [ ] No `.env`, virtual environment, logs, browser profile, database,
-      `.hermes`, screenshot, or media cache is tracked.
-- [ ] `CHANGELOG.md` and `release-manifest.json` describe the release.
+      `.hermes`, `.pagenest`, screenshot, or media cache is tracked or packaged.
+- [ ] `CHANGELOG.md`, `release-manifest.json`, README files, and release notes
+      describe the same versions and installation flow.
 
 ## Clean Windows smoke test
 
-- [ ] Extract the local-service package into a new directory.
-- [ ] Run `安装依赖.bat` with Python 3.11+.
-- [ ] Configure a new empty test vault and a new random token.
-- [ ] Start the service and open `/status`.
-- [ ] Load the unpacked browser extension.
-- [ ] Install and enable Hermes Page Viewer in the test vault.
+- [ ] Use a Windows 10/11 account without Python installed.
+- [ ] Verify and run `PageNest-Setup-1.7.4.exe` without administrator rights.
+- [ ] Select a disposable Unicode-path Obsidian vault containing `.obsidian`.
+- [ ] Confirm PageNest starts without a console and starts again after sign-in.
+- [ ] Load `%LOCALAPPDATA%\Programs\PageNest\Extension` in Edge and Chrome;
+      confirm no token entry is required.
+- [ ] Restart Obsidian and enable PageNest Viewer in the selected vault.
 - [ ] Save generic, CSDN, WeChat, Bilibili, and public Feishu test pages.
-- [ ] Disconnect the network and reopen the generated `.hermes` files.
-- [ ] Verify images, GIFs, supported video, links, and code copying.
-- [ ] Remove the disposable test vault and test configuration manually.
+- [ ] Disconnect the network and reopen `.pagenest` plus one legacy `.hermes`.
+- [ ] Verify images, GIFs, supported video, links, code folding, and copying.
+- [ ] Uninstall PageNest; confirm connection secrets are removed and collected
+      files in the vault remain.
 
 ## GitHub
 
@@ -31,10 +35,13 @@
 
 ## Release assets
 
-- [ ] Browser extension ZIP contains `manifest.json` at its root.
+- [ ] `PageNest-Setup-1.7.4.exe` contains the frozen service, extension folder,
+      and PageNest Viewer; it contains no runtime logs or local configuration.
+- [ ] The installer SHA-256 file matches the executable.
+- [ ] Browser extension ZIP contains `manifest.json` and
+      `connection-config.js` at its root.
 - [ ] Obsidian ZIP contains `main.js`, `manifest.json`, `styles.css`, and
       `versions.json` at its root.
-- [ ] Local-service ZIP contains source, requirements, `.env.example`, and
-      Windows launch scripts, but no environment or runtime data.
-- [ ] SHA-256 values match every ZIP.
-- [ ] All assets are attached before publishing the draft Release.
+- [ ] Optional source-service ZIP contains `.env.example`, not `.env`.
+- [ ] Windows installer signing and SmartScreen expectations are documented.
+- [ ] The Inno Setup compiler license is suitable for the intended distribution.

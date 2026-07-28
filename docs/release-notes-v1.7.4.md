@@ -1,35 +1,33 @@
-# Hermes Obsidian Web Collector v1.7.4
+# PageNest v1.7.4
 
-This release contains:
-
-- browser extension 1.7.4;
-- Windows local service 1.7.4;
-- Obsidian Page Viewer 1.3.0.
+This release contains browser extension 1.7.4, Windows local service 1.7.4,
+and PageNest Viewer 1.3.0.
 
 ## Highlights
 
-- Single-file `.hermes` offline collection with embedded images, GIFs, and
-  supported media.
+- Single-file `.pagenest` offline collections with embedded images, GIFs, and
+  supported media; legacy `.hermes` files remain readable.
 - Dedicated Feishu, WeChat, CSDN, and Bilibili capture paths.
 - Secure Obsidian iframe copy bridge without `allow-same-origin`.
-- Authenticated local API with restricted CORS and privacy-safe status output.
-- Guarded network downloads with SSRF, redirect, byte, count, and concurrency
-  limits.
+- Authenticated local API, restricted CORS, privacy-safe status output, guarded
+  downloads, and bounded resource usage.
 - Original content still saves when the optional organizer fails.
+- Per-user Windows installer with a bundled Python runtime, automatic local
+  token pairing, viewer installation, and sign-in startup.
 
 ## Install
 
-Install all three packages in this order:
+1. Verify `PageNest-Setup-1.7.4.exe` with its `.sha256` file, then run it and
+   select an Obsidian vault.
+2. In Edge or Chrome, load the unpacked extension from
+   `%LOCALAPPDATA%\Programs\PageNest\Extension`.
+3. Restart Obsidian and enable **PageNest Viewer** under Community plugins.
 
-1. `hermes-local-server-windows-v1.7.4.zip`
-2. `hermes-browser-extension-v1.7.4.zip`
-3. `hermes-obsidian-viewer-v1.3.0.zip`
-
-Follow the README inside the repository for configuration. Verify downloads
-against `SHA256SUMS.txt`.
+The separate extension, viewer, and source-service ZIP files are alternative
+manual/developer packages; normal Windows users need only the installer.
 
 ## Important
 
-Hermes Page Viewer is required for supported `.hermes` rendering in Obsidian.
-Do not share `local-server\.env`, collector tokens, private pages, or vault
-contents.
+PageNest Viewer is required for supported `.pagenest` rendering in Obsidian.
+Do not share installed `.env` files, connection configuration, collector tokens,
+private pages, logs, or vault contents.

@@ -18,12 +18,14 @@ future layout or protected resource will remain accessible.
   adapter.
 - DRM, encrypted streams, expiring signatures, strict anti-hotlinking, or
   resources that require a different browser session may not be downloadable.
-- Canvas and WebGL have no semantic HTML. Hermes preserves a visual capture when
+- Canvas and WebGL have no semantic HTML. PageNest preserves a visual capture
+  when
   it cannot reconstruct a table.
 - Very large articles or media are rejected by the documented resource limits.
 - Enabling local-network downloads weakens the default network boundary and
   should be used only for a trusted local page.
-- `.hermes` files need Hermes Page Viewer for supported Obsidian rendering.
+- `.pagenest` files need PageNest Viewer for supported Obsidian rendering;
+  legacy `.hermes` files remain readable.
 
 When reporting a regression, use a public test URL when possible and remove
 account names, vault paths, tokens, and private page content.

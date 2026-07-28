@@ -4,7 +4,11 @@ All notable user-facing changes are recorded here.
 
 ## Unreleased
 
-- No unreleased user-facing changes.
+- Rename the public product to PageNest and save new collections as `.pagenest`.
+- Keep PageNest Viewer compatible with collections previously saved as `.hermes`.
+- Add a per-user Windows installer that bundles the Python runtime and local
+  service, installs the viewer into a selected vault, preconfigures the browser
+  extension connection, and enables startup at Windows sign-in.
 
 ## 1.7.4 - 2026-07-27
 

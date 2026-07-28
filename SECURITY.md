@@ -37,8 +37,10 @@ Timelines for validation and disclosure depend on severity and fix complexity.
 - Keep the service bound to `127.0.0.1`; never expose port 8765 to a LAN or the
   internet.
 - Use a unique collector token of at least 24 random characters.
-- Never commit or share `local-server/.env`.
-- Treat captured webpages, filenames, metadata, and `.hermes` files as
+- Never commit or share a service `.env`, an installed
+  `Extension/connection-config.js`, or a collector token.
+- Treat captured webpages, filenames, metadata, `.pagenest`, and legacy
+  `.hermes` files as
   untrusted.
 - Keep local-network downloads disabled unless a trusted local page requires
   them.

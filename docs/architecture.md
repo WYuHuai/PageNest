@@ -1,6 +1,6 @@
 # Architecture and data flow
 
-Hermes keeps browser privileges, filesystem access, and offline rendering in
+PageNest keeps browser privileges, filesystem access, and offline rendering in
 separate components.
 
 ```mermaid
@@ -15,8 +15,8 @@ flowchart TD
     H --> R["Offline renderer"]
     N --> R
     O --> R
-    R --> F["Single .hermes file"]
-    F --> V["Obsidian Page Viewer"]
+    R --> F["Single .pagenest file"]
+    F --> V["PageNest Viewer"]
 ```
 
 ## Components
@@ -36,7 +36,8 @@ HTTP(S) page and sends structured data to the configured local service.
 
 ### Local service
 
-The Python 3.11 FastAPI service binds to `127.0.0.1:8765`.
+The FastAPI service binds to `127.0.0.1:8765`. The public Windows installer
+bundles its Python 3.11 runtime, so end users do not install Python.
 
 - `main.py`: authenticated HTTP endpoints and collection concurrency.
 - `models.py`: bounded request models.
@@ -52,8 +53,9 @@ content and downloaded images from being saved.
 
 ### Obsidian viewer
 
-The desktop-only plugin registers `.hermes` with Obsidian. It renders the file
-inside a sandboxed iframe without `allow-same-origin`. A random channel token
+The desktop-only plugin registers `.pagenest` and the legacy `.hermes`
+extension with Obsidian. It renders the file inside a sandboxed iframe without
+`allow-same-origin`. A random channel token
 authorizes copy requests for the current render.
 
 ## Trust boundaries
@@ -64,10 +66,10 @@ authorizes copy requests for the current render.
 | Extension → service | Bearer token, restricted CORS, bounded request models |
 | Service → network | HTTP(S)-only URL validation, DNS/IP checks, redirect checks, byte limits |
 | Service → vault | Resolved paths constrained to the configured vault |
-| `.hermes` → Obsidian | Sanitized HTML, restricted iframe, no remote images |
+| `.pagenest` → Obsidian | Sanitized HTML, restricted iframe, no remote images |
 | Service → AI endpoint | Disabled by default; user-configured endpoint and explicit mode |
 
-## `.hermes` document
+## `.pagenest` document
 
 The current format is a UTF-8 HTML document containing sanitized article
 markup, local styles, metadata, and embedded data URLs. It is intentionally

@@ -1,22 +1,22 @@
-# Hermes Obsidian Web Collector
+# PageNest
 
 [简体中文](README.zh-CN.md) · [Installation](#quick-start) ·
 [Supported sites](docs/supported-sites.md) ·
 [Architecture](docs/architecture.md) · [Roadmap](ROADMAP.md)
 
-Hermes is a local-first web collector for Windows, Edge/Chrome, and Obsidian.
-It captures an article in the browser, builds one self-contained `.hermes`
+PageNest is a local-first web collector for Windows, Edge/Chrome, and Obsidian.
+It captures an article in the browser, builds one self-contained `.pagenest`
 offline page through a local service, and opens that page safely in Obsidian.
 Optional organization works with OpenAI Chat Completions-compatible endpoints.
 
-> Hermes has three required components: a browser extension, a Windows local
+> PageNest has three required components: a browser extension, a Windows local
 > service, and an Obsidian page viewer. Installing only the browser extension is
 > not enough.
 
 ## What it does
 
 - Saves article text, layout, images, animated GIFs, links, and supported media
-  into one `.hermes` file without a sidecar asset folder.
+  into one `.pagenest` file without a sidecar asset folder.
 - Keeps embedded content readable after the source page disappears or the
   computer goes offline.
 - Preserves image positions, headings, code blocks, external repository links,
@@ -37,14 +37,14 @@ Optional organization works with OpenAI Chat Completions-compatible endpoints.
 ```mermaid
 flowchart LR
     E["Edge / Chrome extension"] -->|"Authenticated capture"| S["Local service<br/>127.0.0.1:8765"]
-    S -->|"One self-contained file"| V["Obsidian vault<br/>*.hermes"]
-    V --> P["Hermes Page Viewer"]
+    S -->|"One self-contained file"| V["Obsidian vault<br/>*.pagenest"]
+    V --> P["PageNest Viewer"]
     S -. "Optional" .-> A["OpenAI-compatible endpoint"]
 ```
 
 The extension reads the active page. The local service sanitizes the capture,
 downloads allowed resources, optionally organizes it, and writes the final
-file. The Obsidian plugin registers the `.hermes` extension and renders the
+file. The Obsidian plugin registers the `.pagenest` extension and renders the
 offline document inside a restricted iframe.
 
 See [Architecture and data flow](docs/architecture.md) for the security
@@ -55,58 +55,56 @@ boundaries.
 ### Requirements
 
 - Windows 10 or 11
-- Python 3.11 or newer
 - Microsoft Edge or Google Chrome
 - Obsidian 1.5.0 or newer
 
-### 1. Install the local service
+### 1. Run the Windows installer
 
-1. Download and extract the Windows local-service package.
-2. Run `安装依赖.bat`.
-3. Open `local-server\.env`.
-4. Set `OBSIDIAN_VAULT_PATH` to an absolute vault path.
-5. Generate a token in PowerShell:
+1. Download `PageNest-Setup-1.7.4.exe` and its `.sha256` file.
+2. Verify the checksum, then double-click the installer.
+3. Select an Obsidian vault that already contains a `.obsidian` folder.
 
-   ```powershell
-   [guid]::NewGuid().ToString("N")
-   ```
-
-6. Put the value in `LOCAL_COLLECTOR_TOKEN`.
-7. Run `启动网页收藏器.bat`.
-
-Never share or commit `local-server\.env`.
+The installer includes the Python runtime and local service, creates a random
+local token, preconfigures the bundled extension folder, installs PageNest
+Viewer into the selected vault, and enables local-service startup at sign-in.
+Users do not install Python or edit `.env` files.
 
 ### 2. Install the browser extension
 
 1. Open `edge://extensions/` or `chrome://extensions/`.
 2. Enable Developer mode.
-3. Extract the browser-extension package.
-4. Choose **Load unpacked** and select the extracted folder containing
-   `manifest.json`.
-5. Open the Hermes popup, expand connection settings, and enter
-   `http://127.0.0.1:8765` plus the same collector token.
-
-### 3. Install the Obsidian viewer
-
-1. Extract the viewer package to:
+3. Choose **Load unpacked** and select:
 
    ```text
-   <vault>\.obsidian\plugins\hermes-page-viewer\
+   %LOCALAPPDATA%\Programs\PageNest\Extension
    ```
 
-2. Confirm that the folder directly contains `main.js`, `manifest.json`, and
-   `styles.css`.
-3. Restart Obsidian and enable **Hermes Page Viewer** under Community plugins.
+4. Pin PageNest if desired. Its local connection is already configured.
 
-Without this plugin, Obsidian does not know how to open `.hermes` files.
+This unpacked step is temporary until PageNest is published in the browser
+stores.
 
-## The `.hermes` format
+### 3. Enable the Obsidian viewer
 
-A `.hermes` file is a sanitized, self-contained UTF-8 HTML document with
-embedded assets and Hermes metadata. It is not encrypted and is intended as an
+1. Restart Obsidian after running the installer.
+2. Open **Settings → Community plugins**.
+3. Enable **PageNest Viewer**.
+
+The installer has already copied the viewer into the selected vault. Without
+this plugin, Obsidian does not know how to render `.pagenest` files. Existing
+`.hermes` files remain supported for backward compatibility.
+
+## The `.pagenest` format
+
+A `.pagenest` file is a sanitized, self-contained UTF-8 HTML document with
+embedded assets and PageNest metadata. It is not encrypted and is intended as
+an
 offline collection artifact rather than an editable Markdown note.
 
-The custom extension lets Obsidian route the file to the restricted Hermes
+PageNest Viewer also registers the legacy `.hermes` extension, so
+collections created before the PageNest rename continue to open.
+
+The custom extension lets Obsidian route the file to the restricted PageNest
 viewer and leaves room for future format metadata. A copied file can usually be
 renamed to `.html` for emergency browser viewing, but the Obsidian viewer is the
 supported path.
@@ -125,7 +123,7 @@ Read the detailed [support matrix and limitations](docs/supported-sites.md).
 
 ## Browser permissions
 
-| Permission | Why Hermes needs it |
+| Permission | Why PageNest needs it |
 | --- | --- |
 | `activeTab`, `tabs` | Identify and capture the page the user explicitly opens |
 | `scripting` | Run the extractor and site adapter in that page |
@@ -135,7 +133,7 @@ Read the detailed [support matrix and limitations](docs/supported-sites.md).
 
 Captured content is sent only to the configured local service and, when the
 user selects an AI mode, to the organizer endpoint configured by that user.
-Hermes contains no telemetry or analytics.
+PageNest contains no telemetry or analytics.
 
 ## Security model
 

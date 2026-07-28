@@ -1,10 +1,10 @@
 <!doctype html>
-<html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Hermes Obsidian Web Collector 安装说明</title>
+<html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>PageNest 安装说明</title>
 <style>body{font:17px system-ui;line-height:1.75;max-width:900px;margin:40px auto;padding:20px;color:#17203b}section{padding:18px 24px;border:1px solid #dce2f1;border-radius:16px;margin:18px 0}code{background:#eef1f8;padding:3px 7px;border-radius:5px;word-break:break-all}.ok{color:#087f5b}</style></head><body>
-<h1>Hermes Obsidian Web Collector</h1>
-<section><h2>1. 配置并启动</h2><p>双击“安装依赖.bat”，打开 <code>local-server\.env</code>，填写 Obsidian 仓库路径和至少 24 位随机收藏器令牌，然后双击“启动网页收藏器.bat”。</p></section>
-<section><h2>2. Edge / Chrome 扩展</h2><ol><li>打开 <code>edge://extensions/</code> 或 <code>chrome://extensions/</code>。</li><li>开启开发人员模式。</li><li>加载本项目的 <code>extension</code> 文件夹。</li><li>在扩展“连接设置”中填写本地服务地址和相同令牌。</li></ol></section>
-<section><h2>3. 智能整理</h2><p>需要时填写一个 OpenAI 兼容接口的 Base URL、模型名称和 API Key。快速模式只分析文字；深度模式额外分析最多 8 张图片；仅保存原文不会调用模型。</p></section>
-<section><h2>4. Obsidian 查看器</h2><p>将 <code>obsidian-plugin\hermes-page-viewer</code> 复制到仓库的 <code>.obsidian\plugins\hermes-page-viewer</code>，重启 Obsidian 后在第三方插件中启用。</p></section>
-<section><h2>5. 收藏结果</h2><p>每篇网页只生成一个 <code>.hermes</code> 文件，正文与成功下载的图片都封装在其中。</p><p class="ok">页面断网可读；原网站删除后，已成功内嵌的内容仍然存在。</p></section>
+<h1>PageNest</h1>
+<section><h2>1. 运行安装程序</h2><p>双击 <code>PageNest-Setup-1.7.4.exe</code>，选择一个已经包含 <code>.obsidian</code> 文件夹的 Obsidian 知识库。安装包已包含 Python 运行环境和本地服务，无需另外安装 Python 或填写令牌。</p></section>
+<section><h2>2. Edge / Chrome 扩展</h2><ol><li>打开 <code>edge://extensions/</code> 或 <code>chrome://extensions/</code>。</li><li>开启开发人员模式。</li><li>加载 <code>%LOCALAPPDATA%\Programs\PageNest\Extension</code> 文件夹。</li></ol><p>连接信息已由安装程序配置。</p></section>
+<section><h2>3. Obsidian 查看器</h2><p>重启 Obsidian，在“设置 → 第三方插件”中启用 <strong>PageNest Viewer</strong>。安装程序已把查看器复制到所选知识库。</p></section>
+<section><h2>可选：智能整理</h2><p>需要时在扩展中填写 OpenAI 兼容接口。快速模式只分析文字；深度模式额外分析最多 8 张图片；仅保存原文不会调用模型。</p></section>
+<section><h2>收藏结果</h2><p>每篇网页生成一个 <code>.pagenest</code> 文件，正文与成功下载的图片都封装在其中；旧 <code>.hermes</code> 文件仍可由 PageNest Viewer 打开。</p><p class="ok">页面断网可读；原网站删除后，已成功内嵌的内容仍然存在。</p></section>
 </body></html>

@@ -1,20 +1,20 @@
-# Hermes Obsidian Web Collector
+# PageNest
 
 [English](README.md) · [快速安装](#快速安装) ·
 [支持网站](docs/supported-sites.md) ·
 [技术架构](docs/architecture.md) · [路线图](ROADMAP.md)
 
-Hermes 是面向 Windows、Edge/Chrome 和 Obsidian 的本地优先网页收藏工具。
-它在浏览器中采集文章，通过本地服务生成单个自包含 `.hermes` 离线页面，
+PageNest 是面向 Windows、Edge/Chrome 和 Obsidian 的本地优先网页收藏工具。
+它在浏览器中采集文章，通过本地服务生成单个自包含 `.pagenest` 离线页面，
 再由 Obsidian 查看器安全打开。智能整理是可选功能，可连接 OpenAI Chat
 Completions 兼容接口。
 
-> Hermes 由三个必要组件组成：浏览器扩展、Windows 本地服务、Obsidian
+> PageNest 由三个必要组件组成：浏览器扩展、Windows 本地服务、Obsidian
 > 查看器。只安装浏览器扩展不能完成收藏和阅读。
 
 ## 主要功能
 
-- 将正文、排版、图片、GIF、链接和支持的视频保存到单个 `.hermes` 文件。
+- 将正文、排版、图片、GIF、链接和支持的视频保存到单个 `.pagenest` 文件。
 - 原网页失效或断网后，已嵌入内容仍可阅读。
 - 保留图片原位、标题层级、代码块、外部仓库链接和独立收藏备注。
 - 支持普通文章，并为飞书、微信、CSDN 和 B站提供专用适配。
@@ -29,13 +29,13 @@ Completions 兼容接口。
 ```mermaid
 flowchart LR
     E["Edge / Chrome 扩展"] -->|"带令牌的采集数据"| S["本地服务<br/>127.0.0.1:8765"]
-    S -->|"单个自包含文件"| V["Obsidian 仓库<br/>*.hermes"]
-    V --> P["Hermes Page Viewer"]
+    S -->|"单个自包含文件"| V["Obsidian 仓库<br/>*.pagenest"]
+    V --> P["PageNest Viewer"]
     S -. "可选" .-> A["OpenAI 兼容接口"]
 ```
 
 扩展负责读取当前网页，本地服务负责清理、下载、整理和写入文件，Obsidian
-插件负责注册 `.hermes` 扩展名并在受限 iframe 中显示离线页面。
+插件负责注册 `.pagenest` 扩展名并在受限 iframe 中显示离线页面。
 
 详细边界见[架构与数据流](docs/architecture.md)。
 
@@ -44,56 +44,52 @@ flowchart LR
 ### 环境要求
 
 - Windows 10 或 11
-- Python 3.11 或更高版本
 - Microsoft Edge 或 Google Chrome
 - Obsidian 1.5.0 或更高版本
 
-### 1. 安装本地服务
+### 1. 双击 Windows 安装程序
 
-1. 下载并解压 Windows 本地服务安装包。
-2. 双击 `安装依赖.bat`。
-3. 打开 `local-server\.env`。
-4. 将 `OBSIDIAN_VAULT_PATH` 设置为 Obsidian 仓库绝对路径。
-5. 在 PowerShell 生成令牌：
+1. 下载 `PageNest-Setup-1.7.4.exe` 和对应的 `.sha256` 文件。
+2. 核对校验值后双击安装程序。
+3. 选择一个已经包含 `.obsidian` 文件夹的 Obsidian 知识库。
 
-   ```powershell
-   [guid]::NewGuid().ToString("N")
-   ```
-
-6. 将令牌填入 `LOCAL_COLLECTOR_TOKEN`。
-7. 双击 `启动网页收藏器.bat`。
-
-不要提交或分享真实的 `local-server\.env`。
+安装程序已经封装 Python 运行环境和本地服务，会自动生成随机连接令牌、配置
+扩展目录、把 PageNest Viewer 安装到所选知识库，并默认设置为登录 Windows 后
+启动。普通用户无需安装 Python，也不用手工编辑 `.env`。
 
 ### 2. 安装浏览器扩展
 
 1. 打开 `edge://extensions/` 或 `chrome://extensions/`。
 2. 开启“开发人员模式”。
-3. 解压浏览器扩展安装包。
-4. 点击“加载解压缩的扩展”，选择含 `manifest.json` 的目录。
-5. 打开 Hermes 弹窗，在连接设置中填写 `http://127.0.0.1:8765`
-   和相同的收藏器令牌。
-
-### 3. 安装 Obsidian 查看器
-
-1. 将查看器解压到：
+3. 点击“加载解压缩的扩展”，选择：
 
    ```text
-   <仓库>\.obsidian\plugins\hermes-page-viewer\
+   %LOCALAPPDATA%\Programs\PageNest\Extension
    ```
 
-2. 确认目录中直接包含 `main.js`、`manifest.json` 和 `styles.css`。
-3. 重启 Obsidian，在“第三方插件”中启用 **Hermes Page Viewer**。
+4. 按需把 PageNest 固定到工具栏；本地服务连接已经配置完成。
 
-没有安装这个插件时，Obsidian 不认识 `.hermes` 文件。
+浏览器商店正式上架前暂时采用解压缩扩展方式。
 
-## `.hermes` 是什么
+### 3. 在 Obsidian 中启用查看器
 
-`.hermes` 是经过清理的 UTF-8 自包含 HTML 文档，图片和支持的媒体直接嵌在
+1. 运行安装程序后重启 Obsidian。
+2. 打开“设置 → 第三方插件”。
+3. 启用 **PageNest Viewer**。
+
+安装程序已经把查看器复制到所选知识库。没有启用查看器时，Obsidian 不知道
+怎样显示 `.pagenest` 文件。旧版生成的 `.hermes` 文件仍可继续打开。
+
+## `.pagenest` 是什么
+
+`.pagenest` 是经过清理的 UTF-8 自包含 HTML 文档，图片和支持的媒体直接嵌在
 文件内。它不是加密格式，更接近“离线收藏成品”，而不是用于继续编辑的
 Markdown 笔记。
 
-独立扩展名让 Obsidian 可以调用受限的 Hermes 查看器，也为将来的格式版本和
+PageNest Viewer 同时注册旧 `.hermes` 扩展名，因此改名前保存的收藏仍可
+打开。
+
+独立扩展名让 Obsidian 可以调用受限的 PageNest Viewer，也为将来的格式版本和
 索引信息留出空间。应急时可以复制一份并改名为 `.html` 使用浏览器打开，但
 Obsidian 查看器才是正式支持的阅读方式。
 

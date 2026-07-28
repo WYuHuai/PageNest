@@ -1,6 +1,6 @@
 # Code of Conduct
 
-Hermes welcomes people who participate in good faith.
+PageNest welcomes people who participate in good faith.
 
 ## Expected behavior
 

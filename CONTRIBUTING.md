@@ -1,6 +1,6 @@
 # Contributing
 
-Thank you for helping improve Hermes. Keep changes focused, reviewable, and
+Thank you for helping improve PageNest. Keep changes focused, reviewable, and
 backed by a test or a reproducible manual check.
 
 ## Before opening an issue
@@ -55,5 +55,5 @@ and verify the real browser or Obsidian state.
 - Explain the problem, root cause, test coverage, and remaining risk.
 - Update documentation when installation, permissions, format, compatibility,
   or supported-site behavior changes.
-- Do not include `.env`, vault data, logs, generated `.hermes` pages, browser
-  profiles, media caches, or machine-specific paths.
+- Do not include `.env`, vault data, logs, generated `.pagenest` or legacy
+  `.hermes` pages, browser profiles, media caches, or machine-specific paths.

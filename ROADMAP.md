@@ -5,11 +5,11 @@ new features.
 
 ## Release readiness
 
-- Reproducible packages for the browser extension, Obsidian viewer, and Windows
-  local service.
-- Clean Windows installation smoke test.
-- Version compatibility checks and actionable update guidance.
-- Public documentation, issue templates, and private vulnerability reporting.
+- Run the complete installer flow on a clean Windows 10/11 machine without
+  Python installed.
+- Add Authenticode signing and document Windows SmartScreen expectations.
+- Finish version update guidance, public repository metadata, and private
+  vulnerability reporting before the first public release.
 
 ## Collection quality
 
@@ -17,12 +17,12 @@ new features.
    anomalies.
 2. Retry only failed images or media instead of saving the entire article again.
 3. Update an existing collection while preserving the personal note.
-4. Switch between source-like and clean-reading modes inside one `.hermes` file.
+4. Switch between source-like and clean-reading modes inside one `.pagenest` file.
 5. Prefer copyable HTML tables for Feishu Canvas tables, with image fallback.
 
 ## Library experience
 
-1. Build a local full-text index for `.hermes` without generating Markdown
+1. Build a local full-text index for `.pagenest` without generating Markdown
    sidecars.
 2. Filter collections by source, date, tag, folder, failure state, and duplicate
    URL.

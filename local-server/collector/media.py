@@ -74,7 +74,7 @@ async def _download_direct(item: MediaInput, article_url: str) -> tuple[bytes, s
         raise ValueError("播放器只暴露了 blob 流，需使用页面视频提取")
     headers = {
         "Referer": article_url,
-        "User-Agent": "Mozilla/5.0 HermesObsidianCollector/1.0",
+        "User-Agent": "Mozilla/5.0 PageNestWebCollector/1.7.4",
     }
     timeout = httpx.Timeout(60, connect=8, pool=8)
     async with httpx.AsyncClient(timeout=timeout, follow_redirects=False, headers=headers) as client:

@@ -147,9 +147,9 @@ async def call_hermes(article: ArticleInput, images: list[dict]) -> tuple[Hermes
                             messages.append({"role": "user", "content": "上一个回复不是合法结构，请只返回修复后的合法 JSON。"})
             return None, raw, perf_counter() - started, "智能整理返回内容未通过结构校验"
     except TimeoutError:
-        return None, raw, perf_counter() - started, f"Hermes 整理超过 {total_timeout} 秒，离线页面已保留"
+        return None, raw, perf_counter() - started, f"PageNest 整理超过 {total_timeout} 秒，离线页面已保留"
     except Exception as exc:
-        return None, raw, perf_counter() - started, f"Hermes 调用失败：{type(exc).__name__}: {exc}"
+        return None, raw, perf_counter() - started, f"PageNest 调用失败：{type(exc).__name__}: {exc}"
 
 
 async def probe_connection(api_url: str, api_key: str, model_name: str) -> dict:

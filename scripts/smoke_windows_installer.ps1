@@ -19,6 +19,7 @@ $workspace = Join-Path $tempParent "pagenest-installer-smoke-$([guid]::NewGuid()
 $installRoot = Join-Path $workspace "app"
 $vaultName = [string]([char]0x4E2D) + [char]0x6587 + [char]0x77E5 + [char]0x8BC6 + [char]0x5E93
 $vault = Join-Path $workspace $vaultName
+$setupLog = Join-Path $workspace "setup.log"
 New-Item -ItemType Directory -Path (Join-Path $vault ".obsidian") -Force | Out-Null
 
 $serviceProcess = $null
@@ -29,12 +30,16 @@ try {
         '/SUPPRESSMSGBOXES',
         '/NORESTART',
         '/NOICONS',
+        "/LOG=`"$setupLog`"",
         '/NOSTART=1',
         "/DIR=`"$installRoot`"",
         "/VAULT=`"$vault`""
     )
     $setup = Start-Process -FilePath $installerPath -ArgumentList $setupArguments -Wait -PassThru
     if ($setup.ExitCode -ne 0) {
+        if (Test-Path -LiteralPath $setupLog) {
+            Get-Content -LiteralPath $setupLog -Tail 80 | Write-Output
+        }
         throw "Installer failed with exit code $($setup.ExitCode)"
     }
 

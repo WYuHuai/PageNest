@@ -9,6 +9,20 @@ import uvicorn
 from collector.main import app
 
 
+def usable_standard_stream(stream):
+    """Return a stream safe for libraries that call isatty()."""
+    if stream is not None:
+        return stream
+    return open(os.devnull, "w", encoding="utf-8")
+
+
+def configure_standard_streams() -> None:
+    # PyInstaller's --noconsole mode sets these to None. Uvicorn's formatter
+    # expects real streams even when its own log config is disabled.
+    sys.stdout = usable_standard_stream(sys.stdout)
+    sys.stderr = usable_standard_stream(sys.stderr)
+
+
 def service_port() -> int:
     port = int(os.getenv("PAGENEST_PORT", "8765"))
     if not 1 <= port <= 65535:
@@ -32,7 +46,8 @@ def frozen_logging() -> dict:
     return {"log_config": None}
 
 
-if __name__ == "__main__":
+def main() -> None:
+    configure_standard_streams()
     uvicorn.run(
         app,
         host="127.0.0.1",
@@ -40,3 +55,7 @@ if __name__ == "__main__":
         reload=False,
         **frozen_logging(),
     )
+
+
+if __name__ == "__main__":
+    main()

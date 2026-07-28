@@ -56,9 +56,13 @@ async def ai_settings(_: None = Depends(auth)):
 
 @app.post("/api/ai-settings")
 async def update_ai_settings(payload: OrganizerSettingsInput, _: None = Depends(auth)):
-    api_key = settings.hermes_api_key if payload.api_key is None else payload.api_key.strip()
+    api_key = (
+        settings.hermes_api_key if payload.api_key is None else payload.api_key.strip()
+    )
     if payload.api_url.strip():
-        connection = await probe_connection(payload.api_url.strip().rstrip("/"), api_key, payload.model_name.strip())
+        connection = await probe_connection(
+            payload.api_url.strip().rstrip("/"), api_key, payload.model_name.strip()
+        )
         if not connection["online"]:
             raise HTTPException(400, connection["message"])
     try:
@@ -89,7 +93,7 @@ async def folders(_: None = Depends(auth)):
 async def status_page():
     vault = settings.vault
     vault_ready = bool(vault and vault.is_dir())
-    return f'''<!doctype html>
+    return f"""<!doctype html>
 <html lang="zh-CN">
 <meta charset="utf-8">
 <title>网页收藏器状态</title>
@@ -108,10 +112,10 @@ b {{ color: #9ddcff; }}
 <h1>Hermes Obsidian 网页收藏器</h1>
 <section>
   <p>本地服务：<b>正常</b></p>
-  <p>Obsidian 仓库：<b>{'已配置' if vault_ready else '未配置'}</b></p>
-  <p>智能整理：<b>{'已配置' if settings.hermes_api_url else '未配置'}</b></p>
+  <p>Obsidian 仓库：<b>{"已配置" if vault_ready else "未配置"}</b></p>
+  <p>智能整理：<b>{"已配置" if settings.hermes_api_url else "未配置"}</b></p>
 </section>
-</html>'''
+</html>"""
 
 
 @app.post("/api/collect")
@@ -139,14 +143,18 @@ async def collect_api(
     except ValueError as exc:
         raise HTTPException(400, str(exc))
     except Exception as exc:
-        raise HTTPException(500, f"文章已尽量保留，但处理发生异常：{type(exc).__name__}: {exc}")
+        raise HTTPException(
+            500, f"文章已尽量保留，但处理发生异常：{type(exc).__name__}: {exc}"
+        )
 
 
 @app.post("/api/open-folder")
 async def open_folder(payload: dict, _: None = Depends(auth)):
     vault = settings.vault
     target = Path(payload.get("path", "")).resolve()
-    if not vault or (target != vault and vault not in target.parents): raise HTTPException(400, "拒绝打开仓库外路径")
-    subprocess.Popen(["explorer.exe", str(target if target.is_dir() else target.parent)])
+    if not vault or (target != vault and vault not in target.parents):
+        raise HTTPException(400, "拒绝打开仓库外路径")
+    subprocess.Popen(
+        ["explorer.exe", str(target if target.is_dir() else target.parent)]
+    )
     return {"ok": True}
-

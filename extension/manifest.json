@@ -5,6 +5,20 @@
   "description": "提取网页正文和图片，保存为 Obsidian 单文件离线页面，并可选使用 OpenAI 兼容接口整理。",
   "permissions": ["activeTab", "scripting", "storage", "tabs", "clipboardWrite"],
   "host_permissions": ["http://127.0.0.1:8765/*", "http://localhost:8765/*", "<all_urls>"],
-  "action": {"default_title": "保存到 Obsidian", "default_popup": "popup.html"}
+  "icons": {
+    "16": "icons/icon16.png",
+    "32": "icons/icon32.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  },
+  "action": {
+    "default_title": "保存到 Obsidian",
+    "default_popup": "popup.html",
+    "default_icon": {
+      "16": "icons/icon16.png",
+      "32": "icons/icon32.png",
+      "48": "icons/icon48.png",
+      "128": "icons/icon128.png"
+    }
+  }
 }
-

@@ -1,0 +1,9 @@
+{
+    "id":  "pagenest-viewer",
+    "name":  "PageNest Viewer",
+    "version":  "1.3.0",
+    "minAppVersion":  "1.5.0",
+    "description":  "在 Obsidian 内安全显示 PageNest 单文件离线网页。",
+    "author":  "PageNest",
+    "isDesktopOnly":  true
+}

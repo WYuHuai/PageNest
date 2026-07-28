@@ -16,9 +16,9 @@ if (-not (Test-Path -LiteralPath $releaseRoot -PathType Container)) {
     throw "Release directory does not exist: $releaseRoot"
 }
 
-$extensionZip = Join-Path $releaseRoot "hermes-browser-extension-v$($metadata.components.browser_extension).zip"
-$viewerZip = Join-Path $releaseRoot "hermes-obsidian-viewer-v$($metadata.components.obsidian_viewer).zip"
-$serverZip = Join-Path $releaseRoot "hermes-local-server-windows-v$($metadata.components.local_server).zip"
+$extensionZip = Join-Path $releaseRoot "pagenest-browser-extension-v$($metadata.components.browser_extension).zip"
+$viewerZip = Join-Path $releaseRoot "pagenest-obsidian-viewer-v$($metadata.components.obsidian_viewer).zip"
+$serverZip = Join-Path $releaseRoot "pagenest-local-server-windows-v$($metadata.components.local_server).zip"
 foreach ($archive in @($extensionZip, $viewerZip, $serverZip)) {
     if (-not (Test-Path -LiteralPath $archive -PathType Leaf)) {
         throw "Missing release archive: $archive"
@@ -205,7 +205,7 @@ try {
         $offlinePage -notmatch "print\('hermes'\)" -or
         $offlinePage -notmatch "Disposable clean-install verification"
     ) {
-        throw "Generated .hermes page is missing expected offline content"
+        throw "Generated .pagenest page is missing expected offline content"
     }
 
     Write-Output "Windows release smoke passed"

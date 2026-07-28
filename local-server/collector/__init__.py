@@ -1,2 +1,2 @@
-"""Hermes Obsidian Web Collector local service."""
+"""PageNest Web Collector local service."""
 

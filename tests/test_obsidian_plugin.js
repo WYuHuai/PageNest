@@ -3,6 +3,7 @@ const Module = require("node:module");
 const path = require("node:path");
 
 let viewFactory;
+let registeredExtensions;
 let frame;
 let copiedText = "";
 let refreshHandler;
@@ -47,7 +48,7 @@ class Plugin {
     viewFactory = factory;
   }
 
-  registerExtensions() {}
+  registerExtensions(extensions) { registeredExtensions = extensions; }
   register() {}
   addCommand() {}
 }
@@ -61,13 +62,14 @@ Module._load = function (request, parent, isMain) {
   return originalLoad.call(this, request, parent, isMain);
 };
 
-const pluginPath = path.resolve(__dirname, "../obsidian-plugin/hermes-page-viewer/main.js");
+const pluginPath = path.resolve(__dirname, "../obsidian-plugin/pagenest-viewer/main.js");
 const HermesPageViewerPlugin = require(pluginPath);
 Module._load = originalLoad;
 
 const plugin = new HermesPageViewerPlugin();
 plugin.onload();
 assert.equal(typeof viewFactory, "function");
+assert.deepEqual(registeredExtensions, ["pagenest", "hermes"]);
 
 const refresh = {
   addEventListener(type, listener) {

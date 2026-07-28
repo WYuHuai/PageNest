@@ -30,7 +30,7 @@ async def test_single_offline_page_and_duplicate(tmp_path: Path, monkeypatch):
     vault_writes = []
 
     def track_write(path, *args, **kwargs):
-        if path.suffix == ".hermes":
+        if path.suffix == ".pagenest":
             vault_writes.append(path)
         return real_write_text(path, *args, **kwargs)
 
@@ -42,7 +42,7 @@ async def test_single_offline_page_and_duplicate(tmp_path: Path, monkeypatch):
     first = await collect(article(images=[ImageInput(resolved_url=PNG, width=100, height=100)], category='各类学习知识/机器人'))
     page = Path(first['page_path'])
     rendered = page.read_text('utf-8')
-    assert page.suffix == '.hermes' and page.parent == vault/'各类学习知识'/'机器人'
+    assert page.suffix == '.pagenest' and page.parent == vault/'各类学习知识'/'机器人'
     assert list(page.parent.iterdir()) == [page]
     assert 'data:image/png;base64,' in rendered
     assert rendered.index('图片之前') < rendered.index('data:image/png;base64,') < rendered.index('图片之后')

@@ -9,7 +9,7 @@ from pathlib import Path, PurePosixPath
 
 ROOT = Path(__file__).resolve().parents[1]
 FIXED_ZIP_TIME = (2026, 7, 27, 0, 0, 0)
-PLUGIN_DIR = PurePosixPath("obsidian-plugin/hermes-page-viewer")
+PLUGIN_DIR = PurePosixPath("obsidian-plugin/pagenest-viewer")
 PLUGIN_FILES = ("main.js", "manifest.json", "styles.css", "versions.json")
 SERVER_FILES = (
     "local-server/.env.example",
@@ -37,6 +37,7 @@ DENIED_PARTS = {
 DENIED_NAMES = {"cookies", "history", "login data", "web data", "local state"}
 DENIED_SUFFIXES = {
     ".hermes",
+    ".pagenest",
     ".db",
     ".sqlite",
     ".sqlite3",
@@ -81,8 +82,8 @@ def tracked_files(root: Path = ROOT) -> set[PurePosixPath]:
 def validate_version_metadata(root: Path = ROOT) -> dict:
     release = load_json(root / "release-manifest.json")
     extension = load_json(root / "extension" / "manifest.json")
-    viewer = load_json(root / "obsidian-plugin" / "hermes-page-viewer" / "manifest.json")
-    versions = load_json(root / "obsidian-plugin" / "hermes-page-viewer" / "versions.json")
+    viewer = load_json(root / "obsidian-plugin" / "pagenest-viewer" / "manifest.json")
+    versions = load_json(root / "obsidian-plugin" / "pagenest-viewer" / "versions.json")
     server_source = (root / "local-server" / "collector" / "main.py").read_text("utf-8")
     server_match = re.search(r'FastAPI\([^)]*version="([^"]+)"', server_source)
     if not server_match:
@@ -210,9 +211,9 @@ def build_release(output_root: Path | None = None) -> list[Path]:
             raise ValueError(f"Release source is missing: {source}")
 
     packages = [
-        output / f"hermes-browser-extension-v{components['browser_extension']}.zip",
-        output / f"hermes-obsidian-viewer-v{components['obsidian_viewer']}.zip",
-        output / f"hermes-local-server-windows-v{components['local_server']}.zip",
+        output / f"pagenest-browser-extension-v{components['browser_extension']}.zip",
+        output / f"pagenest-obsidian-viewer-v{components['obsidian_viewer']}.zip",
+        output / f"pagenest-local-server-windows-v{components['local_server']}.zip",
     ]
     for package, files in zip(packages, (extension_files, plugin_files, server_files)):
         write_zip(package, files)
@@ -234,7 +235,7 @@ def build_release(output_root: Path | None = None) -> list[Path]:
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="Build verified Hermes release archives")
+    parser = argparse.ArgumentParser(description="Build verified PageNest release archives")
     parser.add_argument(
         "--output",
         type=Path,

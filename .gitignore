@@ -41,6 +41,7 @@ Local State
 
 # Collected pages, downloaded media and release outputs
 *.hermes
+*.pagenest
 *.mp4
 *.webm
 *.mov

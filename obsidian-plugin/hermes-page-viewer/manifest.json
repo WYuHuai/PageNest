@@ -1,9 +1,0 @@
-{
-  "id": "hermes-page-viewer",
-  "name": "离线网页查看器",
-  "version": "1.3.0",
-  "minAppVersion": "1.5.0",
-  "description": "在 Obsidian 内安全显示 Hermes 单文件离线网页。",
-  "author": "Obsidian Web Collector",
-  "isDesktopOnly": true
-}

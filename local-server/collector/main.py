@@ -14,7 +14,7 @@ from .request_limits import RequestSizeLimitMiddleware
 from .storage import collect
 from .vault import DEFAULT_CATEGORY, list_vault_folders
 
-app = FastAPI(title="Hermes Obsidian Web Collector", version="1.7.4")
+app = FastAPI(title="PageNest Web Collector", version="1.7.4")
 app.add_middleware(RequestSizeLimitMiddleware, max_bytes=MAX_REQUEST_BYTES)
 app.add_middleware(
     CORSMiddleware,
@@ -109,7 +109,7 @@ body {{
 section {{ background: #1b2140; padding: 20px; border-radius: 16px; }}
 b {{ color: #9ddcff; }}
 </style>
-<h1>Hermes Obsidian 网页收藏器</h1>
+<h1>PageNest 网页收藏器</h1>
 <section>
   <p>本地服务：<b>正常</b></p>
   <p>Obsidian 仓库：<b>{"已配置" if vault_ready else "未配置"}</b></p>

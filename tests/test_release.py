@@ -27,6 +27,7 @@ def test_release_versions_are_consistent():
         "logs/server.log",
         "test-output/profile/History",
         "private.hermes",
+        "private.pagenest",
         "video.mp4",
     ],
 )

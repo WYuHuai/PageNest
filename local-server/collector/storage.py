@@ -26,6 +26,10 @@ from .security import inside_vault, safe_title
 from .vault import DEFAULT_CATEGORY, require_vault_folder, select_vault_folder
 
 
+PAGE_SUFFIX = ".pagenest"
+SUPPORTED_PAGE_SUFFIXES = (PAGE_SUFFIX, ".hermes")
+
+
 
 
 def normalize_url(url: str) -> str:
@@ -50,7 +54,12 @@ def _find_duplicate(
         if target_category
         else None
     )
-    for page in vault.glob("**/*.hermes"):
+    pages = (
+        page
+        for suffix in SUPPORTED_PAGE_SUFFIXES
+        for page in vault.glob(f"**/*{suffix}")
+    )
+    for page in pages:
         try:
             if target_folder is not None and page.parent.resolve() != target_folder:
                 continue
@@ -77,10 +86,10 @@ def _find_duplicate(
 
 
 def _unique_page(parent: Path, base: str) -> Path:
-    page = parent / f"{base}.hermes"
+    page = parent / f"{base}{PAGE_SUFFIX}"
     index = 2
     while page.exists():
-        page = parent / f"{base}_{index}.hermes"
+        page = parent / f"{base}_{index}{PAGE_SUFFIX}"
         index += 1
     return page
 

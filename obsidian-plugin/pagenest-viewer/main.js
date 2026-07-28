@@ -1,7 +1,7 @@
 const { Plugin, TextFileView } = require("obsidian");
 const { randomBytes } = require("node:crypto");
 
-const VIEW_TYPE = "hermes-page-view";
+const VIEW_TYPE = "pagenest-page-view";
 const COPY_MESSAGE = "hermes-copy";
 const COPY_CHANNEL_BYTES = 32;
 const MAX_COPY_LENGTH = 5 * 1024 * 1024;
@@ -34,7 +34,7 @@ class HermesPageView extends TextFileView {
   }
 
   getDisplayText() {
-    return this.file?.basename || "Hermes 离线页面";
+    return this.file?.basename || "PageNest 离线页面";
   }
 
   getIcon() {
@@ -111,7 +111,7 @@ class HermesPageView extends TextFileView {
 module.exports = class HermesPageViewerPlugin extends Plugin {
   hideFileTypeBadges() {
     document.querySelectorAll(".nav-file-tag").forEach((badge) => {
-      if (badge.textContent?.trim().toLowerCase() === "hermes") {
+      if (["pagenest", "hermes"].includes(badge.textContent?.trim().toLowerCase())) {
         badge.style.setProperty("display", "none", "important");
         badge.setAttribute("aria-hidden", "true");
       }
@@ -120,7 +120,7 @@ module.exports = class HermesPageViewerPlugin extends Plugin {
 
   async onload() {
     this.registerView(VIEW_TYPE, (leaf) => new HermesPageView(leaf));
-    this.registerExtensions(["hermes"], VIEW_TYPE);
+    this.registerExtensions(["pagenest", "hermes"], VIEW_TYPE);
     this.app.workspace.onLayoutReady(() => {
       this.hideFileTypeBadges();
       this.badgeObserver = new MutationObserver(() => this.hideFileTypeBadges());

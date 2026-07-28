@@ -39,6 +39,7 @@
 
 
 /* The extension badge is a file-type hint, not the configured AI provider. */
+.nav-file-title[data-path$=".pagenest"] .nav-file-tag,
 .nav-file-title[data-path$=".hermes"] .nav-file-tag {
   display: none;
 }

@@ -1,6 +1,6 @@
 {
   "manifest_version": 3,
-  "name": "Hermes Obsidian Collector",
+  "name": "PageNest Web Collector",
   "version": "1.7.4",
   "description": "提取网页正文和图片，保存为 Obsidian 单文件离线页面，并可选使用 OpenAI 兼容接口整理。",
   "permissions": ["activeTab", "scripting", "storage", "tabs", "clipboardWrite"],

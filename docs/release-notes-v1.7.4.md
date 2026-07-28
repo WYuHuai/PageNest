@@ -13,7 +13,8 @@ and PageNest Viewer 1.3.0.
   downloads, and bounded resource usage.
 - Original content still saves when the optional organizer fails.
 - Per-user Windows installer with a bundled Python runtime, automatic local
-  token pairing, viewer installation, and sign-in startup.
+  token pairing for its bundled unpacked extension, viewer installation, and
+  sign-in startup.
 
 ## Install
 

@@ -84,7 +84,10 @@ Users do not install Python or edit `.env` files.
 4. Pin PageNest if desired. Its local connection is already configured.
 
 This unpacked step is temporary until PageNest is published in the browser
-stores.
+stores. The bundled unpacked extension receives its token from the installer.
+A store-installed copy can pair automatically only after the final installer is
+built with the fixed Chrome/Edge extension IDs; the current pre-public store kit
+must not be advertised as a three-step install until those IDs are configured.
 
 ### 3. Enable the Obsidian viewer
 

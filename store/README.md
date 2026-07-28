@@ -7,11 +7,19 @@ Before submission:
 
 1. Replace every `<GITHUB_OWNER>` placeholder after the public repository exists.
 2. Publish `PRIVACY.md` at a stable public HTTPS URL.
-3. Install PageNest on a clean Windows 10/11 machine and follow
-   `reviewer-notes.md` exactly.
-4. Review the current store policies and complete the developer-account identity
-   checks.
-5. Upload the generated ZIP and the assets under `store/assets/`.
+3. Create unpublished Chrome and Edge drafts to obtain their fixed extension
+   IDs. Do not publish either draft yet.
+4. Rebuild the installer with both IDs, for example:
+
+   ```powershell
+   powershell -ExecutionPolicy Bypass -File scripts\build_windows_installer.ps1 `
+     -ExtensionIds "<CHROME_ID>,<EDGE_ID>"
+   ```
+
+5. Confirm automatic pairing and the full flow on a clean Windows 10/11 machine
+   by following `reviewer-notes.md` exactly.
+6. Review current store policies and complete developer-account identity checks.
+7. Upload the generated ZIP and the assets under `store/assets/`.
 
 Build the kit with:
 

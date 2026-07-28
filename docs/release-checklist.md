@@ -44,11 +44,17 @@
       `versions.json` at its root.
 - [ ] Optional source-service ZIP contains `.env.example`, not `.env`.
 - [ ] Windows installer signing and SmartScreen expectations are documented.
-- [ ] The Inno Setup compiler license is suitable for the intended distribution.
+- [ ] Confirm the intended distribution qualifies for Inno Setup's
+      non-commercial mode, or purchase its commercial license before release.
+
 ## Browser stores
 
 - [ ] Run `python scripts/package_store.py` and verify the SHA-256 checksum.
 - [ ] Replace every `<GITHUB_OWNER>` placeholder in the listing material.
+- [ ] Create unpublished store drafts, record the assigned Chrome and Edge
+      extension IDs, then rebuild the installer with `-ExtensionIds`.
+- [ ] Confirm a store-installed extension pairs without manual token entry and
+      an untrusted extension origin cannot call `/api/pair`.
 - [ ] Publish `PRIVACY.md` at the exact stable HTTPS URL submitted to the store.
 - [ ] Upload `pagenest-web-store-v1.7.4.zip`; do not upload the full kit folder.
 - [ ] Upload the 1280x800 screenshot and 440x280 promotional image.

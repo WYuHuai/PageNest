@@ -16,6 +16,8 @@ All notable user-facing changes are recorded here.
   assets, and a verified upload ZIP.
 - Require HTTPS for remote AI organizer endpoints while retaining HTTP support
   for local loopback model servers.
+- Add fail-closed automatic token pairing for store extensions whose exact IDs
+  are configured in the Windows installer.
 
 ## 1.7.4 - 2026-07-27
 

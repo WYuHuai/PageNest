@@ -24,6 +24,11 @@ folder. If either installed configuration was edited, rerun the installer and
 reload the extension. Source developers must keep `LOCAL_COLLECTOR_TOKEN` and
 the extension connection setting identical.
 
+A browser-store installation does not read the bundled extension folder. It can
+auto-pair only when its exact 32-character extension ID is present in
+`PAGENEST_EXTENSION_IDS`. Pre-public builds without assigned store IDs must use
+the bundled unpacked extension or enter the token from `连接设置.txt` manually.
+
 ## Obsidian cannot open a `.pagenest` or `.hermes` file
 
 Check that this folder exists inside the current vault:

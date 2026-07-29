@@ -1,5 +1,6 @@
 param(
     [string]$Installer = "",
+    [string]$ExpectedExtensionIds = "",
     [switch]$KeepTemporaryFiles
 )
 
@@ -12,6 +13,9 @@ if (-not $Installer) {
 $installerPath = [IO.Path]::GetFullPath($Installer)
 if (-not (Test-Path -LiteralPath $installerPath -PathType Leaf)) {
     throw "Installer is missing: $installerPath"
+}
+if ($ExpectedExtensionIds -and $ExpectedExtensionIds -notmatch '^[a-p]{32}(,[a-p]{32})*$') {
+    throw "ExpectedExtensionIds must contain valid Chromium extension IDs"
 }
 
 $tempParent = [IO.Path]::GetFullPath([IO.Path]::GetTempPath())
@@ -80,6 +84,16 @@ try {
         throw "Installer did not generate a valid 32-character token"
     }
     $token = $tokenMatch.Groups[1].Value
+    $extensionIdsMatch = [regex]::Match(
+        $configText,
+        '(?m)^PAGENEST_EXTENSION_IDS=([^\r\n]*)\r?$'
+    )
+    if ($ExpectedExtensionIds -and (
+        -not $extensionIdsMatch.Success -or
+        $extensionIdsMatch.Groups[1].Value -ne $ExpectedExtensionIds
+    )) {
+        throw "Installer did not embed the expected store extension IDs"
+    }
     $extensionConfigText = [IO.File]::ReadAllText($extensionConfig, [Text.Encoding]::UTF8)
     if (-not $extensionConfigText.Contains($token)) {
         throw "Installer did not preconfigure the extension token"
@@ -126,6 +140,34 @@ try {
     if (-not $health.ok -or -not $health.vault_configured) {
         $exitState = if ($serviceProcess.HasExited) { "exited=$($serviceProcess.ExitCode)" } else { "running" }
         throw "Installed service health check failed: process=$exitState, port=$port"
+    }
+
+    if ($ExpectedExtensionIds) {
+        $trustedId = $ExpectedExtensionIds.Split(",")[0]
+        $pair = Invoke-RestMethod `
+            -Uri "$baseUrl/api/pair" `
+            -Headers @{ Origin = "chrome-extension://$trustedId" }
+        if ($pair.token -ne $token) {
+            throw "Trusted store extension did not receive the installed token"
+        }
+        $untrustedId = (("a" * 32) -join "")
+        if ($ExpectedExtensionIds.Contains($untrustedId)) {
+            $untrustedId = (("b" * 32) -join "")
+        }
+        $untrustedWasDenied = $false
+        try {
+            Invoke-WebRequest `
+                -UseBasicParsing `
+                -Uri "$baseUrl/api/pair" `
+                -Headers @{ Origin = "chrome-extension://$untrustedId" } |
+                Out-Null
+        }
+        catch {
+            $untrustedWasDenied = $_.Exception.Response.StatusCode.value__ -eq 403
+        }
+        if (-not $untrustedWasDenied) {
+            throw "Untrusted extension origin was not rejected"
+        }
     }
 
     $payload = @{
@@ -178,6 +220,9 @@ try {
     Write-Output "Unicode vault: passed"
     Write-Output "Viewer installation: passed"
     Write-Output "Extension preconfiguration: passed"
+    if ($ExpectedExtensionIds) {
+        Write-Output "Store extension pairing: passed"
+    }
     Write-Output "Connection secrets removed after uninstall: passed"
     Write-Output "User page preserved after uninstall: passed"
 }

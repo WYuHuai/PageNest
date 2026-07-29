@@ -10,8 +10,8 @@ new features.
 - Add Authenticode signing and document Windows SmartScreen expectations.
 - Finish version update guidance, public repository metadata, and private
   vulnerability reporting before the first public release.
-- Obtain the Chrome and Edge extension IDs, bake them into the final installer,
-  and verify automatic store-extension pairing without manual token entry.
+- Verify the configured Edge store ID through the certification channel, then
+  add the Chrome ID before a later Chrome Web Store release.
 
 ## Collection quality
 

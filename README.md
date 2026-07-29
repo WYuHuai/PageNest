@@ -85,9 +85,9 @@ Users do not install Python or edit `.env` files.
 
 This unpacked step is temporary until PageNest is published in the browser
 stores. The bundled unpacked extension receives its token from the installer.
-A store-installed copy can pair automatically only after the final installer is
-built with the fixed Chrome/Edge extension IDs; the current pre-public store kit
-must not be advertised as a three-step install until those IDs are configured.
+A store-installed copy can pair automatically only when its fixed extension ID
+is included in the installer. The Edge ID is configured for the first store
+release; Chrome remains on the unpacked/manual path until its store ID is added.
 
 ### 3. Enable the Obsidian viewer
 

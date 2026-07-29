@@ -51,8 +51,9 @@
 
 - [ ] Run `python scripts/package_store.py` and verify the SHA-256 checksum.
 - [ ] Replace every `<GITHUB_OWNER>` placeholder in the listing material.
-- [ ] Create unpublished store drafts, record the assigned Chrome and Edge
-      extension IDs, then rebuild the installer with `-ExtensionIds`.
+- [x] Record the Edge CRX ID in `release-manifest.json`.
+- [ ] Add the Chrome item ID before a later Chrome Web Store release.
+- [x] Rebuild the Edge installer and verify its embedded extension ID.
 - [ ] Confirm a store-installed extension pairs without manual token entry and
       an untrusted extension origin cannot call `/api/pair`.
 - [ ] Publish `PRIVACY.md` at the exact stable HTTPS URL submitted to the store.

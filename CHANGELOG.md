@@ -18,6 +18,8 @@ All notable user-facing changes are recorded here.
   for local loopback model servers.
 - Add fail-closed automatic token pairing for store extensions whose exact IDs
   are configured in the Windows installer.
+- Record the Edge CRX ID in the release manifest for reproducible installer
+  builds; Chrome publication remains deferred.
 
 ## 1.7.4 - 2026-07-27
 

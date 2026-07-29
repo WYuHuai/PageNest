@@ -12,6 +12,12 @@ if (-not $SkipServiceBuild) {
 
 $manifest = Get-Content -Raw -Encoding UTF8 (Join-Path $repository "release-manifest.json") | ConvertFrom-Json
 $version = [string]$manifest.release
+if (-not $PSBoundParameters.ContainsKey("ExtensionIds")) {
+    $ExtensionIds = @(
+        $manifest.store_extension_ids.PSObject.Properties.Value |
+            Where-Object { $_ }
+    ) -join ","
+}
 if ($ExtensionIds -and $ExtensionIds -notmatch '^[a-p]{32}(,[a-p]{32})*$') {
     throw "ExtensionIds must be a comma-separated list of Chromium extension IDs"
 }

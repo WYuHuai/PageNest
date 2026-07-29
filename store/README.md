@@ -7,13 +7,12 @@ Before submission:
 
 1. Replace every `<GITHUB_OWNER>` placeholder after the public repository exists.
 2. Publish `PRIVACY.md` at a stable public HTTPS URL.
-3. Create unpublished Chrome and Edge drafts to obtain their fixed extension
-   IDs. Do not publish either draft yet.
-4. Rebuild the installer with both IDs, for example:
+3. Keep the fixed store IDs in `release-manifest.json`. The first release
+   contains the Edge CRX ID; add the Chrome item ID before publishing there.
+4. Rebuild the installer. It reads configured IDs from the manifest:
 
    ```powershell
-   powershell -ExecutionPolicy Bypass -File scripts\build_windows_installer.ps1 `
-     -ExtensionIds "<CHROME_ID>,<EDGE_ID>"
+   powershell -ExecutionPolicy Bypass -File scripts\build_windows_installer.ps1
    ```
 
 5. Confirm automatic pairing and the full flow on a clean Windows 10/11 machine

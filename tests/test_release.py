@@ -1,4 +1,5 @@
 import json
+import re
 import zipfile
 
 import pytest
@@ -128,11 +129,21 @@ def test_store_package_is_upload_ready(tmp_path):
 
 def test_installer_accepts_only_explicit_store_extension_ids():
     script = (ROOT / "scripts" / "build_windows_installer.ps1").read_text("utf-8")
+    smoke = (ROOT / "scripts" / "smoke_windows_installer.ps1").read_text("utf-8")
     definition = (ROOT / "installer" / "PageNest.iss").read_text("utf-8")
     example = (ROOT / "local-server" / ".env.example").read_text("utf-8")
+    manifest = json.loads((ROOT / "release-manifest.json").read_text("utf-8"))
+    configured_ids = [
+        value for value in manifest["store_extension_ids"].values() if value
+    ]
 
     assert "[string]$ExtensionIds" in script
+    assert "$manifest.store_extension_ids.PSObject.Properties.Value" in script
     assert "^[a-p]{32}(,[a-p]{32})*$" in script
     assert '"/DExtensionIds=$ExtensionIds"' in script
+    assert configured_ids == ["lbefpoljnlieecogeihhdmgnmjmjkmmd"]
+    assert all(re.fullmatch(r"[a-p]{32}", value) for value in configured_ids)
     assert "PAGENEST_EXTENSION_IDS={#ExtensionIds}" in definition
+    assert "[string]$ExpectedExtensionIds" in smoke
+    assert "Store extension pairing: passed" in smoke
     assert "PAGENEST_EXTENSION_IDS=" in example

@@ -25,6 +25,8 @@ No unreleased changes.
 - Record the Edge CRX ID in the release manifest for reproducible installer
   builds; Chrome publication remains deferred.
 
+- Upgrade Pillow and python-dotenv to versions that resolve known security
+  advisories.
 - Add an authenticated, origin-restricted local API and privacy-safe status page.
 - Add guarded image and media downloads with SSRF protection, redirect
   validation, byte limits, and an explicit local-network opt-in.

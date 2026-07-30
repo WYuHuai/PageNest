@@ -12,6 +12,8 @@
 
 ## Clean Windows smoke test
 
+- [ ] Run the automated [Windows Sandbox smoke test](windows-sandbox-smoke.md)
+      and retain its `RESULT: PASS` report.
 - [ ] Use a Windows 10/11 account without Python installed.
 - [ ] Verify and run `PageNest-Setup-1.7.4.exe` without administrator rights.
 - [ ] Select a disposable Unicode-path Obsidian vault containing `.obsidian`.

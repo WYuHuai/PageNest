@@ -42,6 +42,6 @@ configured an organizer endpoint.
 
 ## Support and privacy URLs
 
-- Support: `https://github.com/<GITHUB_OWNER>/PageNest/issues`
-- Privacy: `https://github.com/<GITHUB_OWNER>/PageNest/blob/main/PRIVACY.md`
-- Source: `https://github.com/<GITHUB_OWNER>/PageNest`
+- Support: `https://github.com/WYuHuai/PageNest/issues`
+- Privacy: `https://github.com/WYuHuai/PageNest/blob/main/PRIVACY.md`
+- Source: `https://github.com/WYuHuai/PageNest`

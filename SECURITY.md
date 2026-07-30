@@ -16,10 +16,11 @@ Do not open a public issue for a suspected vulnerability and do not attach
 credentials, private vault contents, collected pages, or proof-of-concept user
 data.
 
-Use the repository's **Security → Advisories → Report a vulnerability** form.
-This creates a private report visible to repository maintainers. If the button
-is unavailable, open a public issue containing only the sentence “Please enable
-a private security contact”; do not include technical details.
+Use the [private vulnerability report](https://github.com/WYuHuai/PageNest/security/advisories/new)
+form under **Security → Advisories → Report a vulnerability**. The report is
+visible only to repository maintainers. If the form is unavailable, open a
+public issue containing only the sentence “Please enable a private security
+contact”; do not include technical details.
 
 Please include:
 

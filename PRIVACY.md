@@ -70,7 +70,7 @@ security reporting and supported versions.
 
 ## Contact
 
-Privacy questions can be filed in the public project's GitHub issue tracker.
+Privacy questions can be filed in the [GitHub issue tracker](https://github.com/WYuHuai/PageNest/issues).
 Security-sensitive reports must use the private method listed in
-[SECURITY.md](SECURITY.md). Before store publication, this policy will be hosted
-at the project's stable public HTTPS URL.
+[SECURITY.md](SECURITY.md). The canonical public URL for this policy is
+https://github.com/WYuHuai/PageNest/blob/main/PRIVACY.md.

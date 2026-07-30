@@ -50,7 +50,7 @@
 ## Browser stores
 
 - [ ] Run `python scripts/package_store.py` and verify the SHA-256 checksum.
-- [ ] Replace every `<GITHUB_OWNER>` placeholder in the listing material.
+- [x] Replace every repository URL placeholder in the listing material.
 - [x] Record the Edge CRX ID in `release-manifest.json`.
 - [ ] Add the Chrome item ID before a later Chrome Web Store release.
 - [x] Rebuild the Edge installer and verify its embedded extension ID.

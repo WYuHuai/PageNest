@@ -37,6 +37,6 @@ PageNest 只在用户点击扩展后处理当前页面。默认情况下，内�
 
 ## 支持与隐私链接
 
-- 支持：`https://github.com/<GITHUB_OWNER>/PageNest/issues`
-- 隐私政策：`https://github.com/<GITHUB_OWNER>/PageNest/blob/main/PRIVACY.md`
-- 源代码：`https://github.com/<GITHUB_OWNER>/PageNest`
+- 支持：`https://github.com/WYuHuai/PageNest/issues`
+- 隐私政策：`https://github.com/WYuHuai/PageNest/blob/main/PRIVACY.md`
+- 源代码：`https://github.com/WYuHuai/PageNest`

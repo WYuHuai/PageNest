@@ -23,8 +23,8 @@ PageNest welcomes people who participate in good faith.
 
 Maintainers may edit, hide, lock, or remove contributions that violate this
 policy and may temporarily or permanently restrict participation. Reports about
-conduct should be sent through the repository's private vulnerability-reporting
-form when privacy is required. Do not include unrelated private user data.
+conduct should use the [private vulnerability report](https://github.com/WYuHuai/PageNest/security/advisories/new)
+when privacy is required. Do not include unrelated private user data.
 
 Enforcement decisions should consider context, impact, prior behavior, and the
 safety of the project community.

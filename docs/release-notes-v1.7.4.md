@@ -29,6 +29,9 @@ manual/developer packages; normal Windows users need only the installer.
 
 ## Important
 
+The Windows installer is not Authenticode-signed. Verify its SHA-256 checksum
+before running it, and expect Windows SmartScreen to show a warning.
+
 PageNest Viewer is required for supported `.pagenest` rendering in Obsidian.
 Do not share installed `.env` files, connection configuration, collector tokens,
 private pages, logs, or vault contents.

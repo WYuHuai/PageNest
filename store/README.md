@@ -5,7 +5,7 @@ Add-ons. Both stores use the same Manifest V3 extension ZIP.
 
 Before submission:
 
-1. Replace every `<GITHUB_OWNER>` placeholder after the public repository exists.
+1. Verify the public support, privacy, and source URLs before submission.
 2. Publish `PRIVACY.md` at a stable public HTTPS URL.
 3. Keep the fixed store IDs in `release-manifest.json`. The first release
    contains the Edge CRX ID; add the Chrome item ID before publishing there.

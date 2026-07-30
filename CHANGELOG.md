@@ -4,6 +4,10 @@ All notable user-facing changes are recorded here.
 
 ## Unreleased
 
+No unreleased changes.
+
+## 1.7.4 - 2026-07-30
+
 - Rename the public product to PageNest and save new collections as `.pagenest`.
 - Keep PageNest Viewer compatible with collections previously saved as `.hermes`.
 - Add a per-user Windows installer that bundles the Python runtime and local
@@ -20,8 +24,6 @@ All notable user-facing changes are recorded here.
   are configured in the Windows installer.
 - Record the Edge CRX ID in the release manifest for reproducible installer
   builds; Chrome publication remains deferred.
-
-## 1.7.4 - 2026-07-27
 
 - Add an authenticated, origin-restricted local API and privacy-safe status page.
 - Add guarded image and media downloads with SSRF protection, redirect

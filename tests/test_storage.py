@@ -14,11 +14,13 @@ PNG = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAGQAAABkCAIAAAD/gAIDAAAAzEl
 
 def article(**changes):
     data = dict(title='中文：非法/标题*测试', url='https://example.test/a?utm_source=x', canonical_url='https://example.test/a', captured_at='2026-07-15T12:00:00+08:00', article_html=f'<article><h1>标题</h1><p>图片之前。</p><img src="{PNG}"><p>图片之后。</p></article>', article_text='足够完整的正文内容。', mode='original')
-    data.update(changes); return ArticleInput(**data)
+    data.update(changes)
+    return ArticleInput(**data)
 
 @pytest.mark.asyncio
 async def test_single_offline_page_and_duplicate(tmp_path: Path, monkeypatch):
-    vault = tmp_path / '知识库'; vault.mkdir()
+    vault = tmp_path / '知识库'
+    vault.mkdir()
     (vault / '各类学习知识' / '机器人').mkdir(parents=True)
     monkeypatch.setattr(settings, 'obsidian_vault_path', str(vault))
 
@@ -131,7 +133,8 @@ def test_code_blocks_are_readable_copyable_and_external_links_survive():
 @pytest.mark.asyncio
 async def test_invalid_vault(monkeypatch, tmp_path):
     monkeypatch.setattr(settings, 'obsidian_vault_path', str(tmp_path/'missing'))
-    with pytest.raises(ValueError): await collect(article())
+    with pytest.raises(ValueError):
+        await collect(article())
 
 
 def test_page_template_is_offline_and_polished():

@@ -9,6 +9,7 @@ and PageNest Viewer 1.3.0.
   supported media; legacy `.hermes` files remain readable.
 - Dedicated Feishu, WeChat, CSDN, and Bilibili capture paths.
 - Secure Obsidian iframe copy bridge without `allow-same-origin`.
+- Patched runtime image and environment dependencies for known security advisories.
 - Authenticated local API, restricted CORS, privacy-safe status output, guarded
   downloads, and bounded resource usage.
 - Original content still saves when the optional organizer fails.

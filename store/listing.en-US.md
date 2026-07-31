@@ -3,6 +3,7 @@
 ## Basic information
 
 - Name: PageNest Web Collector
+- Publisher: WYuHuai
 - Category: Productivity
 - Language: English (United States)
 - Short description: Save the current article, images, and links as one offline `.pagenest` page and view it safely in Obsidian.

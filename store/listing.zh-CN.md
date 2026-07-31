@@ -3,6 +3,7 @@
 ## 基本信息
 
 - 名称：PageNest Web Collector
+- 发布者：WYuHuai
 - 类别：生产力工具
 - 语言：简体中文
 - 简短说明：将当前网页的正文、图片和链接保存为单个 `.pagenest` 离线页面，并在 Obsidian 中安全查看。

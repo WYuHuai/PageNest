@@ -12,7 +12,7 @@
 AppId={{AA28F217-D6AA-4BE2-B972-7CB201E5F84F}
 AppName={#AppName}
 AppVersion={#AppVersion}
-AppPublisher=PageNest Contributors
+AppPublisher=WYuHuai
 
 DefaultDirName={localappdata}\Programs\PageNest
 DefaultGroupName=PageNest

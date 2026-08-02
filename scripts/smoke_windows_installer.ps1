@@ -145,7 +145,10 @@ try {
     if ($ExpectedExtensionIds) {
         $trustedId = $ExpectedExtensionIds.Split(",")[0]
         $pair = Invoke-RestMethod `
+            -Method Post `
             -Uri "$baseUrl/api/pair" `
+            -ContentType "application/json" `
+            -Body "{}" `
             -Headers @{ Origin = "chrome-extension://$trustedId" }
         if ($pair.token -ne $token) {
             throw "Trusted store extension did not receive the installed token"
@@ -158,7 +161,10 @@ try {
         try {
             Invoke-WebRequest `
                 -UseBasicParsing `
+                -Method Post `
                 -Uri "$baseUrl/api/pair" `
+                -ContentType "application/json" `
+                -Body "{}" `
                 -Headers @{ Origin = "chrome-extension://$untrustedId" } |
                 Out-Null
         }

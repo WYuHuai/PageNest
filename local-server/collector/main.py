@@ -55,7 +55,7 @@ async def health(_: None = Depends(auth)):
     }
 
 
-@app.get("/api/pair")
+@app.post("/api/pair")
 async def pair_extension(origin: str = Header(default="")):
     allowed = trusted_extension_origins()
     if not allowed:

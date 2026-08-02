@@ -96,7 +96,7 @@ def test_pairing_is_disabled_without_trusted_store_ids(monkeypatch):
     monkeypatch.setattr(settings, "pagenest_extension_ids", "")
     monkeypatch.setattr(settings, "local_collector_token", "private-token")
 
-    response = client.get(
+    response = client.post(
         "/api/pair",
         headers={"Origin": "chrome-extension://" + "a" * 32},
     )
@@ -110,11 +110,11 @@ def test_pairing_returns_token_only_to_trusted_store_extension(monkeypatch):
     monkeypatch.setattr(settings, "pagenest_extension_ids", trusted_id)
     monkeypatch.setattr(settings, "local_collector_token", "private-token")
 
-    allowed = client.get(
+    allowed = client.post(
         "/api/pair",
         headers={"Origin": f"chrome-extension://{trusted_id}"},
     )
-    denied = client.get(
+    denied = client.post(
         "/api/pair",
         headers={"Origin": "chrome-extension://" + "b" * 32},
     )

@@ -11,7 +11,11 @@
     });
     if(current.token) return current;
     try{
-      const response=await request(current.server.replace(/\/$/,"")+"/api/pair");
+      const response=await request(current.server.replace(/\/$/,"")+"/api/pair",{
+        method:"POST",
+        headers:{"Content-Type":"application/json"},
+        body:"{}",
+      });
       if(!response.ok) return current;
       const paired=await response.json();
       if(!paired.token) return current;

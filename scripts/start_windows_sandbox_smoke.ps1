@@ -89,12 +89,38 @@ try {
         return
     }
 
+    $sessionProcessName = "WindowsSandboxRemoteSession"
+    $existingSessionIds = @(
+        Get-Process -Name $sessionProcessName -ErrorAction SilentlyContinue |
+            ForEach-Object { $_.Id }
+    )
     Write-Output "Starting Windows Sandbox with a read-only sanitized bundle."
-    $process = Start-Process `
+    Start-Process `
         -FilePath $sandboxExecutable `
         -ArgumentList "`"$configuration`"" `
-        -PassThru
-    $process.WaitForExit()
+        | Out-Null
+
+    $deadline = [DateTime]::UtcNow.AddSeconds(30)
+    do {
+        $sessions = @(
+            Get-Process -Name $sessionProcessName -ErrorAction SilentlyContinue |
+                Where-Object { $_.Id -notin $existingSessionIds }
+        )
+        if ($sessions.Count -eq 0) {
+            Start-Sleep -Milliseconds 250
+        }
+    } while ($sessions.Count -eq 0 -and [DateTime]::UtcNow -lt $deadline)
+
+    if ($sessions.Count -eq 0) {
+        throw "Windows Sandbox session did not start within 30 seconds."
+    }
+    do {
+        Start-Sleep -Milliseconds 500
+        $sessions = @(
+            Get-Process -Name $sessionProcessName -ErrorAction SilentlyContinue |
+                Where-Object { $_.Id -notin $existingSessionIds }
+        )
+    } while ($sessions.Count -gt 0)
 }
 finally {
     $removeGeneratedBundle = -not $PrepareOnly -and -not $KeepBundle -and $generatedBundle
@@ -109,5 +135,8 @@ finally {
             throw "Refusing to remove an unexpected sandbox bundle: $resolved"
         }
         Remove-Item -LiteralPath $resolved -Recurse -Force
+    }
+    elseif (-not $PrepareOnly -and $KeepBundle -and $generatedBundle) {
+        Write-Output "Sandbox bundle retained: $bundleRoot"
     }
 }

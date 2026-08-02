@@ -2,7 +2,7 @@
 
 ## Source
 
-- [x] Working tree is clean and the release commit is on `main`.
+- [ ] Working tree is clean and the release commit is merged to `main`.
 - [x] Python, JavaScript, manifest, version, package, frozen-service, and
       installer checks pass.
 - [x] No `.env`, virtual environment, logs, browser profile, database,
@@ -12,11 +12,11 @@
 
 ## Clean Windows smoke test
 
-- [ ] Run the automated [Windows Sandbox smoke test](windows-sandbox-smoke.md)
+- [x] Run the automated [Windows Sandbox smoke test](windows-sandbox-smoke.md)
       and retain its `RESULT: PASS` report.
-- [ ] Use a Windows 10/11 account without Python installed.
-- [ ] Verify and run `PageNest-Setup-1.7.4.exe` without administrator rights.
-- [ ] Select a disposable Unicode-path Obsidian vault containing `.obsidian`.
+- [x] Use a Windows 10/11 account without Python installed.
+- [x] Verify and run `PageNest-Setup-1.7.4.exe` without administrator rights.
+- [x] Select a disposable Unicode-path Obsidian vault containing `.obsidian`.
 - [ ] Confirm PageNest starts without a console and starts again after sign-in.
 - [ ] Load `%LOCALAPPDATA%\Programs\PageNest\Extension` in Edge and Chrome;
       confirm no token entry is required.
@@ -24,7 +24,7 @@
 - [ ] Save generic, CSDN, WeChat, Bilibili, and public Feishu test pages.
 - [ ] Disconnect the network and reopen `.pagenest` plus one legacy `.hermes`.
 - [ ] Verify images, GIFs, supported video, links, code folding, and copying.
-- [ ] Uninstall PageNest; confirm connection secrets are removed and collected
+- [x] Uninstall PageNest; confirm connection secrets are removed and collected
       files in the vault remain.
 
 ## GitHub
@@ -32,8 +32,8 @@
 - [ ] Repository description, topics, license, and social preview are set.
 - [x] `main` is the default branch and branch protection is enabled.
 - [x] Private vulnerability reporting is enabled before public launch.
-- [x] CI passes on Windows and Linux.
-- [x] A draft Release is created from the intended tag.
+- [ ] CI passes on Windows and Linux for the final release commit.
+- [ ] The draft Release points to the final intended tag.
 
 ## Release assets
 

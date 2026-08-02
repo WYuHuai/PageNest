@@ -39,9 +39,10 @@ Inside the sandbox, the test verifies:
 - authenticated local collection to a `.pagenest` file;
 - secret removal and user-page preservation after uninstall.
 
-The final result opens in Notepad as
-`PageNest-Sandbox-Smoke-Result.txt` on the sandbox desktop. Close the sandbox
-window to discard the entire environment.
+The final result opens in Edge and is written to
+`PageNest-Sandbox-Smoke-Result.html` on the sandbox desktop. Close the sandbox
+window to discard the entire environment and let the launcher remove its
+temporary host bundle.
 
 ## Prepare without launching
 

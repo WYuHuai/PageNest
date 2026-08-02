@@ -14,7 +14,7 @@ $installer = Join-Path $bundle "release\v$version\PageNest-Setup-$version.exe"
 $checksumFile = "$installer.sha256"
 $smokeScript = Join-Path $bundle "scripts\smoke_windows_installer.ps1"
 $desktop = [Environment]::GetFolderPath([Environment+SpecialFolder]::Desktop)
-$resultFile = Join-Path $desktop "PageNest-Sandbox-Smoke-Result.txt"
+$resultFile = Join-Path $desktop "PageNest-Sandbox-Smoke-Result.html"
 
 $lines = [Collections.Generic.List[string]]::new()
 function Add-Result([string]$Message) {
@@ -62,12 +62,21 @@ catch {
     Add-Result $_.ScriptStackTrace
 }
 finally {
-    [IO.File]::WriteAllLines(
+    $encodedResult = [Net.WebUtility]::HtmlEncode(
+        $lines -join [Environment]::NewLine
+    )
+    $resultPage = @"
+<!doctype html>
+<html lang="en"><meta charset="utf-8"><title>PageNest Sandbox Smoke</title>
+<style>body{font:16px/1.55 system-ui;margin:32px;color:#172033}pre{white-space:pre-wrap}</style>
+<h1>PageNest Sandbox Smoke</h1><pre>$encodedResult</pre>
+"@
+    [IO.File]::WriteAllText(
         $resultFile,
-        $lines,
+        $resultPage,
         [Text.UTF8Encoding]::new($false)
     )
-    Start-Process -FilePath notepad.exe -ArgumentList "`"$resultFile`""
+    Start-Process -FilePath $resultFile
 }
 
 exit $exitCode

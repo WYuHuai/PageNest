@@ -5,6 +5,8 @@ const VIEW_TYPE = "pagenest-page-view";
 const COPY_MESSAGE = "hermes-copy";
 const COPY_CHANNEL_BYTES = 32;
 const MAX_COPY_LENGTH = 5 * 1024 * 1024;
+const PAGE_EXTENSION = "pagenest";
+const LEGACY_EXTENSION = "hermes";
 
 function copyBridgeScript(channel) {
   return `<script nonce="hermes-offline" data-hermes-copy-bridge>
@@ -120,7 +122,12 @@ module.exports = class HermesPageViewerPlugin extends Plugin {
 
   async onload() {
     this.registerView(VIEW_TYPE, (leaf) => new HermesPageView(leaf));
-    this.registerExtensions(["pagenest", "hermes"], VIEW_TYPE);
+    this.registerExtensions([PAGE_EXTENSION], VIEW_TYPE);
+    try {
+      this.registerExtensions([LEGACY_EXTENSION], VIEW_TYPE);
+    } catch (error) {
+      console.warn("PageNest Viewer: legacy .hermes files are handled by another plugin.", error);
+    }
     this.app.workspace.onLayoutReady(() => {
       this.hideFileTypeBadges();
       this.badgeObserver = new MutationObserver(() => this.hideFileTypeBadges());

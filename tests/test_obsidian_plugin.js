@@ -3,7 +3,8 @@ const Module = require("node:module");
 const path = require("node:path");
 
 let viewFactory;
-let registeredExtensions;
+const registeredExtensions = [];
+let legacyExtensionConflict = false;
 let frame;
 let copiedText = "";
 let refreshHandler;
@@ -48,7 +49,12 @@ class Plugin {
     viewFactory = factory;
   }
 
-  registerExtensions(extensions) { registeredExtensions = extensions; }
+  registerExtensions(extensions) {
+    registeredExtensions.push(extensions);
+    if (legacyExtensionConflict && extensions.includes("hermes")) {
+      throw new Error("extension already registered");
+    }
+  }
   register() {}
   addCommand() {}
 }
@@ -69,7 +75,7 @@ Module._load = originalLoad;
 const plugin = new HermesPageViewerPlugin();
 plugin.onload();
 assert.equal(typeof viewFactory, "function");
-assert.deepEqual(registeredExtensions, ["pagenest", "hermes"]);
+assert.deepEqual(registeredExtensions, [["pagenest"], ["hermes"]]);
 
 const refresh = {
   addEventListener(type, listener) {
@@ -104,6 +110,18 @@ function channelFrom(page) {
 }
 
 (async () => {
+  legacyExtensionConflict = true;
+  const originalWarn = console.warn;
+  let legacyWarning = "";
+  console.warn = (message) => { legacyWarning = message; };
+  try {
+    await new HermesPageViewerPlugin().onload();
+  } finally {
+    console.warn = originalWarn;
+  }
+  assert.deepEqual(registeredExtensions.slice(-2), [["pagenest"], ["hermes"]]);
+  assert.match(legacyWarning, /legacy \.hermes/);
+
   const view = viewFactory({contentEl});
   await view.setViewData("<!doctype html><body><pre>const answer = 42;</pre></body>");
 

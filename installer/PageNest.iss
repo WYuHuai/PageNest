@@ -52,7 +52,7 @@ Source: "..\PRIVACY.md"; DestDir: "{app}"; Flags: ignoreversion
 
 [Icons]
 Name: "{group}\启动 PageNest"; Filename: "{app}\Service\PageNestService.exe"; WorkingDir: "{app}\Service"
-Name: "{group}\PageNest 运行状态"; Filename: "http://127.0.0.1:8765/status"
+Name: "{group}\PageNest 运行状态"; Filename: "{code:GetServiceStatusUrl}"
 Name: "{group}\PageNest 连接设置"; Filename: "{app}\连接设置.txt"
 Name: "{group}\安装浏览器扩展"; Filename: "{app}\extension-install.html"
 Name: "{group}\浏览器扩展文件夹"; Filename: "{app}\Extension"
@@ -85,6 +85,7 @@ var
   VaultPage: TInputDirWizardPage;
   VaultFromCommandLine: String;
   CollectorToken: String;
+  ServicePort: Integer;
 
 function ToLowerHex(Value: Cardinal; Digits: Integer): String;
 var
@@ -126,6 +127,59 @@ begin
   Result := DirExists(AddBackslash(SelectedVault) + '.obsidian');
 end;
 
+function PortIsListening(Lines: TArrayOfString; Port: Integer): Boolean;
+var
+  Index: Integer;
+  Marker: String;
+begin
+  Result := False;
+  Marker := ':' + IntToStr(Port) + ' ';
+  for Index := 0 to GetArrayLength(Lines) - 1 do
+    if (Pos(Marker, Lines[Index]) > 0) and
+       (Pos('LISTENING', Uppercase(Lines[Index])) > 0) then
+    begin
+      Result := True;
+      Exit;
+    end;
+end;
+
+function SelectServicePort: Integer;
+var
+  Lines: TArrayOfString;
+  OutputPath: String;
+  ResultCode: Integer;
+begin
+  Result := 0;
+  OutputPath := ExpandConstant('{tmp}\pagenest-netstat.txt');
+  if not Exec(
+    ExpandConstant('{cmd}'),
+    '/C netstat -ano -p TCP > "' + OutputPath + '"',
+    '',
+    SW_HIDE,
+    ewWaitUntilTerminated,
+    ResultCode
+  ) or (ResultCode <> 0) or not LoadStringsFromFile(OutputPath, Lines) then
+    Exit;
+  DeleteFile(OutputPath);
+
+  if not PortIsListening(Lines, 8765) then
+    Result := 8765
+  else if not PortIsListening(Lines, 18765) then
+    Result := 18765
+  else if not PortIsListening(Lines, 28765) then
+    Result := 28765;
+end;
+
+function GetServiceBaseUrl: String;
+begin
+  Result := 'http://127.0.0.1:' + IntToStr(ServicePort);
+end;
+
+function GetServiceStatusUrl(Param: String): String;
+begin
+  Result := GetServiceBaseUrl + '/status';
+end;
+
 procedure InitializeWizard;
 begin
   CollectorToken := GenerateToken;
@@ -162,8 +216,13 @@ function PrepareToInstall(var NeedsRestart: Boolean): String;
 begin
   if not VaultIsValid then
     Result := '必须通过 /VAULT 指定一个包含 .obsidian 文件夹的有效 Obsidian 知识库。'
-  else
-    Result := '';
+  else begin
+    ServicePort := SelectServicePort;
+    if ServicePort = 0 then
+      Result := 'PageNest 无法找到可用的本地端口（已检查 8765、18765 和 28765）。请关闭占用这些端口的程序后重试。'
+    else
+      Result := '';
+  end;
 end;
 
 procedure WriteServiceConfiguration;
@@ -176,16 +235,17 @@ var
 begin
   VaultValue := SelectedVault;
   StringChangeEx(VaultValue, '\', '/', True);
-  SetArrayLength(Lines, 4);
+  SetArrayLength(Lines, 5);
   Lines[0] := 'OBSIDIAN_VAULT_PATH="' + VaultValue + '"';
   Lines[1] := 'LOCAL_COLLECTOR_TOKEN=' + CollectorToken;
   Lines[2] := 'ALLOW_LOCAL_NETWORK_DOWNLOADS=false';
   Lines[3] := 'PAGENEST_EXTENSION_IDS={#ExtensionIds}';
+  Lines[4] := 'PAGENEST_PORT=' + IntToStr(ServicePort);
   ConfigPath := ExpandConstant('{app}\Service\.env');
   if not SaveStringsToUTF8FileWithoutBOM(ConfigPath, Lines, False) then
     RaiseException('无法写入 PageNest 本地服务配置。');
   SetArrayLength(ExtensionLines, 1);
-  ExtensionLines[0] := 'globalThis.PAGENEST_CONNECTION = Object.freeze({server: "http://127.0.0.1:8765", token: "' + CollectorToken + '"});';
+  ExtensionLines[0] := 'globalThis.PAGENEST_CONNECTION = Object.freeze({server: "' + GetServiceBaseUrl + '", token: "' + CollectorToken + '"});';
   if not SaveStringsToUTF8FileWithoutBOM(
     ExpandConstant('{app}\Extension\connection-config.js'),
     ExtensionLines,
@@ -195,7 +255,7 @@ begin
   SetArrayLength(ConnectionLines, 4);
   ConnectionLines[0] := 'PageNest 浏览器扩展连接设置';
   ConnectionLines[1] := '';
-  ConnectionLines[2] := '服务地址：http://127.0.0.1:8765';
+  ConnectionLines[2] := '服务地址：' + GetServiceBaseUrl;
   ConnectionLines[3] := '连接令牌：' + CollectorToken;
   if not SaveStringsToUTF8FileWithoutBOM(
     ExpandConstant('{app}\连接设置.txt'),
@@ -214,7 +274,7 @@ begin
   Result := False;
   try
     Http := CreateOleObject('WinHttp.WinHttpRequest.5.1');
-    Http.Open('GET', 'http://127.0.0.1:8765/api/health', False);
+    Http.Open('GET', GetServiceBaseUrl + '/api/health', False);
     Http.SetRequestHeader('Authorization', 'Bearer ' + CollectorToken);
     Http.SetTimeouts(1000, 1000, 1000, 2000);
     Http.Send('');
@@ -252,7 +312,7 @@ begin
       Exit;
   end;
   MsgBox(
-    'PageNest 已安装，但未能通过本地服务健康检查。请确认 127.0.0.1:8765 没有被其他程序占用。',
+    'PageNest 已安装，但未能通过本地服务健康检查。已选择的服务地址是 ' + GetServiceBaseUrl + '。',
     mbError,
     MB_OK
   );

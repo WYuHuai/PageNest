@@ -6,6 +6,7 @@ from pathlib import Path
 
 import uvicorn
 
+from collector.config import settings
 from collector.main import app
 
 
@@ -24,7 +25,7 @@ def configure_standard_streams() -> None:
 
 
 def service_port() -> int:
-    port = int(os.getenv("PAGENEST_PORT", "8765"))
+    port = settings.pagenest_port
     if not 1 <= port <= 65535:
         raise ValueError("PAGENEST_PORT must be between 1 and 65535")
     return port

@@ -147,3 +147,18 @@ def test_installer_accepts_only_explicit_store_extension_ids():
     assert "[string]$ExpectedExtensionIds" in smoke
     assert "Store extension pairing: passed" in smoke
     assert "PAGENEST_EXTENSION_IDS=" in example
+
+
+def test_local_service_port_candidates_stay_in_sync():
+    ports = (8765, 18765, 28765)
+    connection = (ROOT / "extension" / "core" / "connection.js").read_text("utf-8")
+    installer = (ROOT / "installer" / "PageNest.iss").read_text("utf-8")
+    smoke = (ROOT / "scripts" / "smoke_windows_installer.ps1").read_text("utf-8")
+    example = (ROOT / "local-server" / ".env.example").read_text("utf-8")
+
+    for port in ports:
+        assert f'"http://127.0.0.1:{port}"' in connection
+        assert f"PortIsListening(Lines, {port})" in installer
+        assert str(port) in smoke
+    assert "PAGENEST_PORT=" in installer
+    assert "PAGENEST_PORT=8765" in example

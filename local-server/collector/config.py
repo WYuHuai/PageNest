@@ -31,6 +31,7 @@ class Settings(BaseSettings):
     hermes_api_key: str = ""
     local_collector_token: str = ""
     pagenest_extension_ids: str = ""
+    pagenest_port: int = 8765
     allow_local_network_downloads: bool = False
     hermes_model_name: str = "Qwen3.6-35B-A3B"
     model_config = SettingsConfigDict(env_file=ENV_FILE, extra="ignore")

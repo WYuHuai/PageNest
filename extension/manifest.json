@@ -4,7 +4,7 @@
   "version": "1.7.4",
   "description": "提取网页正文和图片，保存为 Obsidian 单文件离线页面，并可选使用 OpenAI 兼容接口整理。",
   "permissions": ["activeTab", "scripting", "storage", "clipboardWrite"],
-  "host_permissions": ["http://127.0.0.1:8765/*", "http://localhost:8765/*", "<all_urls>"],
+  "host_permissions": ["http://127.0.0.1/*", "http://localhost/*", "<all_urls>"],
   "icons": {
     "16": "icons/icon16.png",
     "32": "icons/icon32.png",

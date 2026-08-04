@@ -27,7 +27,17 @@ $setupLog = Join-Path $workspace "setup.log"
 New-Item -ItemType Directory -Path (Join-Path $vault ".obsidian") -Force | Out-Null
 
 $serviceProcess = $null
+$primaryPortBlocker = $null
+$candidateBlocker = [Net.Sockets.TcpListener]::new([Net.IPAddress]::Loopback, 8765)
+try {
+    $candidateBlocker.Start()
+    $primaryPortBlocker = $candidateBlocker
+}
+catch {
+    $candidateBlocker.Stop()
+}
 $previousPort = $env:PAGENEST_PORT
+$previousConfig = $env:PAGENEST_CONFIG_FILE
 $previousPath = $env:PATH
 $previousPythonHome = $env:PYTHONHOME
 $previousPythonPath = $env:PYTHONPATH
@@ -84,6 +94,14 @@ try {
         throw "Installer did not generate a valid 32-character token"
     }
     $token = $tokenMatch.Groups[1].Value
+    $portMatch = [regex]::Match($configText, '(?m)^PAGENEST_PORT=(8765|18765|28765)\r?$')
+    if (-not $portMatch.Success) {
+        throw "Installer did not write a supported local service port"
+    }
+    $port = [int]$portMatch.Groups[1].Value
+    if ($port -eq 8765) {
+        throw "Installer did not avoid the occupied primary port"
+    }
     $extensionIdsMatch = [regex]::Match(
         $configText,
         '(?m)^PAGENEST_EXTENSION_IDS=([^\r\n]*)\r?$'
@@ -95,18 +113,16 @@ try {
         throw "Installer did not embed the expected store extension IDs"
     }
     $extensionConfigText = [IO.File]::ReadAllText($extensionConfig, [Text.Encoding]::UTF8)
-    if (-not $extensionConfigText.Contains($token)) {
-        throw "Installer did not preconfigure the extension token"
+    if (-not $extensionConfigText.Contains($token) -or
+        -not $extensionConfigText.Contains("http://127.0.0.1:$port")) {
+        throw "Installer did not preconfigure the selected port and token"
     }
     if ($configText -notmatch [regex]::Escape($vault.Replace("\", "/"))) {
         throw "Installer did not preserve the selected Unicode vault path"
     }
 
-    $listener = [Net.Sockets.TcpListener]::new([Net.IPAddress]::Loopback, 0)
-    $listener.Start()
-    $port = $listener.LocalEndpoint.Port
-    $listener.Stop()
-    $env:PAGENEST_PORT = [string]$port
+    $env:PAGENEST_PORT = $null
+    $env:PAGENEST_CONFIG_FILE = $null
     $env:PATH = "$env:SystemRoot\System32;$env:SystemRoot"
     $env:PYTHONHOME = $null
     $env:PYTHONPATH = $null
@@ -121,6 +137,7 @@ try {
         throw "Installed standalone service did not start"
     }
     $env:PAGENEST_PORT = $previousPort
+    $env:PAGENEST_CONFIG_FILE = $previousConfig
     $env:PATH = $previousPath
     $env:PYTHONHOME = $previousPythonHome
     $env:PYTHONPATH = $previousPythonPath
@@ -226,6 +243,7 @@ try {
     Write-Output "Unicode vault: passed"
     Write-Output "Viewer installation: passed"
     Write-Output "Extension preconfiguration: passed"
+    Write-Output "Occupied-port fallback: passed ($port)"
     if ($ExpectedExtensionIds) {
         Write-Output "Store extension pairing: passed"
     }
@@ -234,12 +252,16 @@ try {
 }
 finally {
     $env:PAGENEST_PORT = $previousPort
+    $env:PAGENEST_CONFIG_FILE = $previousConfig
     $env:PATH = $previousPath
     $env:PYTHONHOME = $previousPythonHome
     $env:PYTHONPATH = $previousPythonPath
     if ($serviceProcess -and -not $serviceProcess.HasExited) {
         $serviceProcess.Kill()
         $serviceProcess.WaitForExit()
+    }
+    if ($primaryPortBlocker) {
+        $primaryPortBlocker.Stop()
     }
     $resolved = [IO.Path]::GetFullPath($workspace)
     $expectedPrefix = $tempParent.TrimEnd("\") + "\pagenest-installer-smoke-"

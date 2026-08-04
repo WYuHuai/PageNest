@@ -2,6 +2,7 @@ import re
 
 import pytest
 
+import run as service_run
 from collector import config
 
 
@@ -72,6 +73,15 @@ def test_default_env_file_lives_next_to_frozen_executable(tmp_path, monkeypatch)
     monkeypatch.setattr(config.sys, "executable", str(executable))
 
     assert config.default_env_file() == tmp_path / ".env"
+
+
+def test_service_port_comes_from_loaded_configuration(monkeypatch):
+    monkeypatch.setattr(service_run.settings, "pagenest_port", 18765)
+    assert service_run.service_port() == 18765
+
+    monkeypatch.setattr(service_run.settings, "pagenest_port", 70000)
+    with pytest.raises(ValueError, match="between 1 and 65535"):
+        service_run.service_port()
 
 
 def test_extension_origin_regex_restricts_configured_store_ids(monkeypatch):

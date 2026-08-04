@@ -1,6 +1,6 @@
 param(
     [string]$ReleaseDirectory = "",
-    [int]$Port = 18765,
+    [int]$Port = 0,
     [switch]$KeepWorkspace
 )
 
@@ -25,9 +25,16 @@ foreach ($archive in @($extensionZip, $viewerZip, $serverZip)) {
     }
 }
 
-$listener = Get-NetTCPConnection -State Listen -LocalPort $Port -ErrorAction SilentlyContinue
-if ($listener) {
-    throw "Smoke-test port is already in use: $Port"
+$portProbe = [Net.Sockets.TcpListener]::new([Net.IPAddress]::Loopback, $Port)
+try {
+    $portProbe.Start()
+    $Port = ([Net.IPEndPoint]$portProbe.LocalEndpoint).Port
+}
+catch {
+    throw "Smoke-test port is unavailable: $Port"
+}
+finally {
+    $portProbe.Stop()
 }
 
 $localAppDataTemp = Join-Path (
@@ -100,6 +107,7 @@ try {
     $environmentLines = @(
         "OBSIDIAN_VAULT_PATH=$($vaultRoot.Replace('\', '/'))",
         "LOCAL_COLLECTOR_TOKEN=$token",
+        "PAGENEST_PORT=$Port",
         "ALLOW_LOCAL_NETWORK_DOWNLOADS=false",
         "HERMES_API_URL=",
         "HERMES_MODEL_NAME=",

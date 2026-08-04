@@ -170,3 +170,11 @@ def test_local_service_port_candidates_stay_in_sync():
         assert str(port) in smoke
     assert "PAGENEST_PORT=" in installer
     assert "PAGENEST_PORT=8765" in example
+
+
+def test_release_smoke_uses_an_isolated_ephemeral_port():
+    smoke = (ROOT / "scripts" / "smoke_release_windows.ps1").read_text("utf-8")
+
+    assert '[int]$Port = 0' in smoke
+    assert "TcpListener" in smoke
+    assert "Get-NetTCPConnection" not in smoke

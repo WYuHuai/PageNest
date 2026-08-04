@@ -100,9 +100,9 @@ globalThis.HermesExtractorCore = (() => {
   function externalLinkLabel(url) {
     try {
       const parsed = new URL(url);
-      return parsed.hostname.toLowerCase().includes("github.com") ? "?? GitHub ???? ?" : "?????? ?";
+      return parsed.hostname.toLowerCase() === "github.com" ? "打开 GitHub 链接 ↗" : "打开代码仓库 ↗";
     } catch {
-      return "?????? ?";
+      return "打开代码仓库 ↗";
     }
   }
   function linkValueFromNode(node) {
@@ -146,7 +146,9 @@ globalThis.HermesExtractorCore = (() => {
       if (!resolved) continue;
       anchor.href = resolved.href;
       anchor.removeAttribute("onclick");
-      if (!(anchor.innerText || anchor.textContent || "").trim()) {
+      const hasText = (anchor.innerText || anchor.textContent || "").trim();
+      const hasVisualContent = anchor.querySelector("img,picture,video,svg");
+      if (!hasText && !hasVisualContent && isCodeHost(resolved)) {
         anchor.textContent = externalLinkLabel(resolved.href);
       }
     }

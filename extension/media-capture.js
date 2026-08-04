@@ -1,7 +1,7 @@
 globalThis.HermesMedia = (() => {
   const MEDIA_ATTR = "data-hermes-media-id";
   const MAX_INLINE_BYTES = 150 * 1024 * 1024;
-  const CONTROL_ONLY = /^(?:\s|0\/0|00:00|\/|\d{2}:\d{2}(?:\/\d{2}:\d{2})?|进度条[，,、:]?|百分之\d+|播放|暂停|倍速|\*?全屏\*?|退出全屏|倍速播放中|(?:0\.5|0\.75|1\.0|1\.5|2\.0)倍|超清|高清|流畅|自动)+$/;
+  const CONTROL_ONLY = /^(?:\s|00|0\/0|00:00|\/|\d{2}:\d{2}(?:\/\d{2}:\d{2})?|进度条[，,、:]?|百分之\d+|播放|暂停|倍速|\*?全屏\*?|退出全屏|倍速播放中|(?:0\.5|0\.75|1\.0|1\.5|2\.0)倍|超清|高清|流畅|自动|已关注|关注|重播|赞|观看更多|继续观看|转载|视频详情)+$/;
   const CONTROL_SELECTORS = [
     "[class*='player-control']",
     "[class*='video-control']",
@@ -11,6 +11,7 @@ globalThis.HermesMedia = (() => {
     "[class*='progress-bar']",
     "[role='slider']",
   ];
+  const PLAYER_SHELL_MARKERS = ["已关注", "关注", "重播", "赞", "观看更多", "继续观看", "转载", "视频详情"];
 
   function sourceOf(video) {
     return video.currentSrc
@@ -131,12 +132,20 @@ globalThis.HermesMedia = (() => {
       const slot = document.createElement("div");
       slot.setAttribute(MEDIA_ATTR, video.getAttribute(MEDIA_ATTR));
       slot.setAttribute("data-hermes-kind", "offline-video");
-      video.replaceWith(slot);
+      let shell = video;
+      for (let node = video.parentElement; node && node !== root; node = node.parentElement) {
+        const text = (node.innerText || node.textContent || "").replace(/\s+/g, " ").trim();
+        const markerCount = PLAYER_SHELL_MARKERS.filter(marker => text.includes(marker)).length;
+        const hasPlayerClass = /(?:^|[-_])(player|video)(?:[-_]|$)/i.test(String(node.className || ""));
+        const containsOneVideo = node.querySelectorAll(`video[${MEDIA_ATTR}]`).length === 1;
+        if (containsOneVideo && (hasPlayerClass || markerCount >= 3) && text.length < 800) shell = node;
+      }
+      shell.replaceWith(slot);
     }
-    for (const node of [...root.querySelectorAll("span,div,p,button")]) {
-      if (node.children.length) continue;
+    for (const node of [...root.querySelectorAll("span,div,p,button,a")].reverse()) {
       const text = (node.textContent || "").replace(/\s+/g, " ").trim();
-      if (text && text.length < 120 && CONTROL_ONLY.test(text)) node.remove();
+      const containsContent = node.querySelector(`img,video,pre,code,table,[${MEDIA_ATTR}]`);
+      if (!containsContent && text && text.length < 120 && CONTROL_ONLY.test(text)) node.remove();
     }
   }
 
@@ -149,5 +158,13 @@ globalThis.HermesMedia = (() => {
     return "article";
   }
 
-  return {MEDIA_ATTR, bilibiliVideoPage, cleanClone, collect, frameKind, pageVideo};
+  return {
+    MEDIA_ATTR,
+    bilibiliVideoPage,
+    cleanClone,
+    collect,
+    frameKind,
+    isPlayerControlText: value => CONTROL_ONLY.test(String(value || "").replace(/\s+/g, " ").trim()),
+    pageVideo,
+  };
 })();

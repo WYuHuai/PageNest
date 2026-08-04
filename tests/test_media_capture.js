@@ -14,6 +14,10 @@ const media = globalThis.HermesMedia.pageVideo("video-slot", "poster.jpg");
 assert.equal(media.page_url, "https://www.bilibili.com/video/BV1j14y1F7Jr/");
 assert.equal(media.position_id, "video-slot");
 assert.equal(media.source_url, "");
+assert.equal(globalThis.HermesMedia.isPlayerControlText("00"), true);
+assert.equal(globalThis.HermesMedia.isPlayerControlText("播放 倍速 全屏"), true);
+assert.equal(globalThis.HermesMedia.isPlayerControlText("0.5倍 0.75倍 1.0倍 1.5倍 2.0倍"), true);
+assert.equal(globalThis.HermesMedia.isPlayerControlText("正文中介绍如何播放视频"), false);
 
 
 document.scripts = [];

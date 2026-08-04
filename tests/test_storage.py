@@ -2,6 +2,7 @@ import asyncio
 import base64
 from pathlib import Path
 import pytest
+from bs4 import BeautifulSoup
 from collector.config import settings
 from collector.models import ArticleInput, HermesResult, ImageInput
 from collector.rendering import render_page
@@ -108,7 +109,7 @@ def test_sanitizer_blocks_active_and_remote_content():
     assert 'evil()' not in cleaned
     assert 'onclick' not in cleaned and 'onerror' not in cleaned
     assert 'https://remote.test' not in cleaned
-    assert '此图片未能离线保存' in cleaned
+    assert 'missing-image' not in cleaned
 
 def test_code_blocks_are_readable_copyable_and_external_links_survive():
     cleaned = sanitize_content(
@@ -128,6 +129,50 @@ def test_code_blocks_are_readable_copyable_and_external_links_survive():
     assert "script-src 'nonce-hermes-offline'" in rendered
     assert '<script nonce="hermes-offline">' in rendered
     assert 'window.parent.postMessage({type: "hermes-copy"' not in rendered
+
+
+def test_sanitizer_preserves_linked_images_without_labeling_empty_article_links():
+    cleaned = sanitize_content(
+        '<a href="https://example.com/article"><img src="data:image/png;base64,AA=="></a>'
+        '<a href="https://mp.weixin.qq.com/s/example"></a>'
+        '<a href="https://github.com/example/project"></a>'
+    )
+    links = {tag["href"]: tag for tag in BeautifulSoup(cleaned, "html.parser").find_all("a")}
+
+    assert links["https://example.com/article"].find("img") is not None
+    assert "https://mp.weixin.qq.com/s/example" not in links
+    assert '打开外部链接' not in cleaned
+    assert '打开 GitHub 链接' in cleaned
+
+
+def test_sanitizer_removes_player_controls_and_empty_lists():
+    cleaned = sanitize_content(
+        '<article><p>有效正文</p><div><i></i>倍速播放中</div>'
+        '<div><a href="#">0.5倍 0.75倍 1.0倍 1.5倍 2.0倍</a></div>'
+        '<ul><li></li><li>保留条目</li><li><span></span></li></ul>'
+        '<img src="https://remote.test/diagram.png" alt="实验图"></article>'
+    )
+
+    assert "有效正文" in cleaned and "保留条目" in cleaned
+    assert "倍速播放中" not in cleaned and "0.5倍" not in cleaned
+    assert cleaned.count("<li>") == 1
+    assert "图片未保存：实验图" in cleaned
+
+
+def test_sanitizer_replaces_embedded_player_shell_with_offline_video():
+    video = 'data:video/mp4;base64,AA=='
+    poster = 'data:image/jpeg;base64,AA=='
+    cleaned = sanitize_content(
+        '<article><p>视频前正文</p><div class="wx-video-player">'
+        '<div>已关注 关注 重播 赞 观看更多</div>'
+        f'<div><img src="{poster}"><video src="{video}"></video><p>继续观看</p><p>转载 视频详情</p></div>'
+        '</div><p>视频后正文</p></article>'
+    )
+
+    assert "视频前正文" in cleaned and "视频后正文" in cleaned
+    assert f'src="{video}"' in cleaned
+    assert f'poster="{poster}"' in cleaned
+    assert all(text not in cleaned for text in ("已关注", "观看更多", "继续观看", "转载", "视频详情"))
 
 
 @pytest.mark.asyncio

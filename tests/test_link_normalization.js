@@ -20,8 +20,8 @@ class FakeNode {
     return selector.split(",").some((part) => part.trim().toLowerCase() === this.tag);
   }
   querySelector(selector) {
-    if (selector !== "a") return null;
-    return this.children.find((child) => child.tag === "a") || null;
+    const tags = selector.split(",").map((part) => part.trim().toLowerCase());
+    return this.children.find((child) => tags.includes(child.tag)) || null;
   }
   append(...items) {
     for (const item of items) {
@@ -35,6 +35,10 @@ class FakeNode {
 const emptyRedirect = new FakeNode("a", {
   href: "https://link.csdn.net/?target=https%3A%2F%2Fgithub.com%2Fexample%2Frobot",
 });
+const emptyArticleLink = new FakeNode("a", {href: "https://mp.weixin.qq.com/s/example"});
+const linkedImage = new FakeNode("img", {src: "data:image/png;base64,AA=="});
+const imageLink = new FakeNode("a", {href: "https://example.com/article"});
+imageLink.children.push(linkedImage);
 const reportLink = new FakeNode("span", {
   "data-report-click": JSON.stringify({dest: "https://github.com/example/firmware"}),
 }, "源码");
@@ -42,7 +46,7 @@ const iconLink = new FakeNode("img", {"data-href": "https://gitee.com/example/ro
 const linkedNodes = [reportLink, iconLink];
 const root = {
   querySelectorAll(selector) {
-    if (selector === "a") return [emptyRedirect];
+    if (selector === "a") return [emptyRedirect, emptyArticleLink, imageLink];
     return linkedNodes;
   },
 };
@@ -65,6 +69,9 @@ context.normalizeLinks(root);
 
 assert.equal(emptyRedirect.href, "https://github.com/example/robot");
 assert.match(emptyRedirect.textContent, /GitHub/);
+assert.equal(emptyArticleLink.textContent, "");
+assert.deepEqual(imageLink.children, [linkedImage]);
+assert.equal(imageLink.textContent, "");
 assert.equal(reportLink.children[0].href, "https://github.com/example/firmware");
 assert.match(reportLink.children[0].textContent, /GitHub/);
 assert.equal(iconLink.replacement.href, "https://gitee.com/example/robot");

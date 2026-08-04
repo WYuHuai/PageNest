@@ -7,6 +7,13 @@ from bs4 import BeautifulSoup
 BLOCKED_TAGS = {"script", "iframe", "object", "embed", "form", "input", "button", "textarea", "select", "option", "link", "meta", "base", "svg", "canvas", "audio", "source", "track"}
 SAFE_ATTRIBUTES = {"href", "src", "alt", "title", "colspan", "rowspan", "width", "height", "controls", "preload", "poster", "playsinline", "download"}
 SAFE_DATA_ATTRIBUTES = {"data-hermes-kind", "data-hermes-token", "data-hermes-language"}
+PLAYER_CONTROL_TOKENS = {
+    "00", "0/0", "00:00", "播放", "暂停", "倍速", "全屏", "退出全屏",
+    "倍速播放中", "0.5倍", "0.75倍", "1.0倍", "1.5倍", "2.0倍",
+    "超清", "高清", "流畅", "自动", "已关注", "关注", "重播", "赞",
+    "观看更多", "继续观看", "转载", "视频详情",
+}
+PLAYER_SHELL_MARKERS = {"已关注", "关注", "重播", "赞", "观看更多", "继续观看", "转载", "视频详情"}
 SYNTAX_TOKEN_ALIASES = {
     "comment": "comment", "quote": "comment",
     "keyword": "keyword", "selector-tag": "keyword", "literal": "keyword", "name": "keyword",
@@ -88,6 +95,30 @@ def _clean_text(value: str) -> str:
     return "".join(character for character in value if unicodedata.category(character) != "Cf").strip()
 
 
+def _is_player_control_text(value: str) -> bool:
+    tokens = _clean_text(value).split()
+    return bool(tokens) and all(
+        token in PLAYER_CONTROL_TOKENS
+        or re.fullmatch(r"\d{2}:\d{2}(?:/\d{2}:\d{2})?", token)
+        or re.fullmatch(r"(?:进度条[，,、:]?|百分之\d+)", token)
+        for token in tokens
+    )
+
+
+def _player_shell(video):
+    candidate = None
+    for ancestor in list(video.parents)[:10]:
+        if ancestor.name in {"article", "body", "html"}:
+            break
+        text = _clean_text(ancestor.get_text(" ", strip=True))
+        classes = " ".join(ancestor.get("class", []))
+        marker_count = sum(marker in text for marker in PLAYER_SHELL_MARKERS)
+        is_player = re.search(r"(?:^|[-_])(player|video)(?:[-_]|$)", classes, re.I) or marker_count >= 3
+        if len(ancestor.find_all("video")) == 1 and is_player and len(text) < 800:
+            candidate = ancestor
+    return candidate
+
+
 def _syntax_token(classes: set[str]) -> str:
     for class_name in classes:
         normalized = re.sub(r"^(?:hljs-|token-?)", "", class_name)
@@ -107,6 +138,15 @@ def _code_language(classes: set[str]) -> str:
 def sanitize_content(source_html: str, fallback_text: str = "") -> str:
     """Keep readable article structure while removing active or remote content."""
     soup = BeautifulSoup(source_html or "", "html.parser")
+    for video in list(soup.find_all("video")):
+        if shell := _player_shell(video):
+            poster = shell.find("img", src=lambda value: value and value.startswith("data:image/"))
+            if poster and not video.get("poster"):
+                video["poster"] = poster["src"]
+            shell.replace_with(video.extract())
+    for tag in reversed(list(soup.find_all(["a", "button", "div", "p", "span"]))):
+        if not tag.find(["img", "video", "pre", "code", "table"]) and _is_player_control_text(tag.get_text(" ", strip=True)):
+            tag.decompose()
     for tag in list(soup.find_all(BLOCKED_TAGS)):
         tag.decompose()
     for line in soup.select(".hljs-ln-code .hljs-ln-line"):
@@ -149,10 +189,14 @@ def sanitize_content(source_html: str, fallback_text: str = "") -> str:
         if tag.name == "img":
             src = tag.get("src", "")
             if not src.startswith("data:image/"):
-                placeholder = soup.new_tag("div")
-                placeholder["data-hermes-kind"] = "missing-image"
-                placeholder.string = tag.get("alt") or "此图片未能离线保存"
-                tag.replace_with(placeholder)
+                alt = _clean_text(tag.get("alt", ""))
+                if alt:
+                    placeholder = soup.new_tag("span")
+                    placeholder["data-hermes-kind"] = "missing-image"
+                    placeholder.string = f"图片未保存：{alt}"
+                    tag.replace_with(placeholder)
+                else:
+                    tag.decompose()
                 continue
             tag.attrs = {key: value for key, value in tag.attrs.items() if key in {"src", "alt", "title", "width", "height"}}
             tag["loading"] = "lazy"
@@ -175,9 +219,20 @@ def sanitize_content(source_html: str, fallback_text: str = "") -> str:
                 continue
             tag["target"] = "_blank"
             tag["rel"] = "noopener noreferrer"
-            if not _clean_text(tag.get_text(" ", strip=True)):
+            if not _clean_text(tag.get_text(" ", strip=True)) and not tag.find(["img", "picture", "video"]):
                 host = href.split("/", 3)[2].lower() if "://" in href else ""
-                tag.string = "打开 GitHub 链接 ↗" if "github.com" in host else "打开外部链接 ↗"
+                if host == "github.com" or host.endswith(".github.com"):
+                    tag.string = "打开 GitHub 链接 ↗"
+                elif host in {"gitee.com", "gitcode.net"} or host.endswith((".gitee.com", ".gitcode.net")):
+                    tag.string = "打开代码仓库 ↗"
+                else:
+                    tag.decompose()
+    for item in list(soup.find_all("li")):
+        if not _clean_text(item.get_text(" ", strip=True)) and not item.find(["img", "video", "pre", "code", "table"]):
+            item.decompose()
+    for container in list(soup.find_all(["ul", "ol"])):
+        if not container.find("li"):
+            container.decompose()
     for pre in list(soup.find_all("pre")):
         if pre.parent and pre.parent.get("data-hermes-kind") == "code-shell":
             continue

@@ -24,6 +24,15 @@ function storage(initial){
   })).token,"existing");
   assert.equal(requests,3);
 
+  const recovered=await PageNestConnection.load({
+    storage:existing,
+    force:true,
+    request:async url=>url.includes(":18765/")
+      ?{ok:true,json:async()=>({token:"recovered"})}
+      :{ok:false},
+  });
+  assert.deepEqual(recovered,{server:"http://127.0.0.1:18765",token:"recovered"});
+
   const stale=storage({server:"http://127.0.0.1:8765",token:"stale"});
   const migrated=await PageNestConnection.load({
     storage:stale,
@@ -33,6 +42,15 @@ function storage(initial){
   });
   assert.deepEqual(migrated,{server:"http://127.0.0.1:18765",token:"migrated"});
   assert.deepEqual(stale.value(),migrated);
+
+  const preconfigured=storage({server:"http://127.0.0.1:18765",token:"stale"});
+  const installed={server:"http://127.0.0.1:18765",token:"installed"};
+  assert.deepEqual(await PageNestConnection.load({
+    storage:preconfigured,
+    installed,
+    request:async()=>{throw new Error("pairing should not be needed")},
+  }),installed);
+  assert.deepEqual(preconfigured.value(),installed);
 
   const empty=storage({server:"http://127.0.0.1:8765",token:""});
   const pairRequests=[];
@@ -62,6 +80,8 @@ function storage(initial){
     storage:unavailable,
     request:async()=>({ok:false}),
   })).token,"");
+
+  PageNestConnection.invalidate();
 
   assert.deepEqual(PageNestConnection.DEFAULT_SERVERS,[
     "http://127.0.0.1:8765",

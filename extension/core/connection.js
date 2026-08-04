@@ -6,6 +6,19 @@
   ]);
   let resolvedConnection="";
 
+  function connectionKey(connection){
+    return `${connection.server}\n${connection.token}`;
+  }
+
+  function installedConnection(installed){
+    const token=String(installed?.token||"").trim();
+    if(!token) return null;
+    return {
+      server:String(installed.server||DEFAULT_SERVERS[0]).replace(/\/$/,""),
+      token,
+    };
+  }
+
   async function pair(request,servers){
     for(const server of servers){
       try{
@@ -24,16 +37,22 @@
     return null;
   }
 
-  async function load({storage,request,installed}={}){
+  async function load({storage,request,installed,force=false}={}){
     storage=storage||chrome.storage.local;
     request=request||fetch;
     installed=installed||scope.PAGENEST_CONNECTION||{};
+    const configured=installedConnection(installed);
     const current=await storage.get({
-      server:installed.server||DEFAULT_SERVERS[0],
-      token:installed.token||"",
+      server:configured?.server||DEFAULT_SERVERS[0],
+      token:configured?.token||"",
     });
-    const currentKey=`${current.server}\n${current.token}`;
-    if(current.token&&resolvedConnection===currentKey) return current;
+    if(configured&&connectionKey(current)!==connectionKey(configured)){
+      await storage.set(configured);
+      resolvedConnection=connectionKey(configured);
+      return configured;
+    }
+    const currentKey=connectionKey(current);
+    if(!force&&current.token&&resolvedConnection===currentKey) return current;
     const servers=[current.server.replace(/\/$/,""),...DEFAULT_SERVERS]
       .filter((server,index,list)=>list.indexOf(server)===index);
     const connection=await pair(request,servers);
@@ -42,9 +61,13 @@
       return current;
     }
     await storage.set(connection);
-    resolvedConnection=`${connection.server}\n${connection.token}`;
+    resolvedConnection=connectionKey(connection);
     return connection;
   }
 
-  scope.PageNestConnection=Object.freeze({load,DEFAULT_SERVERS});
+  function invalidate(){
+    resolvedConnection="";
+  }
+
+  scope.PageNestConnection=Object.freeze({load,invalidate,DEFAULT_SERVERS});
 })(globalThis);

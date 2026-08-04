@@ -4,7 +4,9 @@ All notable user-facing changes are recorded here.
 
 ## Unreleased
 
-No unreleased changes.
+- Preserve the local collector token across Windows installer upgrades.
+- Recover stale extension credentials from installer configuration and retry
+  trusted extension pairing once after an authentication failure.
 
 ## 1.7.4 - 2026-07-30
 

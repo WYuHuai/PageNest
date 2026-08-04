@@ -153,6 +153,7 @@ def test_installer_accepts_only_explicit_store_extension_ids():
     assert "PAGENEST_EXTENSION_IDS={#ExtensionIds}" in definition
     assert "[string]$ExpectedExtensionIds" in smoke
     assert "Store extension pairing: passed" in smoke
+    assert "Upgrade token preservation: passed" in smoke
     assert "PAGENEST_EXTENSION_IDS=" in example
 
 

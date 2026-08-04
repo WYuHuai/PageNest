@@ -107,13 +107,20 @@ function showResult(data) {
   $("openObsidian").onclick=()=>chrome.tabs.create({url:`obsidian://open?path=${encodeURIComponent(page)}`});
 }
 
-async function api(path, body) {
+async function api(path, body, retryPairing=true) {
   const cfg=await getSettings();
   const controller=new AbortController();
   const timeoutMs=body?300000:15000;
   const timeout=setTimeout(()=>controller.abort(),timeoutMs);
   try {
     const response=await fetch(cfg.server+path,{method:body?"POST":"GET",headers:{"Content-Type":"application/json","Authorization":`Bearer ${cfg.token}`},body:body?JSON.stringify(body):undefined,signal:controller.signal});
+    if(response.status===401&&retryPairing){
+      PageNestConnection.invalidate();
+      const refreshed=await PageNestConnection.load({force:true});
+      if(refreshed.token&&(`${refreshed.server}\n${refreshed.token}`!==`${cfg.server}\n${cfg.token}`)){
+        return api(path,body,false);
+      }
+    }
     const data=await response.json().catch(()=>({detail:"本地服务返回了无法读取的内容"}));
     if(!response.ok) throw new Error(data.detail||`请求失败（${response.status}）`);
     return data;

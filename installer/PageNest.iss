@@ -127,6 +127,45 @@ begin
   Result := DirExists(AddBackslash(SelectedVault) + '.obsidian');
 end;
 
+function IsCollectorToken(Value: String): Boolean;
+var
+  Index: Integer;
+begin
+  Result := Length(Value) = 32;
+  if not Result then
+    Exit;
+  for Index := 1 to Length(Value) do
+    if Pos(Lowercase(Copy(Value, Index, 1)), HexDigits) = 0 then
+    begin
+      Result := False;
+      Exit;
+    end;
+end;
+
+function ExistingCollectorToken: String;
+var
+  Lines: TArrayOfString;
+  Index: Integer;
+  Value: String;
+  ConfigPath: String;
+begin
+  Result := '';
+  ConfigPath := ExpandConstant('{app}\Service\.env');
+  if not LoadStringsFromFile(ConfigPath, Lines) then
+    Exit;
+  for Index := 0 to GetArrayLength(Lines) - 1 do
+    if Pos('LOCAL_COLLECTOR_TOKEN=', Lines[Index]) = 1 then
+    begin
+      Value := Trim(Copy(Lines[Index], Length('LOCAL_COLLECTOR_TOKEN=') + 1, MaxInt));
+      if (Length(Value) >= 2) and (Copy(Value, 1, 1) = '"') and
+         (Copy(Value, Length(Value), 1) = '"') then
+        Value := Copy(Value, 2, Length(Value) - 2);
+      if IsCollectorToken(Value) then
+        Result := Lowercase(Value);
+      Exit;
+    end;
+end;
+
 function PortIsListening(Lines: TArrayOfString; Port: Integer): Boolean;
 var
   Index: Integer;
@@ -182,7 +221,7 @@ end;
 
 procedure InitializeWizard;
 begin
-  CollectorToken := GenerateToken;
+  CollectorToken := '';
   VaultFromCommandLine := ExpandConstant('{param:VAULT|}');
   VaultPage := CreateInputDirPage(
     wpSelectDir,
@@ -217,6 +256,12 @@ begin
   if not VaultIsValid then
     Result := '必须通过 /VAULT 指定一个包含 .obsidian 文件夹的有效 Obsidian 知识库。'
   else begin
+    if CollectorToken = '' then
+    begin
+      CollectorToken := ExistingCollectorToken;
+      if CollectorToken = '' then
+        CollectorToken := GenerateToken;
+    end;
     ServicePort := SelectServicePort;
     if ServicePort = 0 then
       Result := 'PageNest 无法找到可用的本地端口（已检查 8765、18765 和 28765）。请关闭占用这些端口的程序后重试。'

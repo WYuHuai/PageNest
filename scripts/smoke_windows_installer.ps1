@@ -94,6 +94,20 @@ try {
         throw "Installer did not generate a valid 32-character token"
     }
     $token = $tokenMatch.Groups[1].Value
+
+    $reinstall = Start-Process -FilePath $installerPath -ArgumentList $setupArguments -Wait -PassThru
+    if ($reinstall.ExitCode -ne 0) {
+        throw "Installer upgrade simulation failed with exit code $($reinstall.ExitCode)"
+    }
+    $configText = [IO.File]::ReadAllText($config, [Text.Encoding]::UTF8)
+    $reinstalledToken = [regex]::Match(
+        $configText,
+        '(?m)^LOCAL_COLLECTOR_TOKEN=([a-f0-9]{32})\r?$'
+    )
+    if (-not $reinstalledToken.Success -or $reinstalledToken.Groups[1].Value -ne $token) {
+        throw "Installer changed the collector token during an upgrade"
+    }
+
     $portMatch = [regex]::Match($configText, '(?m)^PAGENEST_PORT=(8765|18765|28765)\r?$')
     if (-not $portMatch.Success) {
         throw "Installer did not write a supported local service port"
@@ -243,6 +257,7 @@ try {
     Write-Output "Unicode vault: passed"
     Write-Output "Viewer installation: passed"
     Write-Output "Extension preconfiguration: passed"
+    Write-Output "Upgrade token preservation: passed"
     Write-Output "Occupied-port fallback: passed ($port)"
     if ($ExpectedExtensionIds) {
         Write-Output "Store extension pairing: passed"

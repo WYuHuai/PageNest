@@ -1,3 +1,4 @@
+import hashlib
 import json
 import re
 import zipfile
@@ -41,6 +42,8 @@ def test_release_validator_rejects_runtime_and_private_entries(entry):
 
 
 def test_release_packages_have_expected_roots(tmp_path):
+    installer = tmp_path / "PageNest-Setup-1.7.4.exe"
+    installer.write_bytes(b"test installer")
     packages = build_release(tmp_path)
     browser, viewer, server = packages
 
@@ -65,6 +68,10 @@ def test_release_packages_have_expected_roots(tmp_path):
         assert "local-server/.env" not in names
         assert "启动网页收藏器.bat" in names
         assert not any(name.startswith("tests/") for name in names)
+
+    checksums = (tmp_path / "SHA256SUMS.txt").read_text("utf-8")
+    assert installer.name in checksums
+    assert hashlib.sha256(installer.read_bytes()).hexdigest() in checksums
 
 
 @pytest.mark.parametrize(

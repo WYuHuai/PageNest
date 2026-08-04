@@ -222,9 +222,13 @@ def build_release(output_root: Path | None = None) -> list[Path]:
     if notes.is_file():
         (output / "RELEASE_NOTES.md").write_bytes(notes.read_bytes())
 
+    checksum_files = list(packages)
+    installer = output / f"PageNest-Setup-{version}.exe"
+    if installer.is_file():
+        checksum_files.append(installer)
     checksum_lines = [
-        f"{hashlib.sha256(package.read_bytes()).hexdigest()}  {package.name}"
-        for package in packages
+        f"{hashlib.sha256(path.read_bytes()).hexdigest()}  {path.name}"
+        for path in checksum_files
     ]
     (output / "SHA256SUMS.txt").write_text(
         "\n".join(checksum_lines) + "\n",

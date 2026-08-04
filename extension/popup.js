@@ -57,6 +57,7 @@ async function identify() {
   const target={tabId:tab.id,allFrames:true};
   await chrome.scripting.executeScript({target,files:[
     "media-capture.js",
+    "core/content-quality.js",
     "core/extractor-core.js",
     "core/canvas.js",
     "core/adapter-registry.js",

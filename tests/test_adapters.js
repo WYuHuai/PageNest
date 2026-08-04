@@ -12,6 +12,7 @@ const context = vm.createContext({HermesExtractorCore: core});
 context.globalThis = context;
 
 for (const file of [
+  "core/content-quality.js",
   "core/adapter-registry.js",
   "adapters/bilibili.js",
   "adapters/feishu.js",

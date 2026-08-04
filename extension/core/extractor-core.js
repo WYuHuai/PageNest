@@ -66,10 +66,16 @@ globalThis.HermesExtractorCore = (() => {
   }
   function findArticle() {
     for (const selector of SELECTORS) {
-      const candidates = [...document.querySelectorAll(selector)].filter(x => textLength(x) > 180);
+      const candidates = [...document.querySelectorAll(selector)].filter(
+        element => PageNestContentQuality.isReadableArticle(element.innerText || element.textContent),
+      );
       if (candidates.length) return {element: candidates.sort((a, b) => score(b) - score(a))[0], method: `selector:${selector}`};
     }
-    const candidates = [...document.querySelectorAll("main,section,div")].filter(x => textLength(x) > 500 && x.querySelectorAll("p").length >= 3);
+    const candidates = [...document.querySelectorAll("main,section,div")].filter(
+      element => textLength(element) > 500
+        && element.querySelectorAll("p").length >= 3
+        && PageNestContentQuality.isReadableArticle(element.innerText || element.textContent),
+    );
     return candidates.length ? {element: candidates.sort((a, b) => score(b) - score(a))[0], method: "bundled-readability-heuristic"} : {element: document.body, method: "whole-page-fallback"};
   }
   function isPlaceholderSvgData(url) {

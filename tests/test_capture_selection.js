@@ -1,4 +1,5 @@
 const assert = require("node:assert/strict");
+require("../extension/core/content-quality.js");
 require("../extension/capture-selection.js");
 
 const top = {
@@ -62,4 +63,44 @@ assert.equal(chosen.images.length, 1);
 assert.equal(chosen.media.length, 1);
 assert.match(chosen.article_html, /data-hermes-media-id="video-1"/);
 assert.doesNotMatch(chosen.article_html, /进度条|倍速|超清|流畅/);
+const scriptBundle = [
+  "!function(){var e={576:function(e,t){\"use strict\";",
+  "Object.defineProperty(t,\"__esModule\",{value:!0});",
+  "throw new TypeError(\"Generator is already executing\");",
+  "}".repeat(1500),
+].join("");
+assert.equal(PageNestContentQuality.looksLikeScriptBundle(scriptBundle), true);
+
+const wechatCapture = globalThis.selectBestCapture([
+  {
+    frameId: 0,
+    result: {
+      title: "微信文章",
+      url: "https://mp.weixin.qq.com/s/example",
+      article_html: `<main><p>${scriptBundle}</p></main>`,
+      article_text: scriptBundle,
+      images: [],
+      media: [],
+      headings: [],
+      extraction_method: "selector:main",
+      frame_kind: "article",
+    },
+  },
+  {
+    frameId: 3,
+    result: {
+      title: "微信正文",
+      url: "https://mp.weixin.qq.com/s/example",
+      article_html: "<article><h1>真正正文</h1><p>这是正确的微信文章内容。</p></article>",
+      article_text: "这是正确的微信文章内容。".repeat(30),
+      images: [],
+      media: [],
+      headings: ["真正正文"],
+      extraction_method: "wechat:#js_content",
+      frame_kind: "article",
+    },
+  },
+], {title: "微信文章", url: "https://mp.weixin.qq.com/s/example"});
+assert.equal(wechatCapture.extraction_method, "embedded-frame:3:wechat:#js_content");
+assert.doesNotMatch(wechatCapture.article_text, /Generator is already executing/);
 console.log("capture selection passed");

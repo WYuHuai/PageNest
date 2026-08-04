@@ -2,7 +2,10 @@ globalThis.selectBestCapture = (captures, tab) => {
   const valid = captures.filter(
     item => item.result && !item.result.capture_error && item.result.article_html,
   );
-  if (!valid.length) {
+  const readable = valid.filter(
+    item => PageNestContentQuality.isReadableArticle(item.result.article_text),
+  );
+  if (!readable.length) {
     throw new Error("当前页面及其嵌入内容均未能识别");
   }
 
@@ -10,7 +13,7 @@ globalThis.selectBestCapture = (captures, tab) => {
   const top = topEntry?.result;
   const topHostname = new URL(tab.url).hostname;
   const isFeishu = /(^|\.)feishu\.cn$/i.test(topHostname);
-  const articleFrames = valid.filter(
+  const articleFrames = readable.filter(
     item => !["media", "navigation"].includes(item.result.frame_kind),
   );
 
@@ -29,7 +32,7 @@ globalThis.selectBestCapture = (captures, tab) => {
   ) {
     chosen = topEntry;
   } else {
-    const candidates = articleFrames.length ? articleFrames : valid;
+    const candidates = articleFrames.length ? articleFrames : readable;
     chosen = [...candidates].sort((left, right) => score(right) - score(left))[0];
   }
 

@@ -36,8 +36,10 @@ HTTP(S) page and sends structured data to the configured local service.
 
 ### Local service
 
-The FastAPI service binds to `127.0.0.1:8765`. The public Windows installer
-bundles its Python 3.11 runtime, so end users do not install Python.
+The FastAPI service binds only to loopback. The public Windows installer picks
+the first free port from `8765`, `18765`, and `28765`, then writes that choice to
+both the service and extension configuration. It bundles Python 3.11, so end
+users do not install Python.
 
 - `main.py`: authenticated HTTP endpoints and collection concurrency.
 - `models.py`: bounded request models.

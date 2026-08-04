@@ -35,8 +35,8 @@ Timelines for validation and disclosure depend on severity and fix complexity.
 
 ## Security boundaries
 
-- Keep the service bound to `127.0.0.1`; never expose port 8765 to a LAN or the
-  internet.
+- Keep the service bound to `127.0.0.1`; never expose its selected local port
+  to a LAN or the internet.
 - Use a unique collector token of at least 24 random characters.
 - Never commit or share a service `.env`, an installed
   `Extension/connection-config.js`, or a collector token.

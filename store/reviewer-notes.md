@@ -25,7 +25,8 @@ machine. Never put a real token in reviewer notes or the extension ZIP.
 ## Expected behavior
 
 - The extension processes only the tab on which the user clicks it.
-- Core functionality uses `127.0.0.1:8765`; there is no PageNest cloud service.
+- Core functionality uses a loopback-only service on the first available port
+  among `8765`, `18765`, and `28765`; there is no PageNest cloud service.
 - No account or test credentials are required.
 - Select original mode for certification; AI organization is optional.
 - Bilibili or other media capture is intended only for content the user is

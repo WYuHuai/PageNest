@@ -38,7 +38,7 @@ Optional organization works with OpenAI Chat Completions-compatible endpoints.
 
 ```mermaid
 flowchart LR
-    E["Edge / Chrome extension"] -->|"Authenticated capture"| S["Local service<br/>127.0.0.1:8765"]
+    E["Edge / Chrome extension"] -->|"Authenticated capture"| S["Loopback-only local service<br/>auto-selected port"]
     S -->|"One self-contained file"| V["Obsidian vault<br/>*.pagenest"]
     V --> P["PageNest Viewer"]
     S -. "Optional" .-> A["OpenAI-compatible endpoint"]
@@ -142,7 +142,9 @@ PageNest contains no telemetry or analytics.
 
 ## Security model
 
-- The service binds to `127.0.0.1:8765`.
+- The service binds only to `127.0.0.1`. The Windows installer selects the
+  first available port from `8765`, `18765`, and `28765`, and the store
+  extension discovers the same candidates automatically.
 - API requests require a local bearer token.
 - CORS accepts Chromium extension origins rather than arbitrary websites.
 - Remote downloads reject unsafe schemes, credentials, loopback, private,

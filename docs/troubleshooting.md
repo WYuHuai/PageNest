@@ -3,8 +3,10 @@
 ## The extension says the local service is not running
 
 1. Open the Start menu and run **PageNest**.
-2. Open `http://127.0.0.1:8765/status`.
-3. Confirm another program is not using port 8765.
+2. Open **PageNest 运行状态** from the Start menu. The installer records the
+   selected address in `连接设置.txt`.
+3. If another program uses port 8765, rerun the installer; it automatically
+   falls back to 18765 or 28765 and preconfigures the extension accordingly.
 4. If PageNest was installed over an older Hermes setup, stop the older local
    service and start PageNest again.
 

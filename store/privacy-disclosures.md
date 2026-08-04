@@ -13,7 +13,7 @@ user's Obsidian vault through the local PageNest service.
 | `scripting` | Injects PageNest's bundled extractor and site adapters into that active page. |
 | `storage` | Stores the local service URL and connection token on the user's device. |
 | `clipboardWrite` | Copies a saved local path only after the user clicks the copy action. |
-| `http://127.0.0.1:8765/*`, `http://localhost:8765/*` | Communicates with the locally installed, token-protected PageNest service. |
+| Loopback addresses on ports `8765`, `18765`, or `28765` | Communicates with the locally installed, token-protected PageNest service. The installer selects the first available port. |
 | `<all_urls>` | Reads the user-selected article and signed cross-origin page resources, including authenticated Feishu images. PageNest does not run continuously or collect browsing history. |
 
 ## Remote code

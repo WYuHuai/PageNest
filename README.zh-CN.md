@@ -19,8 +19,6 @@
   <a href="docs/troubleshooting.md">故障排查</a>
 </p>
 
-![PageNest 从浏览器采集网页并保存到 Obsidian](store/assets/screenshot-01-capture-1280x800.png)
-
 PageNest 是面向 Windows、Edge/Chrome 和 Obsidian 的本地优先网页收藏工具。
 在浏览器里点击一次，即可在知识库中得到一个自包含的 `.pagenest` 离线页面。
 智能整理是可选功能，可连接 OpenAI Chat Completions 兼容接口；普通收藏不需要
@@ -64,6 +62,10 @@ Obsidian 1.5.0 或更高版本。
 3. 在 Obsidian 中打开新生成的 `.pagenest` 文件。
 
 如果扩展无法连接本地服务，或文件没有出现，请先看[故障排查](docs/troubleshooting.md)。
+
+## 实际效果
+
+![PageNest 从浏览器采集网页并保存到 Obsidian](store/assets/screenshot-01-capture-1280x800.png)
 
 ## 主要功能
 

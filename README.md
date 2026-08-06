@@ -19,8 +19,6 @@
   <a href="docs/troubleshooting.md">Troubleshooting</a>
 </p>
 
-![PageNest captures a webpage and saves it into Obsidian](store/assets/screenshot-01-capture-1280x800.png)
-
 PageNest is a local-first web collector for Windows, Edge/Chrome, and Obsidian.
 One click in the browser produces one self-contained `.pagenest` offline page
 inside your vault. Optional AI organization works with OpenAI Chat
@@ -68,6 +66,10 @@ vault.
 
 If the extension cannot reach the service or the file does not appear, start
 with [Troubleshooting](docs/troubleshooting.md).
+
+## See it in action
+
+![PageNest captures a webpage and saves it into Obsidian](store/assets/screenshot-01-capture-1280x800.png)
 
 ## What it does
 

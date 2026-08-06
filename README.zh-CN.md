@@ -1,18 +1,69 @@
-# PageNest
+<p align="center"><img src="docs/assets/pagenest-icon-256.png" alt="PageNest" width="112"></p>
+<h1 align="center">PageNest</h1>
+<p align="center"><strong>把完整网页保存进 Obsidian，成为单个可离线阅读的文件。</strong></p>
+<p align="center">保留正文、原位图片、代码、链接、GIF 和支持的视频；数据留在本地，用户无需安装 Python。</p>
 
-<p align="center"><img src="docs/assets/pagenest-icon-256.png" alt="PageNest" width="128"></p>
+<p align="center">
+  <a href="https://github.com/WYuHuai/PageNest/actions/workflows/ci.yml"><img alt="CI" src="https://github.com/WYuHuai/PageNest/actions/workflows/ci.yml/badge.svg"></a>
+  <img alt="Windows 10 和 11" src="https://img.shields.io/badge/Windows-10%20%7C%2011-0078D4?logo=windows">
+  <img alt="Edge 和 Chrome" src="https://img.shields.io/badge/浏览器-Edge%20%7C%20Chrome-4285F4">
+  <img alt="Obsidian 1.5 或更高版本" src="https://img.shields.io/badge/Obsidian-1.5%2B-7C3AED?logo=obsidian">
+  <a href="LICENSE"><img alt="MIT License" src="https://img.shields.io/badge/License-MIT-green.svg"></a>
+</p>
 
-[English](README.md) · [快速安装](#快速安装) ·
-[支持网站](docs/supported-sites.md) ·
-[技术架构](docs/architecture.md) · [路线图](ROADMAP.md)
+<p align="center">
+  <a href="README.md">English</a> ·
+  <a href="https://github.com/WYuHuai/PageNest/releases">下载</a> ·
+  <a href="#三步安装">安装</a> ·
+  <a href="docs/supported-sites.md">支持网站</a> ·
+  <a href="docs/troubleshooting.md">故障排查</a>
+</p>
+
+![PageNest 从浏览器采集网页并保存到 Obsidian](store/assets/screenshot-01-capture-1280x800.png)
 
 PageNest 是面向 Windows、Edge/Chrome 和 Obsidian 的本地优先网页收藏工具。
-它在浏览器中采集文章，通过本地服务生成单个自包含 `.pagenest` 离线页面，
-再由 Obsidian 查看器安全打开。智能整理是可选功能，可连接 OpenAI Chat
-Completions 兼容接口。
+在浏览器里点击一次，即可在知识库中得到一个自包含的 `.pagenest` 离线页面。
+智能整理是可选功能，可连接 OpenAI Chat Completions 兼容接口；普通收藏不需要
+AI。
 
-> PageNest 由三个必要组件组成：浏览器扩展、Windows 本地服务、Obsidian
-> 查看器。只安装浏览器扩展不能完成收藏和阅读。
+## 三步安装
+
+**环境要求：** Windows 10 或 11、Microsoft Edge 或 Google Chrome，以及
+Obsidian 1.5.0 或更高版本。
+
+### 1. 安装 PageNest
+
+从 [GitHub Releases](https://github.com/WYuHuai/PageNest/releases) 下载
+`PageNest-Setup-1.7.4.exe` 和对应的 `.sha256` 文件，核对校验值后运行安装程序，
+再选择一个现有的 Obsidian 知识库。
+
+安装程序已经封装 Python 运行环境和本地服务，会自动生成随机连接令牌、配置
+扩展、把 PageNest Viewer 安装到所选知识库，并设置为登录 Windows 后启动。
+普通用户无需安装 Python，也不用手工编辑 `.env`。
+
+### 2. 添加浏览器扩展
+
+浏览器商店版本通过审核前，请打开 `edge://extensions/` 或
+`chrome://extensions/`，开启**开发人员模式**，点击**加载解压缩的扩展**，选择：
+
+```text
+%LOCALAPPDATA%\Programs\PageNest\Extension
+```
+
+这份扩展已经与本地服务自动配对。
+
+### 3. 启用 Obsidian 查看器
+
+重启 Obsidian，打开**设置 → 第三方插件**，启用 **PageNest Viewer**。安装程序
+已经把它复制到所选知识库。
+
+### 收藏第一个网页
+
+1. 在 Edge 或 Chrome 打开一篇文章，然后点击 PageNest。
+2. 选择知识库文件夹，再点击**保存到 Obsidian**。
+3. 在 Obsidian 中打开新生成的 `.pagenest` 文件。
+
+如果扩展无法连接本地服务，或文件没有出现，请先看[故障排查](docs/troubleshooting.md)。
 
 ## 主要功能
 
@@ -40,49 +91,6 @@ flowchart LR
 插件负责注册 `.pagenest` 扩展名并在受限 iframe 中显示离线页面。
 
 详细边界见[架构与数据流](docs/architecture.md)。
-
-## 快速安装
-
-### 环境要求
-
-- Windows 10 或 11
-- Microsoft Edge 或 Google Chrome
-- Obsidian 1.5.0 或更高版本
-
-### 1. 双击 Windows 安装程序
-
-1. 下载 `PageNest-Setup-1.7.4.exe` 和对应的 `.sha256` 文件。
-2. 核对校验值后双击安装程序。
-3. 选择一个已经包含 `.obsidian` 文件夹的 Obsidian 知识库。
-
-安装程序已经封装 Python 运行环境和本地服务，会自动生成随机连接令牌、配置
-扩展目录、把 PageNest Viewer 安装到所选知识库，并默认设置为登录 Windows 后
-启动。普通用户无需安装 Python，也不用手工编辑 `.env`。
-
-### 2. 安装浏览器扩展
-
-1. 打开 `edge://extensions/` 或 `chrome://extensions/`。
-2. 开启“开发人员模式”。
-3. 点击“加载解压缩的扩展”，选择：
-
-   ```text
-   %LOCALAPPDATA%\Programs\PageNest\Extension
-   ```
-
-4. 按需把 PageNest 固定到工具栏；本地服务连接已经配置完成。
-
-浏览器商店正式上架前暂时采用解压缩扩展方式；安装程序会为这份解压缩扩展写入
-令牌。商店安装版只有在正式安装包写入其固定扩展 ID 后才能自动配对。Edge 首发
-ID 已配置；Chrome 商店 ID 加入前仍使用解压缩扩展或手动连接方式。
-
-### 3. 在 Obsidian 中启用查看器
-
-1. 运行安装程序后重启 Obsidian。
-2. 打开“设置 → 第三方插件”。
-3. 启用 **PageNest Viewer**。
-
-安装程序已经把查看器复制到所选知识库。没有启用查看器时，Obsidian 不知道
-怎样显示 `.pagenest` 文件。旧版生成的 `.hermes` 文件仍可继续打开。
 
 ## `.pagenest` 是什么
 

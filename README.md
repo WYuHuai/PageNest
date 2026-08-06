@@ -1,19 +1,73 @@
-# PageNest
+<p align="center"><img src="docs/assets/pagenest-icon-256.png" alt="PageNest" width="112"></p>
+<h1 align="center">PageNest</h1>
+<p align="center"><strong>Save complete webpages into Obsidian as single, offline files.</strong></p>
+<p align="center">Keep the article, original images, code, links, GIFs, and supported video — locally, without installing Python.</p>
 
-<p align="center"><img src="docs/assets/pagenest-icon-256.png" alt="PageNest" width="128"></p>
+<p align="center">
+  <a href="https://github.com/WYuHuai/PageNest/actions/workflows/ci.yml"><img alt="CI" src="https://github.com/WYuHuai/PageNest/actions/workflows/ci.yml/badge.svg"></a>
+  <img alt="Windows 10 and 11" src="https://img.shields.io/badge/Windows-10%20%7C%2011-0078D4?logo=windows">
+  <img alt="Edge and Chrome" src="https://img.shields.io/badge/Browser-Edge%20%7C%20Chrome-4285F4">
+  <img alt="Obsidian 1.5 or newer" src="https://img.shields.io/badge/Obsidian-1.5%2B-7C3AED?logo=obsidian">
+  <a href="LICENSE"><img alt="MIT License" src="https://img.shields.io/badge/License-MIT-green.svg"></a>
+</p>
 
-[简体中文](README.zh-CN.md) · [Installation](#quick-start) ·
-[Supported sites](docs/supported-sites.md) ·
-[Architecture](docs/architecture.md) · [Roadmap](ROADMAP.md)
+<p align="center">
+  <a href="README.zh-CN.md">简体中文</a> ·
+  <a href="https://github.com/WYuHuai/PageNest/releases">Download</a> ·
+  <a href="#install-in-3-steps">Install</a> ·
+  <a href="docs/supported-sites.md">Supported sites</a> ·
+  <a href="docs/troubleshooting.md">Troubleshooting</a>
+</p>
+
+![PageNest captures a webpage and saves it into Obsidian](store/assets/screenshot-01-capture-1280x800.png)
 
 PageNest is a local-first web collector for Windows, Edge/Chrome, and Obsidian.
-It captures an article in the browser, builds one self-contained `.pagenest`
-offline page through a local service, and opens that page safely in Obsidian.
-Optional organization works with OpenAI Chat Completions-compatible endpoints.
+One click in the browser produces one self-contained `.pagenest` offline page
+inside your vault. Optional AI organization works with OpenAI Chat
+Completions-compatible endpoints; ordinary capture does not require AI.
 
-> PageNest has three required components: a browser extension, a Windows local
-> service, and an Obsidian page viewer. Installing only the browser extension is
-> not enough.
+## Install in 3 steps
+
+**Requirements:** Windows 10 or 11, Microsoft Edge or Google Chrome, and
+Obsidian 1.5.0 or newer.
+
+### 1. Install PageNest
+
+Download `PageNest-Setup-1.7.4.exe` and its `.sha256` file from
+[GitHub Releases](https://github.com/WYuHuai/PageNest/releases). Verify the
+checksum, run the installer, and select an existing Obsidian vault.
+
+The installer includes the Python runtime and local service, creates a random
+local token, configures the bundled extension, installs PageNest Viewer into
+the selected vault, and starts the service at Windows sign-in. Users do not
+install Python or edit `.env` files.
+
+### 2. Add the browser extension
+
+Until the browser-store build is approved, open `edge://extensions/` or
+`chrome://extensions/`, enable **Developer mode**, choose **Load unpacked**, and
+select:
+
+```text
+%LOCALAPPDATA%\Programs\PageNest\Extension
+```
+
+The installed extension is already paired with the local service.
+
+### 3. Enable the Obsidian viewer
+
+Restart Obsidian, open **Settings → Community plugins**, and enable
+**PageNest Viewer**. The installer has already copied it into the selected
+vault.
+
+### Save your first page
+
+1. Open an article in Edge or Chrome and click PageNest.
+2. Choose a vault folder, then select **Save to Obsidian**.
+3. Open the new `.pagenest` file in Obsidian.
+
+If the extension cannot reach the service or the file does not appear, start
+with [Troubleshooting](docs/troubleshooting.md).
 
 ## What it does
 
@@ -52,59 +106,11 @@ offline document inside a restricted iframe.
 See [Architecture and data flow](docs/architecture.md) for the security
 boundaries.
 
-## Quick start
-
-### Requirements
-
-- Windows 10 or 11
-- Microsoft Edge or Google Chrome
-- Obsidian 1.5.0 or newer
-
-### 1. Run the Windows installer
-
-1. Download `PageNest-Setup-1.7.4.exe` and its `.sha256` file.
-2. Verify the checksum, then double-click the installer.
-3. Select an Obsidian vault that already contains a `.obsidian` folder.
-
-The installer includes the Python runtime and local service, creates a random
-local token, preconfigures the bundled extension folder, installs PageNest
-Viewer into the selected vault, and enables local-service startup at sign-in.
-Users do not install Python or edit `.env` files.
-
-### 2. Install the browser extension
-
-1. Open `edge://extensions/` or `chrome://extensions/`.
-2. Enable Developer mode.
-3. Choose **Load unpacked** and select:
-
-   ```text
-   %LOCALAPPDATA%\Programs\PageNest\Extension
-   ```
-
-4. Pin PageNest if desired. Its local connection is already configured.
-
-This unpacked step is temporary until PageNest is published in the browser
-stores. The bundled unpacked extension receives its token from the installer.
-A store-installed copy can pair automatically only when its fixed extension ID
-is included in the installer. The Edge ID is configured for the first store
-release; Chrome remains on the unpacked/manual path until its store ID is added.
-
-### 3. Enable the Obsidian viewer
-
-1. Restart Obsidian after running the installer.
-2. Open **Settings → Community plugins**.
-3. Enable **PageNest Viewer**.
-
-The installer has already copied the viewer into the selected vault. Without
-this plugin, Obsidian does not know how to render `.pagenest` files. Existing
-`.hermes` files remain supported for backward compatibility.
-
 ## The `.pagenest` format
 
 A `.pagenest` file is a sanitized, self-contained UTF-8 HTML document with
 embedded assets and PageNest metadata. It is not encrypted and is intended as
-an
-offline collection artifact rather than an editable Markdown note.
+an offline collection artifact rather than an editable Markdown note.
 
 PageNest Viewer also registers the legacy `.hermes` extension, so
 collections created before the PageNest rename continue to open.

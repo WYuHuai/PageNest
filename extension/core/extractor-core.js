@@ -78,6 +78,19 @@ globalThis.HermesExtractorCore = (() => {
     );
     return candidates.length ? {element: candidates.sort((a, b) => score(b) - score(a))[0], method: "bundled-readability-heuristic"} : {element: document.body, method: "whole-page-fallback"};
   }
+  function findArticleBySelectors(selectors, methodPrefix, {minimumTextLength = 180, minimumImages = 0} = {}) {
+    for (const selector of selectors) {
+      const candidates = [...document.querySelectorAll(selector)].filter(element => {
+        const text = element.innerText || element.textContent || "";
+        const hasEnoughText = textLength(element) >= minimumTextLength && !PageNestContentQuality.looksLikeScriptBundle(text);
+        return hasEnoughText || (minimumImages > 0 && element.querySelectorAll("img").length >= minimumImages);
+      });
+      if (candidates.length) {
+        return {element: candidates.sort((a, b) => score(b) - score(a))[0], method: `${methodPrefix}:${selector}`};
+      }
+    }
+    return null;
+  }
   function isPlaceholderSvgData(url) {
     if (!url.startsWith("data:image/svg+xml")) return false;
     try {
@@ -94,7 +107,7 @@ globalThis.HermesExtractorCore = (() => {
   }
   function resolveImage(img, base) {
     const srcset = (img.getAttribute("srcset") || "").split(",").pop()?.trim().split(/\s+/)[0];
-    const raw = img.getAttribute("data-original") || img.getAttribute("data-src") || img.getAttribute("data-lazy-src") || img.getAttribute("data-actualsrc") || srcset || img.currentSrc || img.getAttribute("src") || "";
+    const raw = img.getAttribute("data-original") || img.getAttribute("data-origin") || img.getAttribute("data-src") || img.getAttribute("data-lazy-src") || img.getAttribute("data-actualsrc") || img.getAttribute("data-image-src") || img.getAttribute("data-zoom-image") || srcset || img.currentSrc || img.getAttribute("src") || "";
     try { return new URL(raw, base).href; } catch { return raw; }
   }
   function externalLinkLabel(url) {
@@ -175,7 +188,7 @@ globalThis.HermesExtractorCore = (() => {
       const rect = img.getBoundingClientRect();
       const width = Math.max(img.naturalWidth || 0, Math.round(rect.width));
       const height = Math.max(img.naturalHeight || 0, Math.round(rect.height));
-      if (width < 50 && height < 50) return;
+      if (width > 0 && height > 0 && width < 50 && height < 50) return;
       const figure = img.closest("figure");
       const position_id = markImagePosition(
         img,
@@ -277,6 +290,7 @@ globalThis.HermesExtractorCore = (() => {
     collectImages,
     ensureImageSlots,
     findArticle,
+    findArticleBySelectors,
     isoDurationLabel,
     isPlaceholderSvgData,
     jsonLdObjects,

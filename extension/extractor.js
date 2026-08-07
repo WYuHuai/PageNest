@@ -9,6 +9,7 @@ async function buildCapture(adapter, context) {
   const images = dynamic?.images || core.collectImages(found.element);
   const media = dynamic?.media || await HermesMedia.collect(found.element);
   const clone = found.element.cloneNode(true);
+  clone.querySelectorAll("script,style,noscript,template").forEach(element => element.remove());
   core.normalizeLinks(clone);
   if (!dynamic) core.materializeBackgroundImages(clone);
   const junk = window.top === window ? core.JUNK : ["nav", "footer", "aside", "form", "dialog"];

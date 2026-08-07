@@ -2,9 +2,13 @@ globalThis.selectBestCapture = (captures, tab) => {
   const valid = captures.filter(
     item => item.result && !item.result.capture_error && item.result.article_html,
   );
-  const readable = valid.filter(
-    item => PageNestContentQuality.isReadableArticle(item.result.article_text),
-  );
+  const readable = valid.filter(item => {
+    const text = item.result.article_text || "";
+    const shortImageNote = /^xiaohongshu:/.test(item.result.extraction_method || "")
+      && text.replace(/\s+/g, "").length >= 40
+      && (item.result.images?.length || 0) > 0;
+    return PageNestContentQuality.isReadableArticle(text) || shortImageNote;
+  });
   if (!readable.length) {
     throw new Error("当前页面及其嵌入内容均未能识别");
   }

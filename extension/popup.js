@@ -65,6 +65,8 @@ async function identify() {
     "adapters/feishu.js",
     "adapters/wechat.js",
     "adapters/csdn.js",
+    "adapters/guyue.js",
+    "adapters/xiaohongshu.js",
     "adapters/generic.js",
     "extractor.js",
   ]});

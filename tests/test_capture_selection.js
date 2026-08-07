@@ -103,4 +103,23 @@ const wechatCapture = globalThis.selectBestCapture([
 ], {title: "微信文章", url: "https://mp.weixin.qq.com/s/example"});
 assert.equal(wechatCapture.extraction_method, "embedded-frame:3:wechat:#js_content");
 assert.doesNotMatch(wechatCapture.article_text, /Generator is already executing/);
+
+const xiaohongshuCapture = globalThis.selectBestCapture([
+  {
+    frameId: 0,
+    result: {
+      title: "图文笔记",
+      url: "https://www.xiaohongshu.com/explore/example",
+      article_html: "<article><p>一篇有图片的短笔记</p><img data-hermes-image-id=\"note-image-1\"></article>",
+      article_text: "一篇有图片的短笔记内容。".repeat(5),
+      images: [{position_id: "note-image-1"}],
+      media: [],
+      headings: [],
+      extraction_method: "xiaohongshu:#detail-container",
+      frame_kind: "article",
+    },
+  },
+], {title: "图文笔记", url: "https://www.xiaohongshu.com/explore/example"});
+assert.equal(xiaohongshuCapture.extraction_method, "xiaohongshu:#detail-container");
+assert.equal(xiaohongshuCapture.images.length, 1);
 console.log("capture selection passed");

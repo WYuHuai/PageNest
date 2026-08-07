@@ -138,6 +138,9 @@ def _code_language(classes: set[str]) -> str:
 def sanitize_content(source_html: str, fallback_text: str = "") -> str:
     """Keep readable article structure while removing active or remote content."""
     soup = BeautifulSoup(source_html or "", "html.parser")
+    for heading in soup.find_all(["h1", "h2", "h3", "h4", "h5", "h6"]):
+        for link in heading.find_all("a"):
+            link.unwrap()
     for video in list(soup.find_all("video")):
         if shell := _player_shell(video):
             poster = shell.find("img", src=lambda value: value and value.startswith("data:image/"))

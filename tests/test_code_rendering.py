@@ -56,3 +56,14 @@ def test_code_toolbar_copy_and_colors_are_in_every_offline_page():
     assert "color:inherit!important" not in rendered
     assert "button.closest('[data-hermes-kind=\"code-shell\"]')" in rendered
     assert "querySelectorAll('[data-hermes-kind=\"code-line\"]')" in rendered
+
+
+def test_heading_links_are_rendered_as_plain_headings():
+    cleaned = sanitize_content(
+        '<h2><a href="https://blog.csdn.net/example#section">章节标题</a></h2>'
+        '<p><a href="https://example.com">正文链接仍保留</a></p>'
+    )
+
+    assert '<h2>章节标题</h2>' in cleaned
+    assert 'href="https://blog.csdn.net/example#section"' not in cleaned
+    assert 'href="https://example.com"' in cleaned

@@ -18,6 +18,8 @@ for (const file of [
   "adapters/feishu.js",
   "adapters/wechat.js",
   "adapters/csdn.js",
+  "adapters/guyue.js",
+  "adapters/xiaohongshu.js",
   "adapters/generic.js",
 ]) {
   vm.runInContext(fs.readFileSync(path.join(extension, file), "utf8"), context, {filename: file});
@@ -26,7 +28,7 @@ for (const file of [
 const adapters = context.HermesAdapters.list();
 assert.deepEqual(
   Array.from(adapters, adapter => adapter.name),
-  ["bilibili", "feishu", "wechat", "csdn", "generic"],
+  ["bilibili", "feishu", "wechat", "csdn", "guyue", "xiaohongshu", "generic"],
 );
 for (const adapter of adapters) {
   for (const method of ["detect", "preparePage", "extract", "cleanup", "validate"]) {
@@ -41,5 +43,7 @@ assert.equal(selected("www.bilibili.com", "/video/BV1"), "bilibili");
 assert.equal(selected("example.feishu.cn", "/wiki/doc"), "feishu");
 assert.equal(selected("mp.weixin.qq.com", "/s/abc"), "wechat");
 assert.equal(selected("blog.csdn.net", "/article/details/1"), "csdn");
+assert.equal(selected("www.guyuehome.com", "/post/1"), "guyue");
+assert.equal(selected("www.xiaohongshu.com", "/explore/1"), "xiaohongshu");
 assert.equal(selected("example.com"), "generic");
 console.log("adapter registry boundaries passed");

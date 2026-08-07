@@ -1,11 +1,11 @@
 (() => {
   const {findArticleBySelectors} = HermesExtractorCore;
   HermesAdapters.register({
-    name: "csdn",
-    detect: ({location}) => /(^|\.)csdn\.net$/i.test(location.hostname),
+    name: "guyue",
+    detect: ({location}) => /(^|\.)guyuehome\.com$/i.test(location.hostname),
     extract: async () => findArticleBySelectors(
-      ["#content_views", "#article_content", ".article_content", "article"],
-      "csdn",
+      ["main article", "article", ".article-content", ".post-content", ".md-content"],
+      "guyue",
     ),
     validate: result => Boolean(result?.element && result.method),
   });

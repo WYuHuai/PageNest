@@ -57,7 +57,7 @@ class MediaInput(BaseModel):
 class ArticleInput(BaseModel):
     capture_version: int = Field(default=1, ge=1)
     image_placement_policy: Literal["fallback", "strict"] = "fallback"
-    page_variant: Literal["standard", "bilibili-opus", "feishu-document"] = "standard"
+    page_variant: Literal["standard", "bilibili-opus", "feishu-document", "xiaohongshu-note"] = "standard"
     title: str = Field(default="未命名文章", max_length=MAX_TITLE_CHARS)
     author: str = Field(default="", max_length=MAX_TITLE_CHARS)
     published_at: str = Field(default="", max_length=256)

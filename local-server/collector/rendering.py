@@ -177,11 +177,66 @@ def _render_feishu_document_page(
 <script type="application/json" id="hermes-metadata">{metadata_json}</script>
 </body>
 </html>'''
+
+
+def _render_xiaohongshu_note_page(
+    article: ArticleInput,
+    result: HermesResult | None,
+    content: str,
+    digest: str,
+    category: str,
+    images: list[dict],
+    error: str,
+) -> str:
+    embedded = len([item for item in images if "filename" in item])
+    title = _clean_text(article.title) or "小红书笔记"
+    metadata = {
+        "title": title,
+        "source": article.url,
+        "canonical_url": article.canonical_url,
+        "captured_at": article.captured_at,
+        "category": category,
+        "content_hash": digest,
+        "saved_images": embedded,
+        "hermes_success": bool(result),
+        "page_variant": article.page_variant,
+    }
+    metadata_json = json.dumps(metadata, ensure_ascii=False).replace("</", "<\\/")
+    note = html.escape(article.user_note.strip() or "未填写收藏备注。")
+    summary = html.escape(result.abstract or result.one_sentence_summary) if result else ""
+    return f'''<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; img-src data:; media-src data:; style-src 'unsafe-inline'; script-src 'nonce-hermes-offline'; base-uri 'none'; form-action 'none'">
+<meta name="hermes-content-hash" content="{html.escape(digest, quote=True)}">
+<meta name="hermes-source" content="{html.escape(article.canonical_url or article.url, quote=True)}">
+<meta name="hermes-image-count" content="{embedded}">
+<meta name="hermes-save-complete" content="1">
+<title>{html.escape(title)}</title>
+<style>
+:root{{--paper:#f7f7f7;--card:#fff;--ink:#222;--muted:#8b8b8b;--line:#ececec;--accent:#ff2442}}*{{box-sizing:border-box}}body{{margin:0;background:var(--paper);color:var(--ink);font:15px/1.7 -apple-system,BlinkMacSystemFont,"Segoe UI","Microsoft YaHei",sans-serif}}.xhs-shell{{width:min(680px,100%);margin:0 auto;padding:18px 12px 72px}}.xhs-card,.xhs-meta{{background:var(--card);border:1px solid var(--line);border-radius:16px}}.xhs-card{{padding:22px}}[data-hermes-kind="xhs-note"] h1{{font-size:24px;line-height:1.4;margin:0 0 8px}}[data-hermes-kind="xhs-author"]{{color:var(--muted);margin:0 0 18px}}[data-hermes-kind="xhs-gallery"]{{margin:0 -22px 22px;background:#111;overflow:hidden}}[data-hermes-kind="xhs-slide"]{{margin:0}}[data-hermes-kind="xhs-slide"] img{{display:block;width:100%;max-height:72vh;object-fit:contain;margin:auto}}[data-hermes-kind="xhs-gallery-controls"]{{display:flex;align-items:center;justify-content:space-between;margin:0;padding:10px 16px;background:#171717;color:#fff;font-size:14px}}[data-hermes-kind="xhs-gallery-controls"] a{{color:#fff;text-decoration:none}}[data-hermes-kind="xhs-gallery-count"]{{opacity:.78}}[data-hermes-kind="xhs-description"]{{white-space:pre-wrap;margin:0 0 26px;font-size:16px}}[data-hermes-kind="xhs-comments"]{{border-top:1px solid var(--line);padding-top:20px}}[data-hermes-kind="xhs-comments"] h2{{font-size:18px;margin:0 0 12px}}[data-hermes-kind="xhs-comment"]{{margin:0;padding:14px 0;border-bottom:1px solid var(--line);white-space:pre-wrap}}.xhs-meta{{margin-top:12px;padding:16px 18px;color:var(--muted)}}.xhs-meta p{{margin:0;white-space:pre-wrap}}.xhs-meta strong{{color:var(--ink)}}.xhs-footer{{margin-top:18px;text-align:center;color:var(--muted);font-size:12px}}.xhs-footer a{{color:inherit}}@media(max-width:520px){{.xhs-shell{{padding:0 0 50px}}.xhs-card,.xhs-meta{{border-radius:0;border-left:0;border-right:0}}.xhs-card{{padding:18px}}[data-hermes-kind="xhs-gallery"]{{margin:0 -18px 20px}}}}
+</style>
+</head>
+<body>
+<main class="xhs-shell">
+  <article class="xhs-card">{content}</article>
+  <section class="xhs-meta"><strong>我的收藏备注</strong><p>{note}</p>{f'<p><strong>AI 整理：</strong>{summary}</p>' if summary else ''}</section>
+  <footer class="xhs-footer">离线保存于 {html.escape(article.captured_at)} · 已内嵌 {embedded} 张图片 · <a href="{html.escape(article.url, quote=True)}">查看原网页</a></footer>
+</main>
+{COPY_SCRIPT}
+<script type="application/json" id="hermes-metadata">{metadata_json}</script>
+</body>
+</html>'''
+
 def render_page(article: ArticleInput, result: HermesResult | None, content: str, digest: str, category: str, images: list[dict], error: str = "") -> str:
     if article.page_variant == "bilibili-opus":
         return _render_bilibili_opus_page(article, result, content, digest, category, images, error)
     if article.page_variant == "feishu-document":
         return _render_feishu_document_page(article, result, content, digest, category, images, error)
+    if article.page_variant == "xiaohongshu-note":
+        return _render_xiaohongshu_note_page(article, result, content, digest, category, images, error)
     r = result or HermesResult(normalized_title=article.title, suggested_category=category, limitations=[error or "AI 未处理，已保留离线正文。"])
     title = r.normalized_title or article.title
     embedded = len([item for item in images if "filename" in item])

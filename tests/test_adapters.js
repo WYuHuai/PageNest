@@ -36,6 +36,12 @@ for (const adapter of adapters) {
   }
 }
 
+for (const name of ["guyue", "xiaohongshu"]) {
+  const adapter = adapters.find(item => item.name === name);
+  assert.equal(adapter.allowFallback, false, `${name} must not save page chrome via generic fallback`);
+}
+assert.equal(adapters.find(item => item.name === "xiaohongshu").specialized, true);
+
 function selected(hostname, pathname = "/article") {
   return context.HermesAdapters.select({location: {hostname, pathname}}).name;
 }

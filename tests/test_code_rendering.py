@@ -3,8 +3,8 @@ from collector.rendering import render_page
 from collector.sanitizer import CODE_BLOCK_CSS, sanitize_content
 
 
-def article() -> ArticleInput:
-    return ArticleInput(
+def article(**changes) -> ArticleInput:
+    data = dict(
         title="CSDN 代码测试",
         url="https://blog.csdn.net/example/article/details/1",
         canonical_url="https://blog.csdn.net/example/article/details/1",
@@ -13,6 +13,8 @@ def article() -> ArticleInput:
         article_text="代码测试",
         mode="original",
     )
+    data.update(changes)
+    return ArticleInput(**data)
 
 
 def test_csdn_highlight_lines_are_preserved_and_long_code_collapses():
@@ -67,3 +69,23 @@ def test_heading_links_are_rendered_as_plain_headings():
     assert '<h2>章节标题</h2>' in cleaned
     assert 'href="https://blog.csdn.net/example#section"' not in cleaned
     assert 'href="https://example.com"' in cleaned
+
+
+def test_xiaohongshu_gallery_controls_are_sanitized_and_rendered():
+    cleaned = sanitize_content(
+        '<article data-hermes-kind="xhs-note"><h1>笔记</h1>'
+        '<section data-hermes-kind="xhs-gallery" data-hermes-gallery="" data-hermes-gallery-index="0">'
+        '<figure data-hermes-kind="xhs-slide"><img src="data:image/png;base64,AAAA"></figure>'
+        '<p><a href="#" data-hermes-gallery-prev="">上一张</a>'
+        '<a href="#" data-hermes-gallery-next="">下一张</a></p></section>'
+        '<section data-hermes-kind="xhs-comments"><p data-hermes-kind="xhs-comment">评论内容</p></section>'
+        '</article>'
+    )
+    rendered = render_page(article(page_variant="xiaohongshu-note"), None, cleaned, "hash", "阅读记录", [])
+
+    assert 'data-hermes-gallery-prev=""' in cleaned
+    assert 'data-hermes-gallery-next=""' in cleaned
+    assert 'data-hermes-gallery-index="0"' in cleaned
+    assert 'xhs-gallery-controls' in rendered
+    assert 'hermesShowGallerySlide' in rendered
+    assert '[data-hermes-kind="xhs-comments"]' in rendered

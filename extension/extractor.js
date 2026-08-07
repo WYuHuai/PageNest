@@ -3,7 +3,10 @@ async function buildCapture(adapter, context) {
   let extracted = await adapter.extract(context);
   if (extracted && !adapter.validate(extracted, context)) extracted = null;
   const dynamic = adapter.specialized ? extracted : null;
-  const found = extracted || core.findArticle();
+  const found = extracted || (adapter.allowFallback ? core.findArticle() : null);
+  if (!found?.element) {
+    throw new Error(adapter.notFoundMessage || "未找到可保存的网页正文，请打开内容详情页后重试。");
+  }
   context.sourceElement = found.element;
 
   const images = dynamic?.images || core.collectImages(found.element);
@@ -25,7 +28,11 @@ async function buildCapture(adapter, context) {
     }
     if (source) image.setAttribute("src", source);
     [...image.attributes]
-      .filter(attribute => (attribute.name.startsWith("data-") && attribute.name !== core.POSITION_ATTR) || attribute.name === "srcset")
+      .filter(attribute => (
+        attribute.name.startsWith("data-")
+        && attribute.name !== core.POSITION_ATTR
+        && !(dynamic && attribute.name.startsWith("data-hermes-"))
+      ) || attribute.name === "srcset")
       .forEach(attribute => image.removeAttribute(attribute.name));
   });
 
@@ -36,7 +43,7 @@ async function buildCapture(adapter, context) {
   );
   const missingMarkers = images.filter(image => image.position_id && !markerIds.has(image.position_id));
   const articleText = clone.innerText || clone.textContent || "";
-  if (!PageNestContentQuality.isReadableArticle(articleText)) {
+  if (!PageNestContentQuality.isReadableArticle(articleText) && !adapter.isContentAcceptable(articleText, {images, clone})) {
     throw new Error("未找到可靠的网页正文：页面返回了脚本内容或正文尚未加载，请刷新网页后重试");
   }
   return {

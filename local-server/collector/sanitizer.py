@@ -6,7 +6,11 @@ from bs4 import BeautifulSoup
 
 BLOCKED_TAGS = {"script", "iframe", "object", "embed", "form", "input", "button", "textarea", "select", "option", "link", "meta", "base", "svg", "canvas", "audio", "source", "track"}
 SAFE_ATTRIBUTES = {"href", "src", "alt", "title", "colspan", "rowspan", "width", "height", "controls", "preload", "poster", "playsinline", "download"}
-SAFE_DATA_ATTRIBUTES = {"data-hermes-kind", "data-hermes-token", "data-hermes-language"}
+SAFE_DATA_ATTRIBUTES = {
+    "data-hermes-kind", "data-hermes-token", "data-hermes-language",
+    "data-hermes-gallery", "data-hermes-gallery-index",
+    "data-hermes-gallery-prev", "data-hermes-gallery-next",
+}
 PLAYER_CONTROL_TOKENS = {
     "00", "0/0", "00:00", "播放", "暂停", "倍速", "全屏", "退出全屏",
     "倍速播放中", "0.5倍", "0.75倍", "1.0倍", "1.5倍", "2.0倍",
@@ -64,7 +68,31 @@ async function hermesCopyText(text) {
     area.remove();
   }
 }
+function hermesShowGallerySlide(gallery, index) {
+  const slides = Array.from(gallery.querySelectorAll('[data-hermes-kind="xhs-slide"]'));
+  if (!slides.length) return;
+  const visible = (index + slides.length) % slides.length;
+  gallery.setAttribute("data-hermes-gallery-index", String(visible));
+  slides.forEach(function (slide, position) { slide.hidden = position !== visible; });
+  const counter = gallery.querySelector('[data-hermes-kind="xhs-gallery-count"]');
+  if (counter) counter.textContent = `${visible + 1} / ${slides.length}`;
+}
+document.querySelectorAll('[data-hermes-kind="xhs-gallery"]').forEach(function (gallery) {
+  hermesShowGallerySlide(gallery, Number(gallery.getAttribute("data-hermes-gallery-index") || 0));
+});
 document.addEventListener("click", async function (event) {
+  const galleryControl = event.target.closest("[data-hermes-gallery-prev],[data-hermes-gallery-next]");
+  if (galleryControl) {
+    event.preventDefault();
+    const gallery = galleryControl.closest('[data-hermes-kind="xhs-gallery"]');
+    if (!gallery) return;
+    const count = gallery.querySelectorAll('[data-hermes-kind="xhs-slide"]').length;
+    if (!count) return;
+    const current = Number(gallery.getAttribute("data-hermes-gallery-index") || 0);
+    const direction = galleryControl.hasAttribute("data-hermes-gallery-next") ? 1 : -1;
+    hermesShowGallerySlide(gallery, (current + direction + count) % count);
+    return;
+  }
   const toggle = event.target.closest("[data-hermes-code-toggle]");
   if (toggle) {
     const shell = toggle.closest('[data-hermes-kind="code-shell"]');

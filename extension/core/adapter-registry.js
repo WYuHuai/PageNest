@@ -9,6 +9,8 @@ globalThis.HermesAdapters = (() => {
     }
     adapters.push(Object.freeze({
       specialized: false,
+      allowFallback: true,
+      isContentAcceptable: () => false,
       preparePage: prepare,
       cleanup: noop,
       ...adapter,

@@ -1,5 +1,5 @@
 (() => {
-  const {POSITION_ATTR, addTextElement, markImagePosition, resolveImage} = HermesExtractorCore;
+  const {POSITION_ATTR, addTextElement, markImagePosition, metadata, resolveImage} = HermesExtractorCore;
 
   const text = node => (node?.innerText || node?.textContent || "").replace(/\s+/g, " ").trim();
   const first = (root, selectors) => selectors.map(selector => root.querySelector(selector)).find(Boolean) || null;
@@ -7,9 +7,24 @@
     const hint = [image.className, image.alt, image.getAttribute("src")].join(" ").toLowerCase();
     return !/(emoji|emote|sticker|avatar|author|profile|icon|logo)/.test(hint);
   };
+  const isDetailPage = () => /^\/(?:explore|discovery\/item)\//.test(location.pathname);
+
+  function imageNodes(root) {
+    const isNoteImage = image => {
+      if (!noteImage(image)) return false;
+      const url = resolveImage(image, location.href);
+      try {
+        return /(^|\.)(xhscdn\.com|xiaohongshu\.com)$/i.test(new URL(url, location.href).hostname);
+      } catch {
+        return false;
+      }
+    };
+    const inRoot = (root ? [...root.querySelectorAll("img")] : []).filter(isNoteImage);
+    return inRoot.length ? inRoot : [...document.images].filter(isNoteImage);
+  }
 
   function appendGallery(article, root, title) {
-    const sourceImages = [...root.querySelectorAll("img")].filter(noteImage);
+    const sourceImages = imageNodes(root);
     if (!sourceImages.length) return [];
     const gallery = document.createElement("section");
     gallery.setAttribute("data-hermes-kind", "xhs-gallery");
@@ -62,19 +77,19 @@
   }
 
   function extractNote() {
-    const root = first(document, ["#detail-container", "#noteContainer", ".note-container"]);
-    if (!root) return null;
-    const title = text(first(root, ["#detail-title", ".note-title", "[data-testid='note-title']"])) || document.querySelector("meta[property='og:title']")?.content?.trim() || "";
-    const description = text(first(root, ["#detail-desc", ".note-content", ".note-desc", "[data-testid='note-content']"]));
-    if (!title || !description) return null;
+    if (!isDetailPage()) return null;
+    const root = first(document, ["#detail-container", "#noteContainer", ".note-container", "[class*='note-detail']"]) || document.querySelector("main");
+    const title = text(first(root || document, ["#detail-title", ".note-title", "[data-testid='note-title']"])) || metadata(["og:title", "twitter:title"]) || document.title;
+    const description = text(first(root || document, ["#detail-desc", ".note-content", ".note-desc", "[data-testid='note-content']"])) || metadata(["og:description", "description"]);
+    if (!title) return null;
     const article = document.createElement("article");
     article.setAttribute("data-hermes-kind", "xhs-note");
     addTextElement(article, "h1", title, "xhs-title");
-    const author = text(first(root, [".author-wrapper .username", ".author-container .name", ".user-info .name", ".author-name"]));
+    const author = text(first(root || document, [".author-wrapper .username", ".author-container .name", ".user-info .name", ".author-name"]));
     if (author) addTextElement(article, "p", author, "xhs-author");
     const images = appendGallery(article, root, title);
     if (!images.length) return null;
-    addTextElement(article, "p", description, "xhs-description");
+    if (description) addTextElement(article, "p", description, "xhs-description");
     appendComments(article);
     return {element: article, images, media: [], title, author, page_variant: "xiaohongshu-note", method: `xiaohongshu:note:${images.length}-images`};
   }
@@ -87,6 +102,6 @@
     detect: ({location}) => /(^|\.)xiaohongshu\.com$/i.test(location.hostname),
     extract: async () => extractNote(),
     validate: result => Boolean(result?.element && result.images?.length),
-    isContentAcceptable: (value, {images}) => value.replace(/\s+/g, "").length >= 20 && images.length > 0,
+    isContentAcceptable: (value, {images}) => value.replace(/\s+/g, "").length >= 4 && images.length > 0,
   });
 })();

@@ -7,8 +7,12 @@
     detect: ({location}) => /(^|\.)guyuehome\.com$/i.test(location.hostname),
     extract: async () => findArticleBySelectors(
       [
+        "#article-detail",
+        "#articleDetail",
         ".article-detail .article-content",
         ".post-detail .article-content",
+        "[class*='detail-page'] [class*='content']",
+        "[class*='article-detail'] [class*='content']",
         ".detail-content .markdown-body",
         ".detail-content .article-content",
         ".article-content",
@@ -16,8 +20,10 @@
         ".md-content",
         "main article",
         "article",
+        "main",
       ],
       "guyue",
+      {minimumTextLength: 80, minimumImages: 1},
     ),
     validate: result => Boolean(result?.element && result.method),
   });

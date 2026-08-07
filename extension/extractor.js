@@ -11,6 +11,7 @@ async function buildCapture(adapter, context) {
   const clone = found.element.cloneNode(true);
   clone.querySelectorAll("script,style,noscript,template").forEach(element => element.remove());
   core.normalizeLinks(clone);
+  core.unwrapHeadingLinks(clone);
   if (!dynamic) core.materializeBackgroundImages(clone);
   const junk = window.top === window ? core.JUNK : ["nav", "footer", "aside", "form", "dialog"];
   if (!dynamic) clone.querySelectorAll(junk.join(",")).forEach(element => element.remove());

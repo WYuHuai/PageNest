@@ -62,7 +62,7 @@ const context = {
   document: {createElement: (tag) => new FakeNode(tag)},
 };
 vm.runInNewContext(
-  `${source.slice(start, end)}\nthis.normalizeLinks = normalizeLinks;`,
+  `${source.slice(start, end)}\nthis.normalizeLinks = normalizeLinks; this.unwrapHeadingLinks = unwrapHeadingLinks;`,
   context,
 );
 context.normalizeLinks(root);
@@ -75,4 +75,19 @@ assert.equal(imageLink.textContent, "");
 assert.equal(reportLink.children[0].href, "https://github.com/example/firmware");
 assert.match(reportLink.children[0].textContent, /GitHub/);
 assert.equal(iconLink.replacement.href, "https://gitee.com/example/robot");
+
+const headingLink = {
+  childNodes: [{textContent: "无链接标题"}],
+  replaceWith(...nodes) { this.replacement = nodes; },
+};
+const headingRoot = {
+  querySelectorAll(selector) {
+    if (selector === "h1,h2,h3,h4,h5,h6") {
+      return [{querySelectorAll: () => [headingLink]}];
+    }
+    return [];
+  },
+};
+context.unwrapHeadingLinks(headingRoot);
+assert.equal(headingLink.replacement[0].textContent, "无链接标题");
 console.log("CSDN and code-host link normalization tests passed");

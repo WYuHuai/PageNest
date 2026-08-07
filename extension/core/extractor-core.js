@@ -180,6 +180,13 @@ globalThis.HermesExtractorCore = (() => {
       }
     }
   }
+  function unwrapHeadingLinks(root) {
+    for (const heading of root.querySelectorAll("h1,h2,h3,h4,h5,h6")) {
+      for (const anchor of heading.querySelectorAll("a")) {
+        anchor.replaceWith(...anchor.childNodes);
+      }
+    }
+  }
   function collectImages(root, positionPrefix = "") {
     const images = [];
     [...root.querySelectorAll("img")].forEach((img, order) => {
@@ -303,6 +310,7 @@ globalThis.HermesExtractorCore = (() => {
     stableBlockPrefix,
     textLength,
     topLevelFeishuBlocks,
+    unwrapHeadingLinks,
     wait,
   };
 })();

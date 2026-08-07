@@ -11,10 +11,25 @@ function fillSettings(data) {
   $("token").value=data.token;
 }
 
-async function inlineProtectedImages(capture) {
-  if(capture.page_variant!=="feishu-document") return;
-  const queue=(capture.images||[]).filter(item=>!item.data_url&&/^https?:/i.test(item.resolved_url||""));
+function inlineImagePolicy(capture) {
+  const hostname = new URL(capture.url || location.href).hostname;
+  if (capture.page_variant === "feishu-document") return {maxImages: 200, maxBytes: 160 * 1024 * 1024};
+  if (/(^|\.)xiaohongshu\.com$/i.test(hostname)) return {maxImages: 40, maxBytes: 80 * 1024 * 1024};
+  return null;
+}
+
+async function inlineBrowserReadableImages(capture) {
+  const policy = inlineImagePolicy(capture);
+  if (!policy) return;
+  const seen = new Set();
+  const queue = (capture.images || []).filter(item => {
+    const source = item.resolved_url || "";
+    if (item.data_url || !/^https?:/i.test(source) || seen.has(source)) return false;
+    seen.add(source);
+    return true;
+  }).slice(0, policy.maxImages);
   let cursor=0;
+  let totalBytes=0;
   const worker=async()=>{
     while(cursor<queue.length){
       const item=queue[cursor++];
@@ -24,7 +39,8 @@ async function inlineProtectedImages(capture) {
         const response=await fetch(item.resolved_url,{credentials:"include",signal:controller.signal});
         if(!response.ok) continue;
         const blob=await response.blob();
-        if(!blob.size||blob.size>25*1024*1024||!blob.type.startsWith("image/")) continue;
+        if(!blob.size||blob.size>25*1024*1024||!blob.type.startsWith("image/")||totalBytes+blob.size>policy.maxBytes) continue;
+        totalBytes+=blob.size;
         item.data_url=await new Promise((resolve,reject)=>{
           const reader=new FileReader();
           reader.onload=()=>resolve(String(reader.result||""));
@@ -78,7 +94,7 @@ async function identify() {
     }
   });
   article=selectBestCapture(captures,tab);
-  await inlineProtectedImages(article);
+  await inlineBrowserReadableImages(article);
   $("title").textContent=article.title;
   $("domain").textContent=new URL(article.url).hostname;
   $("status").textContent=article.extraction_warning||`已识别 · ${article.extraction_method}`;

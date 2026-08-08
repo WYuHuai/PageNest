@@ -11,8 +11,39 @@ function fillSettings(data) {
   $("token").value=data.token;
 }
 
+function captureKindForUrl(value) {
+  try {
+    const url = new URL(value);
+    if (["http:", "https:"].includes(url.protocol)) return "web";
+    if (url.protocol === "file:" && /\.(?:html?|xhtml)$/i.test(url.pathname)) return "local-html";
+  } catch {}
+  return "";
+}
+
+function localFileAccessMessage() {
+  return [
+    "PageNest 还没有访问本地 HTML 文件的权限。",
+    "请：",
+    "1. 右键 PageNest 扩展图标",
+    "2. 选择“管理扩展程序”",
+    "3. 开启“允许访问文件网址”",
+    "4. 返回这个 HTML 页面重新点击 PageNest",
+  ].join("\n");
+}
+
+async function ensureCaptureAccess(value, extensionApi=chrome.extension) {
+  const kind = captureKindForUrl(value);
+  if (!kind) throw new Error("当前页面类型不支持收藏；请打开普通网页或本地 HTML 文件后重试");
+  if (kind === "local-html") {
+    const allowed = await new Promise(resolve => extensionApi.isAllowedFileSchemeAccess(resolve));
+    if (!allowed) throw new Error(localFileAccessMessage());
+  }
+  return kind;
+}
+
 function inlineImagePolicy(capture) {
   const hostname = new URL(capture.url || location.href).hostname;
+  if (capture.source_kind === "local-html") return {maxImages: 40, maxBytes: 80 * 1024 * 1024};
   if (capture.page_variant === "feishu-document") return {maxImages: 200, maxBytes: 160 * 1024 * 1024};
   if (/(^|\.)xiaohongshu\.com$/i.test(hostname)) return {maxImages: 40, maxBytes: 80 * 1024 * 1024};
   return null;
@@ -69,8 +100,8 @@ async function identify() {
   $("progress").classList.remove("hidden");
   $("progress").textContent="正在识别网页正文……";
   [tab]=await chrome.tabs.query({active:true,currentWindow:true});
-  if(!/^https?:/.test(tab.url||"")) throw new Error("浏览器内部页面不能采集，请打开普通网页后重试");
-  const target={tabId:tab.id,allFrames:true};
+  const captureKind=await ensureCaptureAccess(tab.url||"");
+  const target=captureKind==="web"?{tabId:tab.id,allFrames:true}:{tabId:tab.id};
   await chrome.scripting.executeScript({target,files:[
     "media-capture.js",
     "core/content-quality.js",
@@ -83,6 +114,7 @@ async function identify() {
     "adapters/csdn.js",
     "adapters/guyue.js",
     "adapters/xiaohongshu.js",
+    "adapters/local-html.js",
     "adapters/generic.js",
     "extractor.js",
   ]});
@@ -96,8 +128,12 @@ async function identify() {
   article=selectBestCapture(captures,tab);
   await inlineBrowserReadableImages(article);
   $("title").textContent=article.title;
-  $("domain").textContent=new URL(article.url).hostname;
-  $("status").textContent=article.extraction_warning||`已识别 · ${article.extraction_method}`;
+  $("domain").textContent=article.source_kind==="local-html"
+    ?`本地 HTML · ${article.source_name||"本地文件"}`
+    :new URL(article.url).hostname;
+  $("status").textContent=article.extraction_warning||(
+    article.source_kind==="local-html"?"已识别 · 本地 HTML":`已识别 · ${article.extraction_method}`
+  );
   $("length").textContent=`${article.article_text.length.toLocaleString()} 字`;
   $("images").textContent=`${article.images.length} 张图片 · ${(article.media||[]).length} 个视频`;
   $("progress").classList.add("hidden");
@@ -283,6 +319,7 @@ $("saveAiSettings").onclick=async()=>{
 
 async function initialize() {
   $("extensionVersion").textContent=`v${chrome.runtime.getManifest().version}`;
+  $("status").style.whiteSpace="pre-line";
   fillSettings(await getSettings());
   const [pageResult, folderResult, aiResult]=await Promise.allSettled([identify(),loadFolders(),loadAiSettings()]);
   if(pageResult.status==="rejected") {

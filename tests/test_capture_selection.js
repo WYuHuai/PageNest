@@ -122,4 +122,27 @@ const xiaohongshuCapture = globalThis.selectBestCapture([
 ], {title: "图文笔记", url: "https://www.xiaohongshu.com/explore/example"});
 assert.equal(xiaohongshuCapture.extraction_method, "xiaohongshu:#detail-container");
 assert.equal(xiaohongshuCapture.images.length, 1);
+
+const localHtmlCapture = globalThis.selectBestCapture([
+  {
+    frameId: 0,
+    result: {
+      title: "Local Test",
+      source_kind: "local-html",
+      source_name: "report.html",
+      site_name: "本地 HTML",
+      url: "local-html:///report.html",
+      canonical_url: "",
+      article_html: "<main><h1>Local Test</h1><p>Hello PageNest.</p></main>",
+      article_text: "Local Test Hello PageNest.",
+      images: [],
+      media: [],
+      headings: ["Local Test"],
+      extraction_method: "local-html:structured-container",
+      frame_kind: "article",
+    },
+  },
+], {title: "Local Test", url: "file:///D:/AI/report.html"});
+assert.equal(localHtmlCapture.source_kind, "local-html");
+assert.equal(localHtmlCapture.title, "Local Test");
 console.log("capture selection passed");

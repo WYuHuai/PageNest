@@ -20,6 +20,7 @@ for (const file of [
   "adapters/csdn.js",
   "adapters/guyue.js",
   "adapters/xiaohongshu.js",
+  "adapters/local-html.js",
   "adapters/generic.js",
 ]) {
   vm.runInContext(fs.readFileSync(path.join(extension, file), "utf8"), context, {filename: file});
@@ -28,7 +29,7 @@ for (const file of [
 const adapters = context.HermesAdapters.list();
 assert.deepEqual(
   Array.from(adapters, adapter => adapter.name),
-  ["bilibili", "feishu", "wechat", "csdn", "guyue", "xiaohongshu", "generic"],
+  ["bilibili", "feishu", "wechat", "csdn", "guyue", "xiaohongshu", "local-html", "generic"],
 );
 for (const adapter of adapters) {
   for (const method of ["detect", "preparePage", "extract", "cleanup", "validate"]) {
@@ -42,8 +43,8 @@ for (const name of ["guyue", "xiaohongshu"]) {
 }
 assert.equal(adapters.find(item => item.name === "xiaohongshu").specialized, true);
 
-function selected(hostname, pathname = "/article") {
-  return context.HermesAdapters.select({location: {hostname, pathname}}).name;
+function selected(hostname, pathname = "/article", protocol = "https:") {
+  return context.HermesAdapters.select({location: {hostname, pathname, protocol}}).name;
 }
 assert.equal(selected("www.bilibili.com", "/video/BV1"), "bilibili");
 assert.equal(selected("example.feishu.cn", "/wiki/doc"), "feishu");
@@ -51,5 +52,6 @@ assert.equal(selected("mp.weixin.qq.com", "/s/abc"), "wechat");
 assert.equal(selected("blog.csdn.net", "/article/details/1"), "csdn");
 assert.equal(selected("www.guyuehome.com", "/post/1"), "guyue");
 assert.equal(selected("www.xiaohongshu.com", "/explore/1"), "xiaohongshu");
+assert.equal(selected("", "/D:/AI/report.html", "file:"), "local-html");
 assert.equal(selected("example.com"), "generic");
 console.log("adapter registry boundaries passed");

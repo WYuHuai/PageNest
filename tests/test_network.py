@@ -12,6 +12,7 @@ from collector.network import UnsafeDownloadUrl, decode_data_url, fetch_bytes, v
     "url",
     [
         "file:///etc/passwd",
+        "file:///C:/secret.txt",
         "http://user:password@example.com/secret",
         "http://127.0.0.1/private",
         "http://10.0.0.1/private",

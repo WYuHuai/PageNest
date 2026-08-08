@@ -62,6 +62,8 @@ class ArticleInput(BaseModel):
     author: str = Field(default="", max_length=MAX_TITLE_CHARS)
     published_at: str = Field(default="", max_length=256)
     site_name: str = Field(default="", max_length=MAX_TITLE_CHARS)
+    source_kind: Literal["web", "local-html"] = "web"
+    source_name: str = Field(default="", max_length=MAX_TITLE_CHARS)
     url: str = Field(max_length=MAX_URL_CHARS)
     canonical_url: str = Field(default="", max_length=MAX_URL_CHARS)
     language: str = Field(default="", max_length=64)

@@ -19,5 +19,9 @@ assert.equal(
   JSON.stringify(context.inlineImagePolicy({url: "https://example.feishu.cn/wiki/doc", page_variant: "feishu-document"})),
   JSON.stringify({maxImages: 200, maxBytes: 160 * 1024 * 1024}),
 );
+assert.equal(
+  JSON.stringify(context.inlineImagePolicy({url: "local-html:///report.html", source_kind: "local-html"})),
+  JSON.stringify({maxImages: 40, maxBytes: 80 * 1024 * 1024}),
+);
 assert.equal(context.inlineImagePolicy({url: "https://example.com/article"}), null);
 console.log("browser image inlining policy passed");

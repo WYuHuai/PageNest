@@ -7,6 +7,11 @@ All notable user-facing changes are recorded here.
 - Development line 1.8.0 coordinates the extension and local service versions.
 - Service capabilities are negotiated before saving page variants.
 - Renderer system metadata is shared so duplicate detection remains reliable.
+- Capture local HTML files that the user explicitly opens in Edge or Chrome,
+  including the currently rendered DOM and browser-readable local images.
+- Local HTML capture requires the browser's **Allow access to file URLs** toggle.
+  Saved pages do not execute the source page's JavaScript or preserve arbitrary
+  source CSS.
 
 ## 1.7.4 - 2026-07-30
 

@@ -1,6 +1,6 @@
 # PageNest Privacy Policy
 
-Last updated: July 28, 2026
+Last updated: August 9, 2026
 
 PageNest is a local-first web archiver. It saves a page only after the user
 clicks the extension and asks PageNest to save it.
@@ -14,6 +14,12 @@ the random connection token, the selected save mode, and the destination
 folder.
 
 PageNest does not collect browsing history from inactive tabs.
+
+For a local HTML file, PageNest reads only the page the user has opened in the
+active browser tab and only after the user enables the browser's file-URL
+access toggle. Browser-readable local images are converted in the browser.
+The service receives a source label and file name, not the original absolute
+local path, and it cannot download `file://` resources.
 
 ## Local processing and storage
 

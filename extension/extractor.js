@@ -1,5 +1,6 @@
 async function buildCapture(adapter, context) {
   const core = HermesExtractorCore;
+  const sourceInfo = adapter.sourceInfo?.(context) || {};
   let extracted = await adapter.extract(context);
   if (extracted && !adapter.validate(extracted, context)) extracted = null;
   const dynamic = adapter.specialized ? extracted : null;
@@ -20,6 +21,11 @@ async function buildCapture(adapter, context) {
   if (!dynamic) clone.querySelectorAll(junk.join(",")).forEach(element => element.remove());
   HermesMedia.cleanClone(clone);
   await core.blobData(images);
+  let localImageStats = null;
+  if (sourceInfo.source_kind === "local-html") {
+    localImageStats = await core.inlineLocalImages(images);
+    core.redactLocalResources(clone, images, media);
+  }
   clone.querySelectorAll("img").forEach(image => {
     const source = core.resolveImage(image, location.href);
     if (core.isPlaceholderSvgData(source)) {
@@ -51,12 +57,14 @@ async function buildCapture(adapter, context) {
     image_placement_policy: dynamic ? "strict" : "fallback",
     page_variant: dynamic?.page_variant || "standard",
     frame_kind: HermesMedia.frameKind(articleText, media, clone),
-    title: dynamic?.title || core.metadata(["og:title", "twitter:title"]) || document.title,
+    title: sourceInfo.title || dynamic?.title || core.metadata(["og:title", "twitter:title"]) || document.title,
     author: dynamic?.author || core.metadata(["author", "article:author", "byl"]),
     published_at: dynamic?.published_at || core.metadata(["article:published_time", "date", "datePublished"]),
-    site_name: dynamic?.site_name || core.metadata(["og:site_name", "application-name"]) || location.hostname,
-    url: location.href,
-    canonical_url: document.querySelector("link[rel='canonical']")?.href || core.metadata(["og:url"]),
+    site_name: sourceInfo.site_name || dynamic?.site_name || core.metadata(["og:site_name", "application-name"]) || location.hostname,
+    url: sourceInfo.url || location.href,
+    canonical_url: sourceInfo.canonical_url ?? (document.querySelector("link[rel='canonical']")?.href || core.metadata(["og:url"])),
+    source_kind: sourceInfo.source_kind || "web",
+    source_name: sourceInfo.source_name || "",
     language: document.documentElement.lang || "",
     selected_text: getSelection()?.toString().trim() || "",
     user_note: "",
@@ -67,7 +75,9 @@ async function buildCapture(adapter, context) {
     media,
     captured_at: new Date().toISOString(),
     extraction_method: found.method,
-    extraction_warning: missingMarkers.length
+    extraction_warning: localImageStats?.failed
+      ? `${localImageStats.failed} 张本地图片无法由浏览器读取，正文仍可保存；请检查文件访问权限或图片路径。`
+      : missingMarkers.length
       ? `检测到 ${missingMarkers.length} 张图片的位置标记在正文清理时丢失`
       : found.method === "whole-page-fallback"
         ? "自动识别不可靠，建议选中文字后重试或仅保存原文"

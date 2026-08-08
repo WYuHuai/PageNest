@@ -4,10 +4,13 @@ globalThis.selectBestCapture = (captures, tab) => {
   );
   const readable = valid.filter(item => {
     const text = item.result.article_text || "";
+    const localHtml = item.result.source_kind === "local-html"
+      && text.replace(/\s+/g, "").length >= 10
+      && !PageNestContentQuality.looksLikeScriptBundle(text);
     const shortImageNote = /^xiaohongshu:/.test(item.result.extraction_method || "")
       && text.replace(/\s+/g, "").length >= 40
       && (item.result.images?.length || 0) > 0;
-    return PageNestContentQuality.isReadableArticle(text) || shortImageNote;
+    return PageNestContentQuality.isReadableArticle(text) || localHtml || shortImageNote;
   });
   if (!readable.length) {
     throw new Error("当前页面及其嵌入内容均未能识别");

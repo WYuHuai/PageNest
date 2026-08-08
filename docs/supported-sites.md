@@ -6,6 +6,7 @@ future layout or protected resource will remain accessible.
 | Site or page type | Text and layout | Images | Media | Notes |
 | --- | --- | --- | --- | --- |
 | Generic article pages | Best effort | HTTP(S), data URLs, lazy images | Direct video when exposed | Reader-like selectors and metadata fallback |
+| Local HTML opened in Edge/Chrome | Current rendered DOM, including body-only generated reports | Data URLs, remote HTTP(S), and browser-readable relative local images | Local media is not a v1.8.0 core feature | Requires **Allow access to file URLs**; scripts and source CSS are not preserved |
 | Feishu / Lark documents | Dedicated virtual-block and embedded-frame capture | Signed-in browser fetch, position markers | Embedded players treated as media-only | Canvas content is preserved as an image fallback |
 | WeChat Official Account articles | Dedicated cleanup | Lazy images, invalid placeholder filtering | Best effort | Login or anti-hotlinking can still block resources |
 | CSDN articles | Dedicated code and layout cleanup | Inline and lazy images | Best effort | Preserves syntax colors, folding, copy controls, and repository links |
@@ -26,6 +27,9 @@ future layout or protected resource will remain accessible.
   should be used only for a trusted local page.
 - `.pagenest` files need PageNest Viewer for supported Obsidian rendering;
   legacy `.hermes` files remain readable.
+- Complex local HTML applications are captured as sanitized content and
+  structure. Their JavaScript is not executed in the saved page, and their
+  original CSS is not guaranteed to be reproduced.
 
 When reporting a regression, use a public test URL when possible and remove
 account names, vault paths, tokens, and private page content.

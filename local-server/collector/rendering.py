@@ -249,6 +249,8 @@ def render_page(article: ArticleInput, result: HermesResult | None, content: str
     metadata = {
         "title": title,
         "source": article.url,
+        "source_kind": article.source_kind,
+        "source_name": article.source_name,
         "canonical_url": article.canonical_url,
         "captured_at": article.captured_at,
         "category": category,
@@ -258,6 +260,10 @@ def render_page(article: ArticleInput, result: HermesResult | None, content: str
     }
     metadata_json = json.dumps(metadata, ensure_ascii=False).replace("</", "<\\/")
     source_label = article.site_name or "原网页"
+    if article.source_kind == "local-html":
+        source_footer = f"来源：本地 HTML · {html.escape(article.source_name or article.title)}"
+    else:
+        source_footer = f'<a href="{html.escape(article.url, quote=True)}" target="_blank" rel="noopener noreferrer">查看原始网址</a>'
     image_status = f"{embedded} 张图片已内嵌"
     if failed:
         image_status += f" · {failed} 张失败"
@@ -334,7 +340,7 @@ a{{color:var(--accent);text-decoration-thickness:.08em;text-underline-offset:.18
     <h2>网页正文</h2>
     <div class="article-body">{content}</div>
   </article>
-  <footer class="footer">收藏时间：{html.escape(article.captured_at)} · <a href="{html.escape(article.url, quote=True)}" target="_blank" rel="noopener noreferrer">查看原始网址</a><br>页面内容与图片已封装在当前文件中，不依赖原网站继续存在。</footer>
+  <footer class="footer">收藏时间：{html.escape(article.captured_at)} · {source_footer}<br>页面内容与图片已封装在当前文件中，不依赖原网站继续存在。</footer>
 </main>
 {COPY_SCRIPT}
 <script type="application/json" id="hermes-metadata">{metadata_json}</script>

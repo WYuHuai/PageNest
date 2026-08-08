@@ -81,6 +81,9 @@ with [Troubleshooting](docs/troubleshooting.md).
   and a separate personal collection note.
 - Handles generic articles plus dedicated Feishu, WeChat, CSDN, and Bilibili
   capture paths.
+- Captures local HTML files explicitly opened in Edge or Chrome after the user
+  enables **Allow access to file URLs**; local absolute paths are not sent to
+  the service.
 - Downloads protected Feishu images through the signed-in browser context.
 - Preserves Feishu canvas content and Bilibili video metadata; supported
   Bilibili media can be merged into a bounded 360p MP4.
@@ -127,6 +130,7 @@ supported path.
 | Site | Current support |
 | --- | --- |
 | Generic article pages | Main content, headings, images, links, code, best-effort layout |
+| Local HTML opened in the browser | Rendered text, structure, code, tables, links, and browser-readable images |
 | Feishu / Lark documents | Virtual blocks, signed images, embedded document frames, canvas fallback |
 | WeChat Official Account articles | Article cleanup, lazy images, placeholder filtering |
 | CSDN | Article layout, syntax colors, code folding/copy, external repository links |
@@ -142,7 +146,7 @@ Read the detailed [support matrix and limitations](docs/supported-sites.md).
 | `scripting` | Run the extractor and site adapter in that page |
 | `storage` | Remember the local service address, token, and user settings |
 | `clipboardWrite` | Copy paths and code when the user asks |
-| `<all_urls>` | Capture arbitrary article sites and signed page resources |
+| `<all_urls>` | Capture arbitrary article sites, signed page resources, and the active local HTML tab when the user separately enables file-URL access |
 
 Captured content is sent only to the configured local service and, when the
 user selects an AI mode, to the organizer endpoint configured by that user.

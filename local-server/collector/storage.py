@@ -80,7 +80,8 @@ def _find_duplicate(
                 continue
             if article.images and not complete_match and saved_image_count == 0:
                 continue
-            if saved_hash == digest or saved_url == target_url:
+            same_source = article.source_kind != "local-html" and saved_url == target_url
+            if saved_hash == digest or same_source:
                 return page
         except Exception:
             continue

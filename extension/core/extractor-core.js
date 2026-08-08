@@ -296,6 +296,96 @@ globalThis.HermesExtractorCore = (() => {
       try { const blob = await fetch(image.resolved_url).then(r => r.blob()); image.data_url = await new Promise((ok, fail) => { const reader = new FileReader(); reader.onload = () => ok(reader.result); reader.onerror = fail; reader.readAsDataURL(blob); }); } catch {}
     }
   }
+  function fileUrl(value) {
+    try { return new URL(value).protocol === "file:"; } catch { return false; }
+  }
+  function blobDataUrl(blob) {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(String(reader.result || ""));
+      reader.onerror = reject;
+      reader.readAsDataURL(blob);
+    });
+  }
+  async function inlineLocalImages(images, policy = {}) {
+    const limits = {
+      maxImages: 40,
+      maxTotalBytes: 80 * 1024 * 1024,
+      maxSingleImageBytes: 25 * 1024 * 1024,
+      ...policy,
+    };
+    const queue = images.filter(image => fileUrl(image.resolved_url || image.current_src || ""))
+      .slice(0, limits.maxImages);
+    let cursor = 0;
+    let totalBytes = 0;
+    let inlined = 0;
+    const worker = async () => {
+      while (cursor < queue.length) {
+        const image = queue[cursor++];
+        const source = image.resolved_url || image.current_src;
+        const controller = new AbortController();
+        const timeout = setTimeout(() => controller.abort(), 15000);
+        try {
+          const response = await fetch(source, {signal: controller.signal});
+          if (!response.ok && response.status !== 0) continue;
+          const blob = await response.blob();
+          if (
+            !blob.size
+            || blob.size > limits.maxSingleImageBytes
+            || !blob.type.startsWith("image/")
+            || totalBytes + blob.size > limits.maxTotalBytes
+          ) continue;
+          totalBytes += blob.size;
+          image.data_url = await blobDataUrl(blob);
+          inlined += 1;
+        } catch {
+          // The redaction step records a safe, non-readable failure placeholder.
+        } finally {
+          clearTimeout(timeout);
+        }
+      }
+    };
+    await Promise.all(Array.from({length: Math.min(4, queue.length)}, worker));
+    return {attempted: queue.length, inlined, failed: queue.length - inlined};
+  }
+  function redactLocalResources(root, images, media) {
+    const marked = new Map(
+      [...root.querySelectorAll(`[${POSITION_ATTR}]`)]
+        .map(node => [node.getAttribute(POSITION_ATTR), node]),
+    );
+    images.forEach((image, index) => {
+      const local = [image.original_url, image.resolved_url, image.current_src].some(fileUrl);
+      if (!local) return;
+      const node = marked.get(image.position_id);
+      if (image.data_url) node?.setAttribute("src", image.data_url);
+      else node?.removeAttribute("src");
+      for (const attribute of ["srcset", "data-src", "data-original", "data-lazy-src", "data-actualsrc"]) {
+        node?.removeAttribute(attribute);
+      }
+      image.original_url = "";
+      image.current_src = "";
+      image.resolved_url = image.data_url
+        ? ""
+        : `local-resource-unavailable://image/${encodeURIComponent(image.position_id || String(index + 1))}`;
+      image.source_type = image.data_url ? "local-file" : "local-file-unavailable";
+    });
+    for (const anchor of root.querySelectorAll("a[href]")) {
+      if (fileUrl(anchor.getAttribute("href"))) anchor.removeAttribute("href");
+    }
+    for (const element of root.querySelectorAll("[src],[poster]")) {
+      for (const attribute of ["src", "poster"]) {
+        if (fileUrl(element.getAttribute(attribute))) element.removeAttribute(attribute);
+      }
+    }
+    media.forEach((item, index) => {
+      if (![item.source_url, item.page_url, item.poster_url].some(fileUrl)) return;
+      item.source_url = item.data_url
+        ? ""
+        : `local-resource-unavailable://media/${encodeURIComponent(item.position_id || String(index + 1))}`;
+      item.page_url = "";
+      item.poster_url = "";
+    });
+  }
   return {
     JUNK,
     POSITION_ATTR,
@@ -307,6 +397,7 @@ globalThis.HermesExtractorCore = (() => {
     findArticle,
     findArticleBySelectors,
     isoDurationLabel,
+    inlineLocalImages,
     isPlaceholderSvgData,
     jsonLdObjects,
     markImagePosition,
@@ -314,6 +405,7 @@ globalThis.HermesExtractorCore = (() => {
     metadata,
     normalizeLinks,
     resolveImage,
+    redactLocalResources,
     scrollContainer,
     stableBlockPrefix,
     textLength,

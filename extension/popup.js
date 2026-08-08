@@ -170,17 +170,23 @@ async function api(path, body, retryPairing=true) {
   }
 }
 
-async function collectWithCompatibility(payload) {
+async function collectWithServiceCapabilities(payload, request=api) {
+  let capabilities;
   try {
-    return await api("/api/collect",payload);
+    capabilities=await request("/api/meta");
   } catch(error) {
-    if(error.status===422 && payload.page_variant==="xiaohongshu-note") {
-      const legacyPayload={...payload};
-      delete legacyPayload.page_variant;
-      return api("/api/collect",legacyPayload);
+    if(error.status===404) {
+      const upgrade=new Error("本地 PageNest Service 版本过旧，不支持当前网页保存格式，请升级本地服务。");
+      upgrade.status=404;
+      throw upgrade;
     }
     throw error;
   }
+  const variant=payload.page_variant||"standard";
+  if(!Array.isArray(capabilities?.supported_page_variants)||!capabilities.supported_page_variants.includes(variant)) {
+    throw new Error(`本地 PageNest Service 不支持当前网页保存格式：${variant}，请升级本地服务。`);
+  }
+  return request("/api/collect",payload);
 }
 
 async function loadFolders() {
@@ -216,7 +222,7 @@ $("save").onclick=async()=>{
     article.user_note=$("note").value;
     article.mode=$("mode").value;
     article.category=$("category").value;
-    const data=await collectWithCompatibility(article);
+    const data=await collectWithServiceCapabilities(article);
     $("progress").textContent=data.media_complete===false
       ?`页面已保存，但有 ${Number(data.failed_images||0)+Number(data.image_placement?.unplaced||0)} 张图片和 ${Number(data.failed_videos||0)} 个视频未嵌入。`
       :data.hermes_error?`页面已保存，但智能整理未完成：${data.hermes_error}`:"单文件页面保存完成。";

@@ -46,6 +46,28 @@ def test_request_body_limit_rejects_before_authentication():
     assert response.headers["access-control-allow-origin"] == origin
 
 
+def test_meta_reports_explicit_service_capabilities(monkeypatch):
+    monkeypatch.setattr(settings, "local_collector_token", "test-token")
+
+    response = client.get(
+        "/api/meta",
+        headers={"Authorization": "Bearer test-token"},
+    )
+
+    assert response.status_code == 200
+    assert response.json() == {
+        "service_version": "1.7.4",
+        "api_protocol_version": 1,
+        "pagenest_format_version": 1,
+        "supported_page_variants": [
+            "standard",
+            "bilibili-opus",
+            "feishu-document",
+            "xiaohongshu-note",
+        ],
+    }
+
+
 @pytest.mark.asyncio
 async def test_collection_slot_limits_parallel_work(monkeypatch):
     monkeypatch.setattr(main, "collection_slots", asyncio.Semaphore(2))

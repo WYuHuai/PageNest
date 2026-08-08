@@ -30,6 +30,14 @@ app.add_middleware(
 )
 logger = logging.getLogger("uvicorn.error")
 collection_slots = asyncio.Semaphore(MAX_CONCURRENT_COLLECTIONS)
+API_PROTOCOL_VERSION = 1
+PAGENEST_FORMAT_VERSION = 1
+SUPPORTED_PAGE_VARIANTS = (
+    "standard",
+    "bilibili-opus",
+    "feishu-document",
+    "xiaohongshu-note",
+)
 
 
 def auth(authorization: str = Header(default="")):
@@ -52,6 +60,16 @@ async def health(_: None = Depends(auth)):
         "vault_configured": configured,
         "folder_count": len(list_vault_folders(vault)) if configured else 0,
         "hermes": await probe(),
+    }
+
+
+@app.get("/api/meta")
+async def meta(_: None = Depends(auth)):
+    return {
+        "service_version": app.version,
+        "api_protocol_version": API_PROTOCOL_VERSION,
+        "pagenest_format_version": PAGENEST_FORMAT_VERSION,
+        "supported_page_variants": list(SUPPORTED_PAGE_VARIANTS),
     }
 
 

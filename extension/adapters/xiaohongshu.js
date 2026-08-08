@@ -8,6 +8,7 @@
     return !/(emoji|emote|sticker|avatar|author|profile|icon|logo)/.test(hint);
   };
   const isDetailPage = () => /^\/(?:explore|discovery\/item)\//.test(location.pathname);
+  const NOTE_ROOT_SELECTORS = ["#detail-container", "#noteContainer", ".note-container", "[class*='note-detail']"];
 
   function imageNodes(root) {
     const isNoteImage = image => {
@@ -76,9 +77,16 @@
     article.appendChild(section);
   }
 
+  function hasMeaningfulContent() {
+    if (!isDetailPage()) return false;
+    const root = first(document, NOTE_ROOT_SELECTORS);
+    const body = text(root);
+    return Boolean(root && body.length >= 20 && imageNodes(root).length);
+  }
+
   function extractNote() {
     if (!isDetailPage()) return null;
-    const root = first(document, ["#detail-container", "#noteContainer", ".note-container", "[class*='note-detail']"]) || document.querySelector("main");
+    const root = first(document, NOTE_ROOT_SELECTORS) || document.querySelector("main");
     const title = text(first(root || document, ["#detail-title", ".note-title", "[data-testid='note-title']"])) || metadata(["og:title", "twitter:title"]) || document.title;
     const description = text(first(root || document, ["#detail-desc", ".note-content", ".note-desc", "[data-testid='note-content']"])) || metadata(["og:description", "description"]);
     if (!title) return null;
@@ -100,7 +108,7 @@
     allowFallback: false,
     notFoundMessage: "请打开一篇小红书笔记详情页后再保存；首页、草稿箱和个人中心不会被当成笔记保存。",
     detect: ({location}) => /(^|\.)xiaohongshu\.com$/i.test(location.hostname),
-    preparePage: async () => waitForContent(() => document.images.length > 0 || document.querySelector("meta[property='og:title']")),
+    preparePage: async () => waitForContent(hasMeaningfulContent),
     extract: async () => extractNote(),
     validate: result => Boolean(result?.element && result.images?.length),
     isContentAcceptable: (value, {images}) => value.replace(/\s+/g, "").length >= 4 && images.length > 0,

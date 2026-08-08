@@ -162,7 +162,7 @@ async function api(path, body, retryPairing=true) {
     }
     return data;
   } catch(error) {
-    if(error.name==="AbortError") throw new Error("保存超过 5 分钟，已停止等待；已落盘的离线页面不会丢失");
+    if(error.name==="AbortError") throw new Error("保存超过 5 分钟，客户端已停止等待；请先检查知识库中是否出现新页面，再决定是否重试");
     if(error instanceof TypeError) throw new Error("本地收藏服务未启动，请从开始菜单启动 PageNest 后重试");
     throw error;
   } finally {
@@ -216,7 +216,7 @@ $("save").onclick=async()=>{
     $("save").disabled=true;
     $("progress").classList.remove("hidden","error");
     const started=Date.now();
-    const update=()=>{$("progress").textContent=`正在保存离线页面，正文会先落盘；已等待 ${Math.floor((Date.now()-started)/1000)} 秒`};
+    const update=()=>{$("progress").textContent=`正在生成完整离线页面，完成后会一次性写入知识库；已等待 ${Math.floor((Date.now()-started)/1000)} 秒`};
     update();
     timer=setInterval(update,1000);
     article.user_note=$("note").value;

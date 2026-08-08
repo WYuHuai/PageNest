@@ -48,7 +48,10 @@ users do not install Python.
 - `sanitizer.py`: untrusted HTML cleanup.
 - `rendering.py`: self-contained offline page rendering.
 - `organizers.py`: optional OpenAI-compatible organization.
-- `storage.py`: collection orchestration and atomic vault writes.
+- `storage.py`: collection orchestration and atomic vault writes. The completed
+  page is flushed to a same-directory temporary file and moved with
+  `os.replace`; failed writes remove the temporary file and never leave a
+  partially written `.pagenest`.
 
 The organizer is optional. Its failure is recorded but does not block original
 content and downloaded images from being saved.

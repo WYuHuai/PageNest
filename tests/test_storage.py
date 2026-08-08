@@ -29,18 +29,18 @@ async def test_single_offline_page_and_duplicate(tmp_path: Path, monkeypatch):
         raise AssertionError("manual destinations must not move an already-written page")
 
     monkeypatch.setattr(Path, "replace", reject_move)
-    real_write_text = Path.write_text
+    real_replace = storage.os.replace
     vault_writes = []
 
-    def track_write(path, *args, **kwargs):
-        if path.suffix == ".pagenest":
-            vault_writes.append(path)
-        return real_write_text(path, *args, **kwargs)
+    def track_replace(source, destination):
+        if Path(destination).suffix == ".pagenest":
+            vault_writes.append(Path(destination))
+        return real_replace(source, destination)
 
     async def reject_organizer(*_args):
         raise AssertionError("original mode must never call the AI organizer")
 
-    monkeypatch.setattr(Path, "write_text", track_write)
+    monkeypatch.setattr(storage.os, "replace", track_replace)
     monkeypatch.setattr(storage, "call_hermes", reject_organizer)
     first = await collect(article(images=[ImageInput(resolved_url=PNG, width=100, height=100)], category='各类学习知识/机器人'))
     page = Path(first['page_path'])
@@ -86,6 +86,31 @@ async def test_xiaohongshu_page_preserves_metadata_and_duplicate_detection(tmp_p
     second = await collect(captured)
     assert second['duplicate'] is True
     assert not list(page.parent.glob('*_2.pagenest'))
+
+
+def test_atomic_page_write_does_not_replace_existing_file(tmp_path: Path):
+    final = tmp_path / "page.pagenest"
+    final.write_text("existing", encoding="utf-8")
+
+    with pytest.raises(FileExistsError):
+        storage._write_page_atomic(final, "new")
+
+    assert final.read_text("utf-8") == "existing"
+    assert not list(tmp_path.glob(f".{final.name}.*.tmp"))
+
+
+def test_atomic_page_write_cleans_temp_after_write_failure(tmp_path: Path, monkeypatch):
+    final = tmp_path / "page.pagenest"
+
+    def fail_fsync(_handle):
+        raise OSError("simulated write failure")
+
+    monkeypatch.setattr(storage.os, "fsync", fail_fsync)
+    with pytest.raises(OSError, match="simulated write failure"):
+        storage._write_page_atomic(final, "incomplete")
+
+    assert not final.exists()
+    assert not list(tmp_path.glob(f".{final.name}.*.tmp"))
 
 
 @pytest.mark.asyncio

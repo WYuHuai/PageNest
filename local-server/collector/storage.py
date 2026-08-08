@@ -1,6 +1,7 @@
 import asyncio
 import hashlib
 import html
+import os
 import re
 import tempfile
 from datetime import datetime
@@ -92,6 +93,29 @@ def _unique_page(parent: Path, base: str) -> Path:
         page = parent / f"{base}_{index}{PAGE_SUFFIX}"
         index += 1
     return page
+
+
+def _write_page_atomic(final_path: Path, content: str) -> None:
+    temporary: Path | None = None
+    try:
+        with tempfile.NamedTemporaryFile(
+            mode="w",
+            encoding="utf-8",
+            dir=final_path.parent,
+            prefix=f".{final_path.name}.",
+            suffix=".tmp",
+            delete=False,
+        ) as handle:
+            temporary = Path(handle.name)
+            handle.write(content)
+            handle.flush()
+            os.fsync(handle.fileno())
+        if final_path.exists():
+            raise FileExistsError(f"Refusing to replace existing page: {final_path}")
+        os.replace(temporary, final_path)
+    finally:
+        if temporary is not None:
+            temporary.unlink(missing_ok=True)
 
 
 async def collect(article: ArticleInput) -> dict:
@@ -205,7 +229,7 @@ async def collect(article: ArticleInput) -> dict:
         final_path = _unique_page(destination, f"{datetime.now():%Y-%m-%d}_{title}")
         combined_error = "；".join(value for value in (organizer_error, image_error) if value)
         page = render_page(article, result, content, digest, category, images, combined_error)
-        final_path.write_text(page, "utf-8")
+        _write_page_atomic(final_path, page)
 
     saved_images = len([item for item in images if "filename" in item])
     failed_images = len([item for item in images if "error" in item])

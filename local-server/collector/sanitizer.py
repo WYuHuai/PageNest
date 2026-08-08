@@ -4,7 +4,7 @@ import unicodedata
 from bs4 import BeautifulSoup
 
 
-BLOCKED_TAGS = {"script", "iframe", "object", "embed", "form", "input", "button", "textarea", "select", "option", "link", "meta", "base", "svg", "canvas", "audio", "source", "track"}
+BLOCKED_TAGS = {"script", "style", "iframe", "object", "embed", "form", "input", "button", "textarea", "select", "option", "link", "meta", "base", "svg", "canvas", "audio", "source", "track"}
 SAFE_ATTRIBUTES = {"href", "src", "alt", "title", "colspan", "rowspan", "width", "height", "controls", "preload", "poster", "playsinline", "download"}
 SAFE_DATA_ATTRIBUTES = {
     "data-hermes-kind", "data-hermes-token", "data-hermes-language",

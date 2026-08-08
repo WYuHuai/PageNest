@@ -206,6 +206,25 @@ def test_sanitizer_blocks_active_and_remote_content():
     assert 'https://remote.test' not in cleaned
     assert 'missing-image' not in cleaned
 
+
+def test_sanitizer_blocks_embedded_style_and_active_markup():
+    source = (
+        '<article><style>body{display:none}</style><script>evil()</script>'
+        '<iframe src="https://evil.test"></iframe><object data="evil"></object>'
+        '<embed src="evil"><svg><circle /></svg>'
+        '<a href="javascript:evil()">危险链接</a>'
+        '<meta http-equiv="refresh" content="0;url=https://evil.test">'
+        '<p onmouseover="evil()">正文</p></article>'
+    )
+    cleaned = sanitize_content(source)
+
+    assert '<style' not in cleaned and 'display:none' not in cleaned
+    assert all(tag not in cleaned for tag in ('<script', '<iframe', '<object', '<embed', '<svg'))
+    assert 'javascript:' not in cleaned
+    assert 'onmouseover' not in cleaned
+    assert 'http-equiv="refresh"' not in cleaned
+
+
 def test_code_blocks_are_readable_copyable_and_external_links_survive():
     cleaned = sanitize_content(
         '<article><pre><code><span style="color:white;background:white">print("ok")</span></code></pre>'

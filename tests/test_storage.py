@@ -55,6 +55,39 @@ async def test_single_offline_page_and_duplicate(tmp_path: Path, monkeypatch):
     second = await collect(article(user_note='第二次备注'))
     assert second['duplicate'] is True
 
+
+@pytest.mark.asyncio
+async def test_xiaohongshu_page_preserves_metadata_and_duplicate_detection(tmp_path: Path, monkeypatch):
+    vault = tmp_path / '知识库'
+    vault.mkdir()
+    monkeypatch.setattr(settings, 'obsidian_vault_path', str(vault))
+    captured = article(
+        title='小红书笔记',
+        url='https://www.xiaohongshu.com/explore/note-1?xsec_token=redacted',
+        canonical_url='https://www.xiaohongshu.com/explore/note-1',
+        page_variant='xiaohongshu-note',
+        capture_version=12,
+        article_html='<article data-hermes-kind="xhs-note"><h1>笔记</h1><p>正文内容</p></article>',
+        article_text='正文内容足够进行重复判断。',
+        mode='original',
+    )
+
+    first = await collect(captured)
+    page = Path(first['page_path'])
+    rendered = page.read_text('utf-8')
+    for marker in (
+        'hermes-content-hash',
+        'hermes-source',
+        'hermes-save-complete',
+        'hermes-capture-version',
+    ):
+        assert marker in rendered
+
+    second = await collect(captured)
+    assert second['duplicate'] is True
+    assert not list(page.parent.glob('*_2.pagenest'))
+
+
 @pytest.mark.asyncio
 async def test_image_downloads_are_concurrent(monkeypatch):
     body = base64.b64decode(PNG.split(",", 1)[1])

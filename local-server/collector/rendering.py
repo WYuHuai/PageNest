@@ -14,6 +14,20 @@ def _tags(values: list[str]) -> str:
     return "".join(f'<span class="tag">#{html.escape(value.lstrip("#"))}</span>' for value in values)
 
 
+def _render_system_metadata(article: ArticleInput, digest: str, category: str, embedded: int) -> str:
+    source = article.canonical_url or article.url
+    return "\n".join(
+        (
+            f'<meta name="hermes-content-hash" content="{html.escape(digest, quote=True)}">',
+            f'<meta name="hermes-source" content="{html.escape(source, quote=True)}">',
+            f'<meta name="hermes-category" content="{html.escape(category, quote=True)}">',
+            f'<meta name="hermes-image-count" content="{embedded}">',
+            '<meta name="hermes-save-complete" content="1">',
+            f'<meta name="hermes-capture-version" content="{article.capture_version}">',
+        )
+    )
+
+
 
 
 def _render_bilibili_opus_page(
@@ -54,12 +68,7 @@ def _render_bilibili_opus_page(
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta http-equiv="Content-Security-Policy" content="default-src 'none'; img-src data:; media-src data:; style-src 'unsafe-inline'; script-src 'nonce-hermes-offline'; base-uri 'none'; form-action 'none'">
-<meta name="hermes-content-hash" content="{html.escape(digest, quote=True)}">
-<meta name="hermes-source" content="{html.escape(article.canonical_url or article.url, quote=True)}">
-<meta name="hermes-category" content="{html.escape(category, quote=True)}">
-<meta name="hermes-image-count" content="{embedded}">
-<meta name="hermes-save-complete" content="1">
-<meta name="hermes-capture-version" content="{article.capture_version}">
+{_render_system_metadata(article, digest, category, embedded)}
 <title>{html.escape(article.title)}</title>
 <style>
 :root{{--bili-blue:#00aeec;--ink:#18191c;--muted:#9499a0;--line:#e3e5e7;--card:#fff}}
@@ -133,12 +142,7 @@ def _render_feishu_document_page(
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta http-equiv="Content-Security-Policy" content="default-src 'none'; img-src data:; media-src data:; style-src 'unsafe-inline'; script-src 'nonce-hermes-offline'; base-uri 'none'; form-action 'none'">
-<meta name="hermes-content-hash" content="{html.escape(digest, quote=True)}">
-<meta name="hermes-source" content="{html.escape(article.canonical_url or article.url, quote=True)}">
-<meta name="hermes-category" content="{html.escape(category, quote=True)}">
-<meta name="hermes-image-count" content="{embedded}">
-<meta name="hermes-save-complete" content="1">
-<meta name="hermes-capture-version" content="{article.capture_version}">
+{_render_system_metadata(article, digest, category, embedded)}
 <title>{html.escape(visible_title)}</title>
 <style>
 :root{{--ink:#1f2329;--muted:#646a73;--line:#dee0e3;--blue:#3370ff;--page:#fff;--shell:#f5f6f7}}
@@ -210,10 +214,7 @@ def _render_xiaohongshu_note_page(
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta http-equiv="Content-Security-Policy" content="default-src 'none'; img-src data:; media-src data:; style-src 'unsafe-inline'; script-src 'nonce-hermes-offline'; base-uri 'none'; form-action 'none'">
-<meta name="hermes-content-hash" content="{html.escape(digest, quote=True)}">
-<meta name="hermes-source" content="{html.escape(article.canonical_url or article.url, quote=True)}">
-<meta name="hermes-image-count" content="{embedded}">
-<meta name="hermes-save-complete" content="1">
+{_render_system_metadata(article, digest, category, embedded)}
 <title>{html.escape(title)}</title>
 <style>
 :root{{--paper:#f7f7f7;--card:#fff;--ink:#222;--muted:#8b8b8b;--line:#ececec;--accent:#ff2442}}*{{box-sizing:border-box}}body{{margin:0;background:var(--paper);color:var(--ink);font:15px/1.7 -apple-system,BlinkMacSystemFont,"Segoe UI","Microsoft YaHei",sans-serif}}.xhs-shell{{width:min(680px,100%);margin:0 auto;padding:18px 12px 72px}}.xhs-card,.xhs-meta{{background:var(--card);border:1px solid var(--line);border-radius:16px}}.xhs-card{{padding:22px}}[data-hermes-kind="xhs-note"] h1{{font-size:24px;line-height:1.4;margin:0 0 8px}}[data-hermes-kind="xhs-author"]{{color:var(--muted);margin:0 0 18px}}[data-hermes-kind="xhs-gallery"]{{margin:0 -22px 22px;background:#111;overflow:hidden}}[data-hermes-kind="xhs-slide"]{{margin:0}}[data-hermes-kind="xhs-slide"] img{{display:block;width:100%;max-height:72vh;object-fit:contain;margin:auto}}[data-hermes-kind="xhs-gallery-controls"]{{display:flex;align-items:center;justify-content:space-between;margin:0;padding:10px 16px;background:#171717;color:#fff;font-size:14px}}[data-hermes-kind="xhs-gallery-controls"] a{{color:#fff;text-decoration:none}}[data-hermes-kind="xhs-gallery-count"]{{opacity:.78}}[data-hermes-kind="xhs-description"]{{white-space:pre-wrap;margin:0 0 26px;font-size:16px}}[data-hermes-kind="xhs-comments"]{{border-top:1px solid var(--line);padding-top:20px}}[data-hermes-kind="xhs-comments"] h2{{font-size:18px;margin:0 0 12px}}[data-hermes-kind="xhs-comment"]{{margin:0;padding:14px 0;border-bottom:1px solid var(--line);white-space:pre-wrap}}.xhs-meta{{margin-top:12px;padding:16px 18px;color:var(--muted)}}.xhs-meta p{{margin:0;white-space:pre-wrap}}.xhs-meta strong{{color:var(--ink)}}.xhs-footer{{margin-top:18px;text-align:center;color:var(--muted);font-size:12px}}.xhs-footer a{{color:inherit}}@media(max-width:520px){{.xhs-shell{{padding:0 0 50px}}.xhs-card,.xhs-meta{{border-radius:0;border-left:0;border-right:0}}.xhs-card{{padding:18px}}[data-hermes-kind="xhs-gallery"]{{margin:0 -18px 20px}}}}
@@ -262,12 +263,7 @@ def render_page(article: ArticleInput, result: HermesResult | None, content: str
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta http-equiv="Content-Security-Policy" content="default-src 'none'; img-src data:; media-src data:; style-src 'unsafe-inline'; font-src data:; script-src 'nonce-hermes-offline'; base-uri 'none'; form-action 'none'">
-<meta name="hermes-content-hash" content="{html.escape(digest, quote=True)}">
-<meta name="hermes-source" content="{html.escape(article.canonical_url or article.url, quote=True)}">
-<meta name="hermes-category" content="{html.escape(category, quote=True)}">
-<meta name="hermes-image-count" content="{embedded}">
-<meta name="hermes-save-complete" content="1">
-<meta name="hermes-capture-version" content="{article.capture_version}">
+{_render_system_metadata(article, digest, category, embedded)}
 <title>{html.escape(title)}</title>
 <style>
 :root{{--paper:#fbfaf7;--surface:#fff;--ink:#202126;--muted:#6b6e76;--line:#e7e3dc;--accent:#6657d9;--accent-soft:#efedff;--shadow:0 18px 60px rgba(35,31,55,.10)}}

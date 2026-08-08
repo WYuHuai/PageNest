@@ -1,10 +1,11 @@
 (() => {
-  const {findArticleBySelectors} = HermesExtractorCore;
+  const {findArticleBySelectors, waitForContent} = HermesExtractorCore;
   HermesAdapters.register({
     name: "guyue",
     allowFallback: false,
     notFoundMessage: "请打开古月居的文章详情页后再保存；首页、问答和个人页不能作为文章保存。",
     detect: ({location}) => /(^|\.)guyuehome\.com$/i.test(location.hostname),
+    preparePage: async () => waitForContent(() => document.querySelector("main,article,[class*='article'],[class*='detail']")),
     extract: async () => findArticleBySelectors(
       [
         "#article-detail",

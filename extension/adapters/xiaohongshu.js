@@ -1,5 +1,5 @@
 (() => {
-  const {POSITION_ATTR, addTextElement, markImagePosition, metadata, resolveImage} = HermesExtractorCore;
+  const {POSITION_ATTR, addTextElement, markImagePosition, metadata, resolveImage, waitForContent} = HermesExtractorCore;
 
   const text = node => (node?.innerText || node?.textContent || "").replace(/\s+/g, " ").trim();
   const first = (root, selectors) => selectors.map(selector => root.querySelector(selector)).find(Boolean) || null;
@@ -100,6 +100,7 @@
     allowFallback: false,
     notFoundMessage: "请打开一篇小红书笔记详情页后再保存；首页、草稿箱和个人中心不会被当成笔记保存。",
     detect: ({location}) => /(^|\.)xiaohongshu\.com$/i.test(location.hostname),
+    preparePage: async () => waitForContent(() => document.images.length > 0 || document.querySelector("meta[property='og:title']")),
     extract: async () => extractNote(),
     validate: result => Boolean(result?.element && result.images?.length),
     isContentAcceptable: (value, {images}) => value.replace(/\s+/g, "").length >= 4 && images.length > 0,

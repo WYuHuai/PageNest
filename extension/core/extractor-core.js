@@ -268,6 +268,14 @@ globalThis.HermesExtractorCore = (() => {
     }
   }
   const wait = milliseconds => new Promise(resolve => setTimeout(resolve, milliseconds));
+  async function waitForContent(predicate, timeout = 8000, interval = 200) {
+    const deadline = Date.now() + timeout;
+    while (Date.now() < deadline) {
+      if (predicate()) return true;
+      await wait(interval);
+    }
+    return Boolean(predicate());
+  }
   function scrollContainer(root) {
     for (let node = root?.parentElement; node && node !== document.body; node = node.parentElement) {
       const style = getComputedStyle(node);
@@ -312,5 +320,6 @@ globalThis.HermesExtractorCore = (() => {
     topLevelFeishuBlocks,
     unwrapHeadingLinks,
     wait,
+    waitForContent,
   };
 })();

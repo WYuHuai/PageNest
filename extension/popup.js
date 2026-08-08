@@ -107,6 +107,19 @@ function escapeHtml(value) {
   return String(value??"").replace(/[&<>"']/g,character=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[character]));
 }
 
+function apiErrorMessage(detail, fallback) {
+  if (typeof detail === "string" && detail.trim()) return detail;
+  if (detail && typeof detail === "object") {
+    if (typeof detail.message === "string" && detail.message.trim()) return detail.message;
+    if (Array.isArray(detail)) {
+      const messages = detail.map(item => typeof item === "string" ? item : item?.msg || item?.message || "").filter(Boolean);
+      if (messages.length) return messages.join("；");
+    }
+    try { return JSON.stringify(detail); } catch {}
+  }
+  return fallback;
+}
+
 function showResult(data) {
   const page=data.page_path||data.markdown_path;
   const placement=data.image_placement||{};
@@ -141,7 +154,12 @@ async function api(path, body, retryPairing=true) {
       }
     }
     const data=await response.json().catch(()=>({detail:"本地服务返回了无法读取的内容"}));
-    if(!response.ok) throw new Error(data.detail||`请求失败（${response.status}）`);
+    if(!response.ok) {
+      const error=new Error(apiErrorMessage(data.detail,`请求失败（${response.status}）`));
+      error.status=response.status;
+      error.detail=data.detail;
+      throw error;
+    }
     return data;
   } catch(error) {
     if(error.name==="AbortError") throw new Error("保存超过 5 分钟，已停止等待；已落盘的离线页面不会丢失");
@@ -149,6 +167,19 @@ async function api(path, body, retryPairing=true) {
     throw error;
   } finally {
     clearTimeout(timeout);
+  }
+}
+
+async function collectWithCompatibility(payload) {
+  try {
+    return await api("/api/collect",payload);
+  } catch(error) {
+    if(error.status===422 && payload.page_variant==="xiaohongshu-note") {
+      const legacyPayload={...payload};
+      delete legacyPayload.page_variant;
+      return api("/api/collect",legacyPayload);
+    }
+    throw error;
   }
 }
 
@@ -185,7 +216,7 @@ $("save").onclick=async()=>{
     article.user_note=$("note").value;
     article.mode=$("mode").value;
     article.category=$("category").value;
-    const data=await api("/api/collect",article);
+    const data=await collectWithCompatibility(article);
     $("progress").textContent=data.media_complete===false
       ?`页面已保存，但有 ${Number(data.failed_images||0)+Number(data.image_placement?.unplaced||0)} 张图片和 ${Number(data.failed_videos||0)} 个视频未嵌入。`
       :data.hermes_error?`页面已保存，但智能整理未完成：${data.hermes_error}`:"单文件页面保存完成。";

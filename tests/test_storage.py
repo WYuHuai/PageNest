@@ -88,6 +88,43 @@ async def test_xiaohongshu_page_preserves_metadata_and_duplicate_detection(tmp_p
     assert not list(page.parent.glob('*_2.pagenest'))
 
 
+@pytest.mark.asyncio
+async def test_concurrent_duplicate_collects_write_one_page(tmp_path: Path, monkeypatch):
+    vault = tmp_path / '知识库'
+    destination = vault / '阅读记录' / '待整理'
+    destination.mkdir(parents=True)
+    monkeypatch.setattr(settings, 'obsidian_vault_path', str(vault))
+    started = asyncio.Event()
+    release = asyncio.Event()
+    calls = 0
+
+    async def delayed_images(*_args):
+        nonlocal calls
+        calls += 1
+        started.set()
+        await release.wait()
+        return [], {}
+
+    monkeypatch.setattr(storage, 'save_images', delayed_images)
+    captured = article(
+        category='阅读记录/待整理',
+        mode='original',
+        article_html='<article><h1>并发测试</h1><p>同一篇文章只应保存一次。</p></article>',
+        article_text='同一篇文章只应保存一次。',
+        images=[],
+    )
+    first_task = asyncio.create_task(collect(captured))
+    await started.wait()
+    second_task = asyncio.create_task(collect(captured))
+    await asyncio.sleep(0.01)
+    release.set()
+    first, second = await asyncio.gather(first_task, second_task)
+
+    assert calls == 1
+    assert sorted([first['duplicate'], second['duplicate']]) == [False, True]
+    assert len(list(destination.glob('*.pagenest'))) == 1
+
+
 def test_atomic_page_write_does_not_replace_existing_file(tmp_path: Path):
     final = tmp_path / "page.pagenest"
     final.write_text("existing", encoding="utf-8")

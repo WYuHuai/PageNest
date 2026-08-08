@@ -29,6 +29,7 @@ from .vault import DEFAULT_CATEGORY, require_vault_folder, select_vault_folder
 
 PAGE_SUFFIX = ".pagenest"
 SUPPORTED_PAGE_SUFFIXES = (PAGE_SUFFIX, ".hermes")
+_COLLECTION_LOCKS: dict[str, tuple[asyncio.Lock, int]] = {}
 
 
 
@@ -118,7 +119,7 @@ def _write_page_atomic(final_path: Path, content: str) -> None:
             temporary.unlink(missing_ok=True)
 
 
-async def collect(article: ArticleInput) -> dict:
+async def _collect(article: ArticleInput) -> dict:
     """Build the complete offline page first, then write to the vault exactly once."""
     vault = settings.vault
     if not vault or not vault.is_dir():
@@ -267,3 +268,28 @@ async def collect(article: ArticleInput) -> dict:
         "image_placement": image_placement,
         "media_placement": media_placement,
     }
+
+
+async def collect(article: ArticleInput) -> dict:
+    """Serialize only captures with the same source/content identity."""
+    vault = settings.vault
+    if not vault or not vault.is_dir():
+        raise ValueError("尚未配置有效的 OBSIDIAN_VAULT_PATH")
+    identity = "\n".join(
+        (
+            str(vault),
+            normalize_url(article.canonical_url or article.url),
+            content_hash(article.article_text or article.selected_text),
+        )
+    )
+    lock, users = _COLLECTION_LOCKS.get(identity, (asyncio.Lock(), 0))
+    _COLLECTION_LOCKS[identity] = (lock, users + 1)
+    try:
+        async with lock:
+            return await _collect(article)
+    finally:
+        current_lock, current_users = _COLLECTION_LOCKS[identity]
+        if current_users <= 1:
+            _COLLECTION_LOCKS.pop(identity, None)
+        else:
+            _COLLECTION_LOCKS[identity] = (current_lock, current_users - 1)

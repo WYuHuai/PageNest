@@ -77,7 +77,7 @@ async def save_images(article: ArticleInput, assets: Path) -> tuple[list[dict], 
 
     semaphore = asyncio.Semaphore(IMAGE_DOWNLOAD_CONCURRENCY)
     timeout = httpx.Timeout(10, connect=4, pool=4)
-    headers = {"Referer": article.url, "User-Agent": "Mozilla/5.0 PageNestWebCollector/1.7.4"}
+    headers = {"Referer": article.url, "User-Agent": "Mozilla/5.0 PageNestWebCollector/1.8.0"}
     async with httpx.AsyncClient(timeout=timeout, follow_redirects=False, headers=headers) as client:
         tasks = {
             asyncio.create_task(_download_image(client, semaphore, index, item)): (index, item)

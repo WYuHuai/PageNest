@@ -20,7 +20,7 @@ from .request_limits import RequestSizeLimitMiddleware
 from .storage import collect
 from .vault import DEFAULT_CATEGORY, list_vault_folders
 
-app = FastAPI(title="PageNest Web Collector", version="1.7.4")
+app = FastAPI(title="PageNest Web Collector", version="1.8.0")
 app.add_middleware(RequestSizeLimitMiddleware, max_bytes=MAX_REQUEST_BYTES)
 app.add_middleware(
     CORSMiddleware,

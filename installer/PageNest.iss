@@ -1,5 +1,5 @@
 #ifndef AppVersion
-#define AppVersion "1.7.4"
+#define AppVersion "1.8.0"
 #endif
 #ifndef ExtensionIds
 #define ExtensionIds ""

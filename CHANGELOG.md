@@ -4,9 +4,9 @@ All notable user-facing changes are recorded here.
 
 ## Unreleased
 
-- Preserve the local collector token across Windows installer upgrades.
-- Recover stale extension credentials from installer configuration and retry
-  trusted extension pairing once after an authentication failure.
+- Development line 1.8.0 coordinates the extension and local service versions.
+- Service capabilities are negotiated before saving page variants.
+- Renderer system metadata is shared so duplicate detection remains reliable.
 
 ## 1.7.4 - 2026-07-30
 

@@ -85,9 +85,15 @@ def validate_version_metadata(root: Path = ROOT) -> dict:
     viewer = load_json(root / "obsidian-plugin" / "pagenest-viewer" / "manifest.json")
     versions = load_json(root / "obsidian-plugin" / "pagenest-viewer" / "versions.json")
     server_source = (root / "local-server" / "collector" / "main.py").read_text("utf-8")
+    extractor_source = (root / "extension" / "extractor.js").read_text("utf-8")
     server_match = re.search(r'FastAPI\([^)]*version="([^"]+)"', server_source)
     if not server_match:
         raise ValueError("Cannot find the local service version")
+    api_protocol_match = re.search(r"^API_PROTOCOL_VERSION\s*=\s*(\d+)", server_source, re.MULTILINE)
+    format_match = re.search(r"^PAGENEST_FORMAT_VERSION\s*=\s*(\d+)", server_source, re.MULTILINE)
+    capture_match = re.search(r"capture_version:\s*(\d+)", extractor_source)
+    if not api_protocol_match or not format_match or not capture_match:
+        raise ValueError("Cannot find explicit protocol and capture versions")
 
     components = release["components"]
     actual = {
@@ -97,6 +103,15 @@ def validate_version_metadata(root: Path = ROOT) -> dict:
     }
     if actual != components:
         raise ValueError(f"Component version mismatch: expected {components}, got {actual}")
+    actual_protocol = {
+        "api_protocol_version": int(api_protocol_match.group(1)),
+        "pagenest_format_version": int(format_match.group(1)),
+        "capture_version": int(capture_match.group(1)),
+    }
+    if release.get("protocol") != actual_protocol:
+        raise ValueError(
+            f"Protocol version mismatch: expected {release.get('protocol')}, got {actual_protocol}"
+        )
     if versions.get(viewer["version"]) != viewer["minAppVersion"]:
         raise ValueError("Obsidian versions.json does not match manifest.json")
     return release

@@ -31,7 +31,7 @@ Obsidian 1.5.0 or newer.
 
 ### 1. Install PageNest
 
-Download `PageNest-Setup-1.7.4.exe` and its `.sha256` file from
+Download `PageNest-Setup-1.8.0.exe` and its `.sha256` file from
 [GitHub Releases](https://github.com/WYuHuai/PageNest/releases). Verify the
 checksum, run the installer, and select an existing Obsidian vault.
 

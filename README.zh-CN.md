@@ -32,7 +32,7 @@ Obsidian 1.5.0 或更高版本。
 ### 1. 安装 PageNest
 
 从 [GitHub Releases](https://github.com/WYuHuai/PageNest/releases) 下载
-`PageNest-Setup-1.7.4.exe` 和对应的 `.sha256` 文件，核对校验值后运行安装程序，
+`PageNest-Setup-1.8.0.exe` 和对应的 `.sha256` 文件，核对校验值后运行安装程序，
 再选择一个现有的 Obsidian 知识库。
 
 安装程序已经封装 Python 运行环境和本地服务，会自动生成随机连接令牌、配置

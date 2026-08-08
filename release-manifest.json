@@ -1,9 +1,14 @@
 {
-  "release": "1.7.4",
+  "release": "1.8.0",
   "components": {
-    "browser_extension": "1.7.4",
-    "local_server": "1.7.4",
+    "browser_extension": "1.8.0",
+    "local_server": "1.8.0",
     "obsidian_viewer": "1.3.0"
+  },
+  "protocol": {
+    "api_protocol_version": 1,
+    "pagenest_format_version": 1,
+    "capture_version": 12
   },
   "store_extension_ids": {
     "edge": "lbefpoljnlieecogeihhdmgnmjmjkmmd",

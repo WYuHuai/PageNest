@@ -15,7 +15,7 @@
 - [x] Run the automated [Windows Sandbox smoke test](windows-sandbox-smoke.md)
       and retain its `RESULT: PASS` report.
 - [x] Use a Windows 10/11 account without Python installed.
-- [x] Verify and run `PageNest-Setup-1.7.4.exe` without administrator rights.
+- [x] Verify and run `PageNest-Setup-1.8.0.exe` without administrator rights.
 - [x] Select a disposable Unicode-path Obsidian vault containing `.obsidian`.
 - [ ] Confirm PageNest starts without a console and starts again after sign-in.
 - [ ] Load `%LOCALAPPDATA%\Programs\PageNest\Extension` in Edge and Chrome;
@@ -37,7 +37,7 @@
 
 ## Release assets
 
-- [x] `PageNest-Setup-1.7.4.exe` contains the frozen service, extension folder,
+- [x] `PageNest-Setup-1.8.0.exe` contains the frozen service, extension folder,
       and PageNest Viewer; it contains no runtime logs or local configuration.
 - [x] The installer SHA-256 file matches the executable.
 - [x] Browser extension ZIP contains `manifest.json` and
@@ -59,7 +59,7 @@
 - [ ] Confirm a store-installed extension pairs without manual token entry and
       an untrusted extension origin cannot call `/api/pair`.
 - [x] Publish `PRIVACY.md` at the exact stable HTTPS URL submitted to the store.
-- [ ] Upload `pagenest-web-store-v1.7.4.zip`; do not upload the full kit folder.
+- [ ] Upload `pagenest-web-store-v1.8.0.zip`; do not upload the full kit folder.
 - [ ] Upload the 1280x800 screenshot and 440x280 promotional image.
 - [ ] Complete the single-purpose, permission, remote-code, and data-use fields
       using `store/privacy-disclosures.md`.

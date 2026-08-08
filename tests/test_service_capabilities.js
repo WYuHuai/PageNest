@@ -28,7 +28,7 @@ async function expectError(run, status, message) {
     calls.push([url, body]);
     if (url === "/api/meta") {
       return {
-        service_version: "1.7.4",
+        service_version: "1.8.0",
         api_protocol_version: 1,
         pagenest_format_version: 1,
         supported_page_variants: ["standard", "xiaohongshu-note"],

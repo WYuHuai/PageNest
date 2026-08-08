@@ -17,6 +17,7 @@ from .organizers import probe, probe_connection
 from .limits import MAX_CONCURRENT_COLLECTIONS, MAX_REQUEST_BYTES
 from .models import ArticleInput, OrganizerSettingsInput
 from .request_limits import RequestSizeLimitMiddleware
+from .rendering import PAGENEST_FORMAT_VERSION
 from .storage import collect
 from .vault import DEFAULT_CATEGORY, list_vault_folders
 
@@ -31,7 +32,6 @@ app.add_middleware(
 logger = logging.getLogger("uvicorn.error")
 collection_slots = asyncio.Semaphore(MAX_CONCURRENT_COLLECTIONS)
 API_PROTOCOL_VERSION = 1
-PAGENEST_FORMAT_VERSION = 1
 SUPPORTED_PAGE_VARIANTS = (
     "standard",
     "bilibili-opus",

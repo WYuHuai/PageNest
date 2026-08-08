@@ -4,6 +4,9 @@ import json
 from .models import ArticleInput, HermesResult
 from .sanitizer import CODE_BLOCK_CSS, COPY_SCRIPT, _clean_text
 
+PAGENEST_FORMAT_VERSION = 1
+
+
 def _items(values: list[str], empty: str = "暂无") -> str:
     if not values:
         return f'<p class="empty">{html.escape(empty)}</p>'
@@ -24,6 +27,7 @@ def _render_system_metadata(article: ArticleInput, digest: str, category: str, e
             f'<meta name="hermes-image-count" content="{embedded}">',
             '<meta name="hermes-save-complete" content="1">',
             f'<meta name="hermes-capture-version" content="{article.capture_version}">',
+            f'<meta name="hermes-pagenest-format-version" content="{PAGENEST_FORMAT_VERSION}">',
         )
     )
 

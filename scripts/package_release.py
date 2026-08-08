@@ -85,12 +85,13 @@ def validate_version_metadata(root: Path = ROOT) -> dict:
     viewer = load_json(root / "obsidian-plugin" / "pagenest-viewer" / "manifest.json")
     versions = load_json(root / "obsidian-plugin" / "pagenest-viewer" / "versions.json")
     server_source = (root / "local-server" / "collector" / "main.py").read_text("utf-8")
+    rendering_source = (root / "local-server" / "collector" / "rendering.py").read_text("utf-8")
     extractor_source = (root / "extension" / "extractor.js").read_text("utf-8")
     server_match = re.search(r'FastAPI\([^)]*version="([^"]+)"', server_source)
     if not server_match:
         raise ValueError("Cannot find the local service version")
     api_protocol_match = re.search(r"^API_PROTOCOL_VERSION\s*=\s*(\d+)", server_source, re.MULTILINE)
-    format_match = re.search(r"^PAGENEST_FORMAT_VERSION\s*=\s*(\d+)", server_source, re.MULTILINE)
+    format_match = re.search(r"^PAGENEST_FORMAT_VERSION\s*=\s*(\d+)", rendering_source, re.MULTILINE)
     capture_match = re.search(r"capture_version:\s*(\d+)", extractor_source)
     if not api_protocol_match or not format_match or not capture_match:
         raise ValueError("Cannot find explicit protocol and capture versions")

@@ -34,6 +34,10 @@ async function connectService() {
     return false;
   }
   fillSettings(result.connection);
+  if(result.incompatible){
+    showServiceStatus("disconnected","Service 版本过旧，请升级 PageNest 本地服务");
+    return false;
+  }
   showServiceStatus("connected",`Service ${result.meta.service_version||"已就绪"}`);
   return true;
 }
@@ -418,8 +422,8 @@ async function initialize() {
       $("aiConnection").textContent=aiResult.reason.message;
       $("aiConnection").className="error";
     }
-  } else {
-    showServiceStatus("disconnected");
+  } else if(serviceResult.status==="rejected") {
+    showServiceStatus("disconnected",serviceResult.reason.message);
   }
 }
 

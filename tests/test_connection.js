@@ -126,9 +126,12 @@ function storage(initial){
     storage:fallback,
     delays:[0,300],
     sleep:async()=>{},
-    request:async url=>{
+    request:async(url,options)=>{
       if(url==="http://127.0.0.1:18765/api/pair") return {ok:true,json:async()=>({token:"fallback"})};
-      if(url==="http://127.0.0.1:18765/api/meta") return {ok:true,json:async()=>({service_version:"1.8.0"})};
+      if(
+        url==="http://127.0.0.1:18765/api/meta"
+        && options?.headers?.Authorization==="Bearer fallback"
+      ) return {ok:true,json:async()=>({service_version:"1.8.0"})};
       return {ok:false};
     },
   });
@@ -154,6 +157,28 @@ function storage(initial){
   ));
 
   PageNestConnection.invalidate();
+  const legacyRequests=[];
+  const legacyService=await PageNestConnection.connect({
+    storage:storage({server:"http://127.0.0.1:18765",token:"legacy"}),
+    delays:[0,300],
+    sleep:async()=>assert.fail("an authenticated legacy service must not retry"),
+    request:async(url,options)=>{
+      legacyRequests.push({url,authorization:options?.headers?.Authorization});
+      if(url==="http://127.0.0.1:18765/api/meta") return {ok:false,status:404};
+      if(url==="http://127.0.0.1:18765/api/health") return {ok:true,status:200};
+      return {ok:false,status:503};
+    },
+  });
+  assert.equal(legacyService.incompatible,true);
+  assert.deepEqual(legacyService.connection,{server:"http://127.0.0.1:18765",token:"legacy"});
+  assert.deepEqual(legacyRequests.map(item=>item.url),[
+    "http://127.0.0.1:18765/api/meta",
+    "http://127.0.0.1:18765/api/health",
+  ]);
+  assert.ok(legacyRequests.every(item=>item.authorization==="Bearer legacy"));
+  assert.ok(!legacyRequests.some(item=>item.url.endsWith("/api/collect")));
+
+  PageNestConnection.invalidate();
   const offline=await PageNestConnection.connect({
     storage:storage({server:"http://127.0.0.1:8765",token:"offline"}),
     delays:[0,300],
@@ -170,6 +195,8 @@ function storage(initial){
   assert.ok(popupHtml.indexOf('id="serviceStatus"')<popupHtml.indexOf("保存位置"));
   assert.ok(!popupJs.includes("本地收藏服务未启动，请从开始菜单启动 PageNest 后重试"));
   assert.ok(!popupJs.includes("[object Object]"));
+  assert.match(popupJs,/Service 版本过旧/);
+  assert.ok(!popupJs.includes('} else {\n    showServiceStatus("disconnected");'));
 
   assert.deepEqual(PageNestConnection.DEFAULT_SERVERS,[
     "http://127.0.0.1:8765",

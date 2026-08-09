@@ -47,7 +47,7 @@
     }
   }
 
-  async function load({storage,request,installed,force=false}={}){
+  async function load({storage,request,installed,force=false,preferCurrent=false}={}){
     storage=storage||chrome.storage.local;
     request=request||fetch;
     installed=installed||scope.PAGENEST_CONNECTION||{};
@@ -62,6 +62,10 @@
       return configured;
     }
     const currentKey=connectionKey(current);
+    if(preferCurrent&&current.token){
+      resolvedConnection=currentKey;
+      return current;
+    }
     if(!force&&current.token&&resolvedConnection===currentKey) return current;
     const servers=[current.server.replace(/\/$/,""),...DEFAULT_SERVERS]
       .filter((server,index,list)=>list.indexOf(server)===index);
@@ -83,7 +87,13 @@
     for(let attempt=0;attempt<delays.length;attempt++){
       if(delays[attempt]) await sleep(delays[attempt]);
       try{
-        const connection=await load({storage,request:boundedRequest,installed,force:attempt>0});
+        const connection=await load({
+          storage,
+          request:boundedRequest,
+          installed,
+          force:attempt>0,
+          preferCurrent:attempt===0,
+        });
         if(!connection.token) continue;
         const servers=[connection.server.replace(/\/$/,""),...DEFAULT_SERVERS]
           .filter((server,index,list)=>list.indexOf(server)===index);
@@ -93,8 +103,19 @@
               method:"GET",
               headers:{Authorization:`Bearer ${connection.token}`},
             });
-            if(!response.ok) continue;
             const resolved={server,token:connection.token};
+            if(response.status===404){
+              const health=await boundedRequest(server+"/api/health",{
+                method:"GET",
+                headers:{Authorization:`Bearer ${connection.token}`},
+              });
+              if(health.ok){
+                if(connectionKey(resolved)!==connectionKey(connection)) await storage.set(resolved);
+                resolvedConnection=connectionKey(resolved);
+                return {connection:resolved,meta:null,incompatible:true};
+              }
+            }
+            if(!response.ok) continue;
             if(connectionKey(resolved)!==connectionKey(connection)) await storage.set(resolved);
             resolvedConnection=connectionKey(resolved);
             return {connection:resolved,meta:await response.json()};

@@ -18,13 +18,14 @@ async function buildCapture(adapter, context) {
   core.unwrapHeadingLinks(clone);
   if (!dynamic) core.materializeBackgroundImages(clone);
   const junk = window.top === window ? core.JUNK : ["nav", "footer", "aside", "form", "dialog"];
-  if (!dynamic) clone.querySelectorAll(junk.join(",")).forEach(element => element.remove());
+  if (!dynamic && !adapter.preserveStructure) {
+    clone.querySelectorAll(junk.join(",")).forEach(element => element.remove());
+  }
   HermesMedia.cleanClone(clone);
   await core.blobData(images);
   let localImageStats = null;
   if (sourceInfo.source_kind === "local-html") {
-    localImageStats = await core.inlineLocalImages(images);
-    core.redactLocalResources(clone, images, media);
+    localImageStats = await core.inlineLocalImages(images, found.element);
   }
   clone.querySelectorAll("img").forEach(image => {
     const source = core.resolveImage(image, location.href);

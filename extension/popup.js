@@ -33,11 +33,11 @@ function localFileAccessMessage() {
 
 async function ensureCaptureAccess(value, extensionApi=chrome.extension) {
   const kind = captureKindForUrl(value);
-  if (!kind) throw new Error("当前页面类型不支持收藏；请打开普通网页或本地 HTML 文件后重试");
-  if (kind === "local-html") {
+  if (kind === "local-html" || !String(value || "").trim()) {
     const allowed = await new Promise(resolve => extensionApi.isAllowedFileSchemeAccess(resolve));
     if (!allowed) throw new Error(localFileAccessMessage());
   }
+  if (!kind) throw new Error("当前页面类型不支持收藏；请打开普通网页或本地 HTML 文件后重试");
   return kind;
 }
 
@@ -55,7 +55,8 @@ async function inlineBrowserReadableImages(capture) {
   const seen = new Set();
   const queue = (capture.images || []).filter(item => {
     const source = item.resolved_url || "";
-    if (item.data_url || !/^https?:/i.test(source) || seen.has(source)) return false;
+    const allowed = capture.source_kind === "local-html" ? /^(?:https?|file):/i : /^https?:/i;
+    if (item.data_url || !allowed.test(source) || seen.has(source)) return false;
     seen.add(source);
     return true;
   }).slice(0, policy.maxImages);
@@ -79,13 +80,24 @@ async function inlineBrowserReadableImages(capture) {
           reader.readAsDataURL(blob);
         });
       }catch{
-        // The local service still gets one final chance to download the URL.
+        // HTTP(S) URLs can still be handled by the service; file URLs are redacted below.
       }finally{
         clearTimeout(timeout);
       }
     }
   };
   await Promise.all(Array.from({length:Math.min(6,queue.length)},worker));
+}
+
+function redactLocalCapture(capture) {
+  if (capture.source_kind !== "local-html") return;
+  const parsed = new DOMParser().parseFromString(capture.article_html, "text/html");
+  HermesExtractorCore.redactLocalResources(parsed.body, capture.images || [], capture.media || []);
+  capture.article_html = parsed.body.innerHTML;
+  const failed = (capture.images || []).filter(image => image.source_type === "local-file-unavailable").length;
+  capture.extraction_warning = failed
+    ? `${failed} 张本地图片无法由浏览器读取，正文仍可保存；请检查文件访问权限或图片路径。`
+    : "";
 }
 
 async function loadAiSettings() {
@@ -127,6 +139,7 @@ async function identify() {
   });
   article=selectBestCapture(captures,tab);
   await inlineBrowserReadableImages(article);
+  redactLocalCapture(article);
   $("title").textContent=article.title;
   $("domain").textContent=article.source_kind==="local-html"
     ?`本地 HTML · ${article.source_name||"本地文件"}`

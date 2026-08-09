@@ -42,6 +42,7 @@ for (const name of ["guyue", "xiaohongshu"]) {
   assert.equal(adapter.allowFallback, false, `${name} must not save page chrome via generic fallback`);
 }
 assert.equal(adapters.find(item => item.name === "xiaohongshu").specialized, true);
+assert.equal(adapters.find(item => item.name === "local-html").preserveStructure, true);
 
 function selected(hostname, pathname = "/article", protocol = "https:") {
   return context.HermesAdapters.select({location: {hostname, pathname, protocol}}).name;

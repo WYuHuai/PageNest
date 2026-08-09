@@ -74,6 +74,11 @@ async function popupHelpers() {
     helpers.ensureCaptureAccess("file:///D:/AI/report.html", denied),
     /允许访问文件网址/,
   );
+  await assert.rejects(
+    helpers.ensureCaptureAccess("", denied),
+    /允许访问文件网址/,
+    "Edge hides the active file tab URL when file access is disabled",
+  );
 
   const basicMain = contentElement("Local Test Hello PageNest.");
   const basic = loadLocalAdapter(

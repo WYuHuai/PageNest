@@ -307,7 +307,21 @@ globalThis.HermesExtractorCore = (() => {
       reader.readAsDataURL(blob);
     });
   }
-  async function inlineLocalImages(images, policy = {}) {
+  function dataUrlSize(value) {
+    const encoded = String(value || "").split(",", 2)[1] || "";
+    return Math.ceil(encoded.length * 3 / 4);
+  }
+  function canvasImageDataUrl(element) {
+    const width = element?.naturalWidth || 0;
+    const height = element?.naturalHeight || 0;
+    if (!width || !height) return "";
+    const canvas = document.createElement("canvas");
+    canvas.width = width;
+    canvas.height = height;
+    canvas.getContext("2d").drawImage(element, 0, 0, width, height);
+    return canvas.toDataURL("image/png");
+  }
+  async function inlineLocalImages(images, root = null, policy = {}) {
     const limits = {
       maxImages: 40,
       maxTotalBytes: 80 * 1024 * 1024,
@@ -316,6 +330,13 @@ globalThis.HermesExtractorCore = (() => {
     };
     const queue = images.filter(image => fileUrl(image.resolved_url || image.current_src || ""))
       .slice(0, limits.maxImages);
+    const marked = new Map(
+      root
+        ? [...root.querySelectorAll(`[${POSITION_ATTR}]`)].map(
+            node => [node.getAttribute(POSITION_ATTR), node],
+          )
+        : [],
+    );
     let cursor = 0;
     let totalBytes = 0;
     let inlined = 0;
@@ -325,24 +346,35 @@ globalThis.HermesExtractorCore = (() => {
         const source = image.resolved_url || image.current_src;
         const controller = new AbortController();
         const timeout = setTimeout(() => controller.abort(), 15000);
+        let dataUrl = "";
+        let size = 0;
         try {
           const response = await fetch(source, {signal: controller.signal});
-          if (!response.ok && response.status !== 0) continue;
-          const blob = await response.blob();
-          if (
-            !blob.size
-            || blob.size > limits.maxSingleImageBytes
-            || !blob.type.startsWith("image/")
-            || totalBytes + blob.size > limits.maxTotalBytes
-          ) continue;
-          totalBytes += blob.size;
-          image.data_url = await blobDataUrl(blob);
-          inlined += 1;
-        } catch {
-          // The redaction step records a safe, non-readable failure placeholder.
-        } finally {
-          clearTimeout(timeout);
+          if (response.ok || response.status === 0) {
+            const blob = await response.blob();
+            if (blob.size && blob.size <= limits.maxSingleImageBytes && blob.type.startsWith("image/")) {
+              dataUrl = await blobDataUrl(blob);
+              size = blob.size;
+            }
+          }
+        } catch {}
+        if (!dataUrl) {
+          try {
+            dataUrl = canvasImageDataUrl(marked.get(image.position_id));
+            size = dataUrlSize(dataUrl);
+          } catch {}
         }
+        if (
+          dataUrl
+          && size > 0
+          && size <= limits.maxSingleImageBytes
+          && totalBytes + size <= limits.maxTotalBytes
+        ) {
+          totalBytes += size;
+          image.data_url = dataUrl;
+          inlined += 1;
+        }
+        clearTimeout(timeout);
       }
     };
     await Promise.all(Array.from({length: Math.min(4, queue.length)}, worker));
@@ -370,7 +402,14 @@ globalThis.HermesExtractorCore = (() => {
       image.source_type = image.data_url ? "local-file" : "local-file-unavailable";
     });
     for (const anchor of root.querySelectorAll("a[href]")) {
-      if (fileUrl(anchor.getAttribute("href"))) anchor.removeAttribute("href");
+      const href = anchor.getAttribute("href");
+      let safe = href.startsWith("#");
+      try {
+        safe ||= /^https?:$/i.test(new URL(href, "file:///").protocol);
+      } catch {}
+      if (!safe) {
+        anchor.removeAttribute("href");
+      }
     }
     for (const element of root.querySelectorAll("[src],[poster]")) {
       for (const attribute of ["src", "poster"]) {

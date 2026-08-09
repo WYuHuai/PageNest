@@ -8,8 +8,35 @@ const start = source.indexOf("function inlineImagePolicy");
 const end = source.indexOf("async function loadAiSettings", start);
 assert.ok(start >= 0 && end > start, "image inlining helpers must be present");
 
-const context = {URL, location: {href: "https://example.com"}};
-vm.runInNewContext(`${source.slice(start, end)}\nthis.inlineImagePolicy = inlineImagePolicy;`, context);
+class FakeFileReader {
+  readAsDataURL(blob) {
+    this.result = blob.dataUrl;
+    queueMicrotask(() => this.onload());
+  }
+}
+
+const requests = [];
+const context = {
+  URL,
+  location: {href: "https://example.com"},
+  AbortController,
+  FileReader: FakeFileReader,
+  Promise,
+  queueMicrotask,
+  setTimeout,
+  clearTimeout,
+  fetch: async url => {
+    requests.push(url);
+    return {
+      ok: true,
+      blob: async () => ({size: 128, type: "image/png", dataUrl: "data:image/png;base64,ZmFrZQ=="}),
+    };
+  },
+};
+vm.runInNewContext(
+  `${source.slice(start, end)}\nthis.inlineImagePolicy=inlineImagePolicy;this.inlineBrowserReadableImages=inlineBrowserReadableImages;`,
+  context,
+);
 
 assert.equal(
   JSON.stringify(context.inlineImagePolicy({url: "https://www.xiaohongshu.com/explore/example"})),
@@ -24,4 +51,15 @@ assert.equal(
   JSON.stringify({maxImages: 40, maxBytes: 80 * 1024 * 1024}),
 );
 assert.equal(context.inlineImagePolicy({url: "https://example.com/article"}), null);
-console.log("browser image inlining policy passed");
+
+(async () => {
+  const local = {
+    url: "local-html:///report.html",
+    source_kind: "local-html",
+    images: [{resolved_url: "file:///D:/AI/images/figure.png", data_url: ""}],
+  };
+  await context.inlineBrowserReadableImages(local);
+  assert.deepEqual(requests, ["file:///D:/AI/images/figure.png"]);
+  assert.equal(local.images[0].data_url, "data:image/png;base64,ZmFrZQ==");
+  console.log("browser image inlining policy passed");
+})().catch(error => { console.error(error); process.exitCode = 1; });

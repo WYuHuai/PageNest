@@ -54,6 +54,7 @@ HermesAdapters.register((() => {
   return {
     name: "local-html",
     allowFallback: false,
+    preserveStructure: true,
     detect: context => context.location.protocol === "file:",
     preparePage: context => HermesExtractorCore.waitForContent(
       () => Boolean(findContent(context)),

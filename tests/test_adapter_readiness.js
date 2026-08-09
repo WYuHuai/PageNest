@@ -116,7 +116,7 @@ function guyueDocument(root, selector = "main") {
   const extraction = await extractingXhs.extract();
   assert.equal(extraction.images.length, 1, "duplicate carousel nodes must produce one saved image");
   assert.equal(extraction.method, "xiaohongshu:note:1-images");
-  assert.ok(extraction.element.children.some(child => child.attributes["data-hermes-kind"] === "xhs-comments"));
+  assert.equal(extraction.comments.length, 0, "comments stay separate from the article body");
 
   const shell = {innerText: "页面壳", querySelectorAll: () => []};
   const guyue = loadAdapter("guyue.js", {

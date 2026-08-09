@@ -1,7 +1,7 @@
 import html
 import json
 
-from .models import ArticleInput, HermesResult
+from .models import ArticleInput, CommentReplyInput, HermesResult
 from .sanitizer import CODE_BLOCK_CSS, COPY_SCRIPT, _clean_text
 
 PAGENEST_FORMAT_VERSION = 1
@@ -187,6 +187,25 @@ def _render_feishu_document_page(
 </html>'''
 
 
+def _render_xhs_comments(comments: list[CommentReplyInput]) -> str:
+    if not comments:
+        return ""
+
+    def item(comment: CommentReplyInput, reply: bool = False) -> str:
+        avatar = comment.avatar_data_url
+        if avatar.startswith(("data:image/png;base64,", "data:image/jpeg;base64,", "data:image/webp;base64,", "data:image/gif;base64,")):
+            avatar_html = f'<img class="comment-avatar" src="{html.escape(avatar, quote=True)}" alt="">'
+        else:
+            avatar_html = '<span class="comment-avatar comment-avatar-placeholder" aria-hidden="true"></span>'
+        meta = " · ".join(filter(None, (comment.location, comment.time, f"{comment.like_count} 赞" if comment.like_count else "")))
+        replies = "" if reply or not comment.replies else '<div class="comment-replies">' + "".join(item(child, True) for child in comment.replies) + "</div>"
+        author_tag = '<span class="comment-author-tag">作者</span>' if comment.is_author else ""
+        classes = "comment-item comment-reply" if reply else "comment-item"
+        return f'''<article class="{classes}">{avatar_html}<div class="comment-main"><div class="comment-author">{html.escape(comment.author)}{author_tag}</div><div class="comment-content">{html.escape(comment.content)}</div>{f'<div class="comment-meta">{html.escape(meta)}</div>' if meta else ''}{replies}</div></article>'''
+
+    return '<section data-hermes-kind="xhs-comments"><h2>评论</h2>' + "".join(item(comment) for comment in comments) + "</section>"
+
+
 def _render_xiaohongshu_note_page(
     article: ArticleInput,
     result: HermesResult | None,
@@ -212,6 +231,7 @@ def _render_xiaohongshu_note_page(
     metadata_json = json.dumps(metadata, ensure_ascii=False).replace("</", "<\\/")
     note = html.escape(article.user_note.strip() or "未填写收藏备注。")
     summary = html.escape(result.abstract or result.one_sentence_summary) if result else ""
+    comments = _render_xhs_comments(article.comments)
     return f'''<!doctype html>
 <html lang="zh-CN">
 <head>
@@ -221,12 +241,12 @@ def _render_xiaohongshu_note_page(
 {_render_system_metadata(article, digest, category, embedded)}
 <title>{html.escape(title)}</title>
 <style>
-:root{{--paper:#f7f7f7;--card:#fff;--ink:#222;--muted:#8b8b8b;--line:#ececec;--accent:#ff2442}}*{{box-sizing:border-box}}body{{margin:0;background:var(--paper);color:var(--ink);font:15px/1.7 -apple-system,BlinkMacSystemFont,"Segoe UI","Microsoft YaHei",sans-serif}}.xhs-shell{{width:min(680px,100%);margin:0 auto;padding:18px 12px 72px}}.xhs-card,.xhs-meta{{background:var(--card);border:1px solid var(--line);border-radius:16px}}.xhs-card{{padding:22px}}[data-hermes-kind="xhs-note"] h1{{font-size:24px;line-height:1.4;margin:0 0 8px}}[data-hermes-kind="xhs-author"]{{color:var(--muted);margin:0 0 18px}}[data-hermes-kind="xhs-gallery"]{{margin:0 -22px 22px;background:#111;overflow:hidden}}[data-hermes-kind="xhs-slide"]{{margin:0}}[data-hermes-kind="xhs-slide"] img{{display:block;width:100%;max-height:72vh;object-fit:contain;margin:auto}}[data-hermes-kind="xhs-gallery-controls"]{{display:flex;align-items:center;justify-content:space-between;margin:0;padding:10px 16px;background:#171717;color:#fff;font-size:14px}}[data-hermes-kind="xhs-gallery-controls"] a{{color:#fff;text-decoration:none}}[data-hermes-kind="xhs-gallery-count"]{{opacity:.78}}[data-hermes-kind="xhs-description"]{{white-space:pre-wrap;margin:0 0 26px;font-size:16px}}[data-hermes-kind="xhs-comments"]{{border-top:1px solid var(--line);padding-top:20px}}[data-hermes-kind="xhs-comments"] h2{{font-size:18px;margin:0 0 12px}}[data-hermes-kind="xhs-comment"]{{margin:0;padding:14px 0;border-bottom:1px solid var(--line);white-space:pre-wrap}}.xhs-meta{{margin-top:12px;padding:16px 18px;color:var(--muted)}}.xhs-meta p{{margin:0;white-space:pre-wrap}}.xhs-meta strong{{color:var(--ink)}}.xhs-footer{{margin-top:18px;text-align:center;color:var(--muted);font-size:12px}}.xhs-footer a{{color:inherit}}@media(max-width:520px){{.xhs-shell{{padding:0 0 50px}}.xhs-card,.xhs-meta{{border-radius:0;border-left:0;border-right:0}}.xhs-card{{padding:18px}}[data-hermes-kind="xhs-gallery"]{{margin:0 -18px 20px}}}}
+:root{{--paper:#f7f7f7;--card:#fff;--ink:#222;--muted:#8b8b8b;--line:#ececec;--accent:#ff2442}}*{{box-sizing:border-box}}body{{margin:0;background:var(--paper);color:var(--ink);font:15px/1.7 -apple-system,BlinkMacSystemFont,"Segoe UI","Microsoft YaHei",sans-serif}}.xhs-shell{{width:min(680px,100%);margin:0 auto;padding:18px 12px 72px}}.xhs-card,.xhs-meta{{background:var(--card);border:1px solid var(--line);border-radius:16px}}.xhs-card{{padding:22px}}[data-hermes-kind="xhs-note"] h1{{font-size:24px;line-height:1.4;margin:0 0 8px}}[data-hermes-kind="xhs-author"]{{color:var(--muted);margin:0 0 18px}}[data-hermes-kind="xhs-gallery"]{{margin:0 -22px 22px;background:#111;overflow:hidden}}[data-hermes-kind="xhs-slide"]{{margin:0}}[data-hermes-kind="xhs-slide"] img{{display:block;width:100%;max-height:72vh;object-fit:contain;margin:auto}}[data-hermes-kind="xhs-gallery-controls"]{{display:flex;align-items:center;justify-content:space-between;margin:0;padding:10px 16px;background:#171717;color:#fff;font-size:14px}}[data-hermes-kind="xhs-gallery-controls"] a{{color:#fff;text-decoration:none}}[data-hermes-kind="xhs-gallery-count"]{{opacity:.78}}[data-hermes-kind="xhs-description"]{{white-space:pre-wrap;margin:0 0 26px;font-size:16px}}[data-hermes-kind="xhs-comments"]{{border-top:1px solid var(--line);margin-top:24px;padding-top:20px}}[data-hermes-kind="xhs-comments"] h2{{font-size:18px;margin:0 0 10px}}.comment-item{{display:flex;gap:12px;padding:14px 0;border-bottom:1px solid var(--line)}}.comment-avatar{{flex:0 0 36px;width:36px;height:36px;border-radius:50%;object-fit:cover;background:#eee}}.comment-avatar-placeholder{{display:block}}.comment-main{{min-width:0;flex:1}}.comment-author{{font-size:14px;color:#555}}.comment-author-tag{{margin-left:6px;color:var(--accent);font-size:12px}}.comment-content{{margin-top:3px;white-space:pre-wrap;overflow-wrap:anywhere}}.comment-meta{{margin-top:5px;color:var(--muted);font-size:12px}}.comment-replies{{margin:10px 0 0 4px;padding-left:12px;border-left:2px solid var(--line)}}.comment-reply{{padding:10px 0;border-bottom:0}}.comment-reply .comment-avatar{{flex-basis:28px;width:28px;height:28px}}.xhs-meta{{margin-top:12px;padding:16px 18px;color:var(--muted)}}.xhs-meta p{{margin:0;white-space:pre-wrap}}.xhs-meta strong{{color:var(--ink)}}.xhs-footer{{margin-top:18px;text-align:center;color:var(--muted);font-size:12px}}.xhs-footer a{{color:inherit}}@media(max-width:520px){{.xhs-shell{{padding:0 0 50px}}.xhs-card,.xhs-meta{{border-radius:0;border-left:0;border-right:0}}.xhs-card{{padding:18px}}[data-hermes-kind="xhs-gallery"]{{margin:0 -18px 20px}}}}
 </style>
 </head>
 <body>
 <main class="xhs-shell">
-  <article class="xhs-card">{content}</article>
+  <article class="xhs-card">{content}{comments}</article>
   <section class="xhs-meta"><strong>我的收藏备注</strong><p>{note}</p>{f'<p><strong>AI 整理：</strong>{summary}</p>' if summary else ''}</section>
   <footer class="xhs-footer">离线保存于 {html.escape(article.captured_at)} · 已内嵌 {embedded} 张图片 · <a href="{html.escape(article.url, quote=True)}">查看原网页</a></footer>
 </main>

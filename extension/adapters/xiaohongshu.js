@@ -77,15 +77,55 @@
     return images;
   }
 
-  function appendComments(article) {
+  function commentText(node) {
+    const clone = node?.cloneNode?.(true) || node;
+    if (clone?.querySelectorAll && document.createTextNode) {
+      clone.querySelectorAll("img").forEach(image => {
+        const label = image.alt || image.title || "";
+        image.replaceWith(document.createTextNode(label));
+      });
+    }
+    return (clone?.innerText || clone?.textContent || "").replace(/\r\n?/g, "\n").trim();
+  }
+
+  function parseComment(node) {
+    const root = node.querySelector(":scope > .comment-inner-container") || node;
+    const value = selector => commentText(root.querySelector(selector));
+    const avatar = root.querySelector(".avatar img");
+    const location = value(".info .location");
+    const rawTime = value(".info .date");
+    return {
+      author: value(".author-wrapper .name"),
+      avatar_url: avatar?.currentSrc || avatar?.src || avatar?.getAttribute("src") || "",
+      avatar_data_url: "",
+      content: value(".content"),
+      time: location && rawTime.endsWith(location) ? rawTime.slice(0, -location.length).trim() : rawTime,
+      location,
+      like_count: value(".like-wrapper .count"),
+      is_author: /作者/.test(value(".author-wrapper .tag")),
+      replies: [],
+    };
+  }
+
+  function collectComments() {
     const nodes = [...document.querySelectorAll("#noteContainer .comment-item, .note-container .comment-item, #comment-container .comment-item, #comments .comment-item, .comment-container .comment-item, [class*='comment-list'] [class*='comment-item']")];
-    const comments = [...new Set(nodes.map(text).filter(value => value.length >= 2 && value.length <= 1600))].slice(0, 80);
-    if (!comments.length) return;
-    const section = document.createElement("section");
-    section.setAttribute("data-hermes-kind", "xhs-comments");
-    addTextElement(section, "h2", "评论");
-    for (const comment of comments) addTextElement(section, "p", comment, "xhs-comment");
-    article.appendChild(section);
+    const comments = [];
+    const seen = new Set();
+    for (const node of nodes) {
+      if (node.classList?.contains("comment-item-sub") || typeof node.querySelector !== "function") continue;
+      const comment = parseComment(node);
+      if (!comment.content) continue;
+      const key = `${comment.author}\n${comment.content}`;
+      if (seen.has(key)) continue;
+      seen.add(key);
+      const group = node.closest?.(".parent-comment");
+      const replies = group?.querySelectorAll?.(":scope > .reply-container .comment-item-sub") || [];
+      const remaining = Math.max(0, 80 - comments.reduce((count, item) => count + 1 + item.replies.length, 0) - 1);
+      comment.replies = [...replies].slice(0, remaining).map(parseComment).filter(reply => reply.content);
+      comments.push(comment);
+      if (comments.reduce((count, item) => count + 1 + item.replies.length, 0) >= 80) break;
+    }
+    return comments;
   }
 
   function readinessSignature() {
@@ -125,8 +165,8 @@
     const images = appendGallery(article, root, title);
     if (!images.length) return null;
     if (description) addTextElement(article, "p", description, "xhs-description");
-    appendComments(article);
-    return {element: article, images, media: [], title, author, page_variant: "xiaohongshu-note", method: `xiaohongshu:note:${images.length}-images`};
+    const comments = collectComments();
+    return {element: article, images, media: [], comments, title, author, page_variant: "xiaohongshu-note", method: `xiaohongshu:note:${images.length}-images`};
   }
 
   HermesAdapters.register({

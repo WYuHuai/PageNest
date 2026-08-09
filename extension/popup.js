@@ -116,6 +116,41 @@ async function inlineBrowserReadableImages(capture) {
   await Promise.all(Array.from({length:Math.min(6,queue.length)},worker));
 }
 
+async function inlineCommentAvatars(capture) {
+  if (capture.page_variant !== "xiaohongshu-note") return;
+  const comments=[];
+  for (const comment of capture.comments || []) comments.push(comment,...(comment.replies || []));
+  const cache=new Map();
+  const sources=[...new Set(comments.map(comment=>comment.avatar_url||"").filter(source=>/^https:\/\//i.test(source)))];
+  let cursor=0;
+  let totalBytes=0;
+  const worker=async()=>{
+    while(cursor<sources.length){
+      const source=sources[cursor++];
+      const controller=new AbortController();
+      const timeout=setTimeout(()=>controller.abort(),8000);
+      try {
+        const response=await fetch(source,{credentials:"include",signal:controller.signal});
+        if (!response.ok) continue;
+        const blob=await response.blob();
+        if (!blob.size || blob.size>256*1024 || totalBytes+blob.size>4*1024*1024 || !blob.type.startsWith("image/")) continue;
+        const dataUrl=await new Promise((resolve,reject)=>{
+          const reader=new FileReader();
+          reader.onload=()=>resolve(String(reader.result||""));
+          reader.onerror=reject;
+          reader.readAsDataURL(blob);
+        });
+        totalBytes+=blob.size;
+        cache.set(source,dataUrl);
+      } catch {} finally {
+        clearTimeout(timeout);
+      }
+    }
+  };
+  await Promise.all(Array.from({length:Math.min(4,sources.length)},worker));
+  for (const comment of comments) comment.avatar_data_url=cache.get(comment.avatar_url)||"";
+}
+
 function redactLocalCapture(capture) {
   if (capture.source_kind !== "local-html") return;
   const parsed = new DOMParser().parseFromString(capture.article_html, "text/html");
@@ -166,6 +201,7 @@ async function identify() {
   });
   article=selectBestCapture(captures,tab);
   await inlineBrowserReadableImages(article);
+  await inlineCommentAvatars(article);
   redactLocalCapture(article);
   $("title").textContent=article.title;
   $("domain").textContent=article.source_kind==="local-html"

@@ -89,3 +89,40 @@ def test_xiaohongshu_gallery_controls_are_sanitized_and_rendered():
     assert 'xhs-gallery-controls' in rendered
     assert 'hermesShowGallerySlide' in rendered
     assert '[data-hermes-kind="xhs-comments"]' in rendered
+
+
+def test_xiaohongshu_comments_render_as_escaped_semantic_items():
+    captured = article(
+        page_variant="xiaohongshu-note",
+        comments=[
+            {
+                "author": '<script>用户</script>',
+                "avatar_data_url": "data:image/png;base64,AAAA",
+                "content": "第一行\n😊第二行 <b>不执行</b>",
+                "time": "08-08",
+                "location": "上海",
+                "like_count": "12",
+                "replies": [
+                    {
+                        "author": "回复者",
+                        "content": "一级回复",
+                        "is_author": True,
+                    }
+                ],
+            },
+            {"author": "无头像用户", "content": "内容", "location": "北京"},
+        ],
+    )
+
+    rendered = render_page(captured, None, "<article><p>正文</p></article>", "hash", "阅读记录", [])
+
+    for class_name in ("comment-item", "comment-avatar", "comment-author", "comment-content", "comment-meta"):
+        assert f'class="{class_name}' in rendered
+    assert "comment-replies" in rendered
+    assert "&lt;script&gt;用户&lt;/script&gt;" in rendered
+    assert "第一行\n😊第二行 &lt;b&gt;不执行&lt;/b&gt;" in rendered
+    assert "上海 · 08-08 · 12 赞" in rendered
+    assert "北京" in rendered
+    assert '<script>用户</script>' not in rendered
+    assert rendered.count('<section data-hermes-kind="xhs-comments">') == 1
+    assert rendered.index("正文") < rendered.index('<section data-hermes-kind="xhs-comments">')

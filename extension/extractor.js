@@ -74,6 +74,7 @@ async function buildCapture(adapter, context) {
     headings: [...clone.querySelectorAll("h1,h2,h3,h4")].map(node => node.innerText.trim()).filter(Boolean),
     images,
     media,
+    comments: dynamic?.comments || [],
     captured_at: new Date().toISOString(),
     extraction_method: found.method,
     extraction_warning: localImageStats?.failed

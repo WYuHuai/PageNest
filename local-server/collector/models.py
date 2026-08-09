@@ -54,6 +54,22 @@ class MediaInput(BaseModel):
     order: int = Field(default=0, ge=0)
 
 
+class CommentReplyInput(BaseModel):
+    author: str = Field(default="", max_length=MAX_TITLE_CHARS)
+    avatar_url: ResourceUrl = ""
+    avatar_data_url: str = Field(default="", max_length=400_000)
+    content: str = Field(default="", max_length=1600)
+    time: str = Field(default="", max_length=128)
+    location: str = Field(default="", max_length=128)
+    like_count: str = Field(default="", max_length=64)
+    is_author: bool = False
+    replies: list = Field(default_factory=list, max_length=0)
+
+
+class CommentInput(CommentReplyInput):
+    replies: list[CommentReplyInput] = Field(default_factory=list, max_length=40)
+
+
 class ArticleInput(BaseModel):
     capture_version: int = Field(default=1, ge=1)
     image_placement_policy: Literal["fallback", "strict"] = "fallback"
@@ -74,6 +90,7 @@ class ArticleInput(BaseModel):
     headings: list[str] = Field(default_factory=list, max_length=MAX_HEADINGS)
     images: list[ImageInput] = Field(default_factory=list, max_length=MAX_IMAGES)
     media: list[MediaInput] = Field(default_factory=list, max_length=MAX_MEDIA_ITEMS)
+    comments: list[CommentInput] = Field(default_factory=list, max_length=80)
     captured_at: str = Field(max_length=256)
     extraction_method: str = Field(default="", max_length=MAX_TITLE_CHARS)
     extraction_warning: str = Field(default="", max_length=MAX_NOTE_CHARS)

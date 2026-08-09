@@ -40,6 +40,7 @@ $start.UseShellExecute = $false
 $start.CreateNoWindow = $true
 $process = [Diagnostics.Process]::new()
 $process.StartInfo = $start
+$duplicate = $null
 $previousConfig = $env:PAGENEST_CONFIG_FILE
 $previousPort = $env:PAGENEST_PORT
 $previousPath = $env:PATH
@@ -77,6 +78,22 @@ try {
         throw "Frozen service health check failed; inspect $bundle\logs\service.log"
     }
 
+    $env:PAGENEST_CONFIG_FILE = $config
+    $env:PAGENEST_PORT = [string]$port
+    $duplicate = Start-Process -FilePath $executable -WorkingDirectory $bundle -PassThru -WindowStyle Hidden
+    $env:PAGENEST_CONFIG_FILE = $previousConfig
+    $env:PAGENEST_PORT = $previousPort
+    if (-not $duplicate.WaitForExit(5000)) {
+        throw "Duplicate PageNest service did not exit"
+    }
+    if ($duplicate.ExitCode -ne 0) {
+        throw "Duplicate PageNest service exited with code $($duplicate.ExitCode)"
+    }
+    $health = Invoke-RestMethod -Uri "$baseUrl/api/health" -Headers $headers -TimeoutSec 2
+    if (-not $health.ok) {
+        throw "Original service stopped after duplicate launch"
+    }
+
     $payload = @{
         title = "Frozen runtime smoke"
         url = "https://example.test/pagenest"
@@ -103,6 +120,7 @@ try {
     }
 
     Write-Output "Frozen Windows service smoke passed"
+    Write-Output "Single instance: passed"
     Write-Output "Executable: $executable"
     Write-Output "Generated page: $page"
 }
@@ -115,6 +133,10 @@ finally {
     if ($process -and -not $process.HasExited) {
         $process.Kill()
         $process.WaitForExit()
+    }
+    if ($duplicate -and -not $duplicate.HasExited) {
+        $duplicate.Kill()
+        $duplicate.WaitForExit()
     }
     if (-not $KeepTemporaryFiles) {
         $resolved = [IO.Path]::GetFullPath($workspace)

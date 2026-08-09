@@ -37,6 +37,16 @@
     return null;
   }
 
+  async function requestWithin(request,url,options,timeoutMs){
+    const controller=new AbortController();
+    const timeout=setTimeout(()=>controller.abort(),timeoutMs);
+    try{
+      return await request(url,{...options,signal:controller.signal});
+    }finally{
+      clearTimeout(timeout);
+    }
+  }
+
   async function load({storage,request,installed,force=false}={}){
     storage=storage||chrome.storage.local;
     request=request||fetch;
@@ -65,9 +75,31 @@
     return connection;
   }
 
+  async function connect({storage,request,installed,delays=[0,300,700,1500],sleep,requestTimeout=400}={}){
+    storage=storage||chrome.storage.local;
+    request=request||fetch;
+    sleep=sleep||((delay)=>new Promise(resolve=>setTimeout(resolve,delay)));
+    const boundedRequest=(url,options)=>requestWithin(request,url,options,requestTimeout);
+    for(let attempt=0;attempt<delays.length;attempt++){
+      if(delays[attempt]) await sleep(delays[attempt]);
+      try{
+        const connection=await load({storage,request:boundedRequest,installed,force:attempt>0});
+        if(!connection.token) continue;
+        const response=await boundedRequest(connection.server+"/api/meta",{
+          method:"GET",
+          headers:{Authorization:`Bearer ${connection.token}`},
+        });
+        if(response.ok) return {connection,meta:await response.json()};
+      }catch{
+        // A short bounded retry handles service startup and known port fallback.
+      }
+    }
+    return null;
+  }
+
   function invalidate(){
     resolvedConnection="";
   }
 
-  scope.PageNestConnection=Object.freeze({load,invalidate,DEFAULT_SERVERS});
+  scope.PageNestConnection=Object.freeze({load,connect,invalidate,DEFAULT_SERVERS});
 })(globalThis);

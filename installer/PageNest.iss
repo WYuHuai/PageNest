@@ -36,9 +36,6 @@ UninstallDisplayIcon={app}\Service\PageNestService.exe
 [Languages]
 Name: "chinesesimplified"; MessagesFile: ".\ChineseSimplified.isl"
 
-[Tasks]
-Name: "startup"; Description: "登录 Windows 后自动启动 PageNest 本地服务"
-
 [Files]
 Source: "{#ServiceBundle}\*"; DestDir: "{app}\Service"; Excludes: "logs\*"; Flags: ignoreversion recursesubdirs
 Source: "..\extension\*"; DestDir: "{app}\Extension"; Flags: ignoreversion recursesubdirs
@@ -56,7 +53,7 @@ Name: "{group}\PageNest 运行状态"; Filename: "{code:GetServiceStatusUrl}"
 Name: "{group}\PageNest 连接设置"; Filename: "{app}\连接设置.txt"
 Name: "{group}\安装浏览器扩展"; Filename: "{app}\extension-install.html"
 Name: "{group}\浏览器扩展文件夹"; Filename: "{app}\Extension"
-Name: "{userstartup}\PageNest"; Filename: "{app}\Service\PageNestService.exe"; WorkingDir: "{app}\Service"; Tasks: startup
+Name: "{userstartup}\PageNest"; Filename: "{app}\Service\PageNestService.exe"; WorkingDir: "{app}\Service"
 
 [UninstallDelete]
 Type: files; Name: "{app}\Service\.env"
@@ -166,6 +163,25 @@ begin
     end;
 end;
 
+function ExistingServicePort: Integer;
+var
+  Lines: TArrayOfString;
+  Index: Integer;
+  Value: Integer;
+begin
+  Result := 0;
+  if not LoadStringsFromFile(ExpandConstant('{app}\Service\.env'), Lines) then
+    Exit;
+  for Index := 0 to GetArrayLength(Lines) - 1 do
+    if Pos('PAGENEST_PORT=', Lines[Index]) = 1 then
+    begin
+      Value := StrToIntDef(Trim(Copy(Lines[Index], Length('PAGENEST_PORT=') + 1, MaxInt)), 0);
+      if (Value = 8765) or (Value = 18765) or (Value = 28765) then
+        Result := Value;
+      Exit;
+    end;
+end;
+
 function PortIsListening(Lines: TArrayOfString; Port: Integer): Boolean;
 var
   Index: Integer;
@@ -251,6 +267,8 @@ begin
   end;
 end;
 
+function ServiceIsHealthy: Boolean; forward;
+
 function PrepareToInstall(var NeedsRestart: Boolean): String;
 begin
   if not VaultIsValid then
@@ -262,7 +280,9 @@ begin
       if CollectorToken = '' then
         CollectorToken := GenerateToken;
     end;
-    ServicePort := SelectServicePort;
+    ServicePort := ExistingServicePort;
+    if (ServicePort = 0) or not ServiceIsHealthy then
+      ServicePort := SelectServicePort;
     if ServicePort = 0 then
       Result := 'PageNest 无法找到可用的本地端口（已检查 8765、18765 和 28765）。请关闭占用这些端口的程序后重试。'
     else
@@ -336,7 +356,9 @@ var
   ResultCode: Integer;
   Attempt: Integer;
 begin
-  if WizardSilent or (ExpandConstant('{param:NOSTART|0}') = '1') then
+  if ExpandConstant('{param:NOSTART|0}') = '1' then
+    Exit;
+  if ServiceIsHealthy then
     Exit;
   if not Exec(
     ExpandConstant('{app}\Service\PageNestService.exe'),

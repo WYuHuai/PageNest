@@ -11,6 +11,33 @@ function fillSettings(data) {
   $("token").value=data.token;
 }
 
+function showServiceStatus(state, detail="") {
+  const status=$("serviceStatus");
+  const labels={
+    connecting:"正在连接 PageNest 后台服务",
+    connected:"PageNest 后台服务已连接",
+    disconnected:"PageNest 后台服务未连接",
+  };
+  status.className=`service-status ${state}`;
+  status.querySelector("strong").textContent=labels[state];
+  $("serviceStatusDetail").textContent=detail||(
+    state==="disconnected"?"请启动 PageNest 后重试":"通常只需要片刻"
+  );
+  $("reconnectService").classList.toggle("hidden",state!=="disconnected");
+}
+
+async function connectService() {
+  showServiceStatus("connecting");
+  const result=await PageNestConnection.connect();
+  if(!result){
+    showServiceStatus("disconnected");
+    return false;
+  }
+  fillSettings(result.connection);
+  showServiceStatus("connected",`Service ${result.meta.service_version||"已就绪"}`);
+  return true;
+}
+
 function captureKindForUrl(value) {
   try {
     const url = new URL(value);
@@ -212,7 +239,7 @@ async function api(path, body, retryPairing=true) {
     return data;
   } catch(error) {
     if(error.name==="AbortError") throw new Error("保存超过 5 分钟，客户端已停止等待；请先检查知识库中是否出现新页面，再决定是否重试");
-    if(error instanceof TypeError) throw new Error("本地收藏服务未启动，请从开始菜单启动 PageNest 后重试");
+    if(error instanceof TypeError) throw new Error("PageNest 后台服务未连接，请启动 PageNest 后重试");
     throw error;
   } finally {
     clearTimeout(timeout);
@@ -289,11 +316,16 @@ $("refreshFolders").onclick=()=>loadFolders().catch(error=>{
   $("folderStatus").textContent=error.message;
   $("folderStatus").className="error";
 });
+$("reconnectService").onclick=async()=>{
+  if(await connectService()) await Promise.all([loadFolders(),loadAiSettings()]);
+};
 $("retry").onclick=()=>identify().catch(error=>{$("status").textContent=error.message;$("status").className="error"});
 $("cancel").onclick=()=>window.close();
 $("saveSettings").onclick=async()=>{
   await chrome.storage.local.set({server:$("server").value.replace(/\/$/,""),token:$("token").value});
+  PageNestConnection.invalidate();
   try {
+    if(!await connectService()) throw new Error("PageNest 后台服务未连接");
     const data=await api("/api/health");
     $("connection").textContent=data.vault_configured?`连接正常，已识别 ${data.folder_count} 个文件夹`:"连接正常，但还需要填写 OBSIDIAN_VAULT_PATH";
     $("connection").className="ok";
@@ -334,19 +366,24 @@ async function initialize() {
   $("extensionVersion").textContent=`v${chrome.runtime.getManifest().version}`;
   $("status").style.whiteSpace="pre-line";
   fillSettings(await getSettings());
-  const [pageResult, folderResult, aiResult]=await Promise.allSettled([identify(),loadFolders(),loadAiSettings()]);
+  const [pageResult, serviceResult]=await Promise.allSettled([identify(),connectService()]);
   if(pageResult.status==="rejected") {
     $("status").textContent=pageResult.reason.message;
     $("status").className="error";
     $("progress").classList.add("hidden");
   }
-  if(folderResult.status==="rejected") {
-    $("folderStatus").textContent=folderResult.reason.message;
-    $("folderStatus").className="error";
-  }
-  if(aiResult.status==="rejected") {
-    $("aiConnection").textContent=aiResult.reason.message;
-    $("aiConnection").className="error";
+  if(serviceResult.status==="fulfilled"&&serviceResult.value) {
+    const [folderResult,aiResult]=await Promise.allSettled([loadFolders(),loadAiSettings()]);
+    if(folderResult.status==="rejected") {
+      $("folderStatus").textContent=folderResult.reason.message;
+      $("folderStatus").className="error";
+    }
+    if(aiResult.status==="rejected") {
+      $("aiConnection").textContent=aiResult.reason.message;
+      $("aiConnection").className="error";
+    }
+  } else if(serviceResult.status==="rejected") {
+    showServiceStatus("disconnected");
   }
 }
 

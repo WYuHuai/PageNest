@@ -178,6 +178,20 @@ def test_local_service_port_candidates_stay_in_sync():
     assert "PAGENEST_PORT=8765" in example
 
 
+def test_installer_always_registers_and_starts_user_service():
+    installer = (ROOT / "installer" / "PageNest.iss").read_text("utf-8")
+
+    startup_entry = (
+        'Name: "{userstartup}\\PageNest"; '
+        'Filename: "{app}\\Service\\PageNestService.exe"'
+    )
+    assert startup_entry in installer
+    assert "Tasks: startup" not in installer
+    assert "WizardSilent or" not in installer
+    assert "StartAndVerifyService;" in installer
+    assert "{param:NOSTART|0}" in installer
+
+
 def test_release_smoke_uses_an_isolated_ephemeral_port():
     smoke = (ROOT / "scripts" / "smoke_release_windows.ps1").read_text("utf-8")
 

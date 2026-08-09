@@ -1,3 +1,4 @@
+import ctypes
 import logging
 import os
 import sys
@@ -8,6 +9,27 @@ import uvicorn
 
 from collector.config import settings
 from collector.main import app
+
+
+ERROR_ALREADY_EXISTS = 183
+MUTEX_NAME = "Local\\PageNestLocalCollector"
+_single_instance_handle = None
+
+
+def create_single_instance_mutex(kernel32=None, get_last_error=None):
+    """Create the per-session Windows mutex, or return None for a duplicate."""
+    if kernel32 is None:
+        if os.name != "nt":
+            return True
+        kernel32 = ctypes.WinDLL("kernel32", use_last_error=True)
+    get_last_error = get_last_error or ctypes.get_last_error
+    handle = kernel32.CreateMutexW(None, False, MUTEX_NAME)
+    if not handle:
+        raise ctypes.WinError(get_last_error())
+    if get_last_error() == ERROR_ALREADY_EXISTS:
+        kernel32.CloseHandle(handle)
+        return None
+    return handle
 
 
 def usable_standard_stream(stream):
@@ -48,6 +70,10 @@ def frozen_logging() -> dict:
 
 
 def main() -> None:
+    global _single_instance_handle
+    _single_instance_handle = create_single_instance_mutex()
+    if _single_instance_handle is None:
+        return
     configure_standard_streams()
     uvicorn.run(
         app,

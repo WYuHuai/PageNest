@@ -2,25 +2,40 @@
 
 ## Release Candidate
 
-- Validated source commit: `8cb275a72924f3c150788f9a3662a24a56a932d4`
-- Branch: `codex/site-capture-fidelity`
+- Validated source commit: `cd479fcdeaf4f0ed45743c4adea1f6b86d811c5b`
+- Branch: `codex/rc-ux-fixes`
 - Date: 2026-08-09
 - Decision: **BLOCKED**
 
-The Local HTML feature, actual Obsidian Viewer interaction, and live Xiaohongshu/Guyue regressions passed. Public beta sign-off remains blocked because a clean Windows 11 installation and a real 1.7.4 to 1.8.0 upgrade have not been tested.
+The Local HTML feature, actual Obsidian Viewer interaction, live Xiaohongshu/Guyue regressions, installed-service lifecycle and structured Xiaohongshu comments passed. Public beta sign-off remains blocked because a clean Windows 11 installation and a real 1.7.4 to 1.8.0 upgrade have not been tested.
 
 ## Automated Tests
 
 | Check | Result |
 | --- | --- |
-| Python | **PASS — 118 passed** |
+| Python | **PASS — 122 passed** |
 | Python branch coverage | **PASS — 79%** (required minimum 70%) |
 | Ruff | **PASS** |
-| JavaScript syntax | **PASS — 32 files** |
-| JavaScript tests | **PASS — all 13 `tests/test_*.js` scripts** |
-| Repository/release boundary | **PASS — 151 tracked files validated** |
+| JavaScript syntax | **PASS — 33 files** |
+| JavaScript tests | **PASS — all 14 `tests/test_*.js` scripts** |
+| Repository/release boundary | **PASS — 153 tracked files validated** |
 
-Pytest was run with an explicit unique temporary root because the current Administrator account cannot traverse test-output directories created by an earlier sandbox account. All 118 test assertions ran and passed.
+Pytest was restricted to the tracked `tests/` directory and used an explicit unique temporary root because the current Administrator account cannot traverse test-output directories created by an earlier sandbox account. All 122 tests ran and passed.
+
+## Installed Service Lifecycle
+
+The rebuilt no-Python installer was installed on the current Windows host and verified with the real unpacked extension.
+
+- setup starts PageNest Local Service automatically;
+- a per-user Startup shortcut points to the installed windowless executable;
+- the frozen service runs without a console window or administrator privileges;
+- a Windows named mutex makes a second launch exit normally instead of opening another port;
+- the installer preserves the configured port and token when the existing authenticated service is healthy;
+- the popup probes `/api/meta` with bounded startup retries and known-port fallback;
+- real popup states for connected, disconnected and manual reconnect were exercised and visually inspected;
+- service state is separate from the save-location UI.
+
+**LOGIN STARTUP NOT MANUALLY VERIFIED.** Startup registration and target correctness passed, but this round did not log out of and back into Windows.
 
 ## Local HTML Capture
 
@@ -85,7 +100,7 @@ The current-host installer smoke verified the bundled runtime without Python on 
 
 ## Actual Obsidian Viewer
 
-Actual Obsidian 1.12.7 with PageNest Viewer 1.3.0 was used, not a browser-only or unit-test substitute.
+Actual installed Obsidian was used, not a browser-only or unit-test substitute. The compatibility fixtures were previously exercised on Obsidian 1.12.7; the structured-comment acceptance in this round used Obsidian 1.13.4 with PageNest Viewer 1.3.0.
 
 | File | Result | Evidence |
 | --- | --- | --- |
@@ -93,7 +108,7 @@ Actual Obsidian 1.12.7 with PageNest Viewer 1.3.0 was used, not a browser-only o
 | Legacy v1.7.4 `.pagenest` | PASS | Open, body, images, scrolling, link and both copy paths passed. |
 | Legacy `.hermes` | PASS | The old extension was recognized and both ordinary/code copy paths passed. |
 
-All three cases rendered without a blank page, serious console exception or obvious layout corruption. The live Xiaohongshu and legacy-DOM Guyue captures were also opened in Obsidian and visually checked. The iframe sandbox remained exactly `allow-popups allow-scripts`; `allow-same-origin` was not added. Each view used a distinct random 64-hex channel, and the `postMessage` copy bridge remained functional.
+All three cases rendered without a blank page, serious console exception or obvious layout corruption. The live Xiaohongshu and legacy-DOM Guyue captures were also opened in Obsidian and visually checked. The structured Xiaohongshu case rendered 10 top-level comments, 10 loaded first-level replies and 20 embedded avatars with separate author/content/metadata elements and visibly indented replies. The iframe sandbox remained exactly `allow-popups allow-scripts`; `allow-same-origin` was not added. Each view used a distinct random 64-hex channel, and the `postMessage` copy bridge remained functional.
 
 ## Real Site Regression
 
@@ -103,7 +118,9 @@ All captures used a real Edge session and the current unpacked v1.8.0 extension 
 
 Four distinct valid image notes were exercised in a fresh logged-out Edge profile: an ordinary image note, a two-image carousel, a noticeably asynchronous note, and notes with visible comment sections. Titles, authors and core bodies were present; main image counts were 1, 2, 1 and 1. Loaded comment counts were 18, 12, 20 and 20. The two-image gallery advanced to the second image in the final saved page. Main images decoded successfully, image order was preserved, exact duplicate carousel nodes were removed, and avatars/navigation/recommendations/footer were not substituted for article media. Re-saving each canonical note returned `duplicate=true` without creating `_2.pagenest`.
 
-The slow case did not complete readiness on `og:title`, an arbitrary image or the page shell. Readiness required a stable title/body/main-media signature on consecutive polls; the saved body and media were already present when `preparePage` completed. Logged-in behavior remains **NOT TESTED**. Comments remain best-effort and do not block saving the note body.
+The slow case did not complete readiness on `og:title`, an arbitrary image or the page shell. Readiness required a stable title/body/main-media signature on consecutive polls; the saved body and media were already present when `preparePage` completed. Logged-in behavior remains **NOT TESTED**.
+
+Structured-comment regression used a normal image note, a multi-image carousel and pages with loaded first-level replies. The adapter kept comments outside the article body and captured author, content, date, location, likes, author tag, avatar URL/data and loaded replies independently. Browser-side avatar inlining is bounded to 256 KiB per avatar and 4 MiB total; avatar failure leaves the comment intact with a circular placeholder. Real saved pages rendered 8–10 top-level comments and 8–10 replies, preserved multiline/emoji text, embedded all displayed avatars, and returned `duplicate=true` on a second save. Comments remain best-effort and do not block saving the note body; PageNest does not click “展开更多” or auto-scroll to collect extra comments.
 
 ### Guyue: PASS
 
@@ -140,7 +157,9 @@ See `docs/RELEASE_ARTIFACTS_1.8.0.md`. Four ZIPs and the no-Python Windows insta
 
 - **P0, fixed:** Xiaohongshu readiness could complete on an incomplete shell and duplicated carousel DOM clones could be saved as repeated main images. The adapter now waits for a stable core-content/media signature and deduplicates resolved main-media URLs. Regression coverage was added.
 - **P0, fixed:** Guyue legacy articles using `.detail-fuwenben .html` were not recognized even though their body was visible. The existing selector boundary now recognizes that legacy root. Regression coverage was added.
-- **P1, fixed:** Xiaohongshu comments rendered inside the active note container were missed by the older selector set. The active container is now covered without making comments a save prerequisite.
+- **P0, fixed:** the installed extension could be ready while the Local Service was not running, forcing users to find and start it manually. Setup now starts it, login Startup registration is unconditional, duplicate launches exit through a named mutex, and the popup reconnect path is bounded and explicit.
+- **P1, fixed:** Xiaohongshu comments were flattened with `innerText`, which merged author, content, date, location and replies. Comments now cross the adapter/payload/model/renderer boundary as structured data, and loaded replies retain hierarchy.
+- **P1, fixed:** the Xiaohongshu date node includes its location child on the current site DOM. Extraction now removes that duplicated location suffix at the field boundary instead of hiding it with CSS.
 - **P2, known limitation:** Xiaohongshu comments are best-effort and include only comments already loaded by the site. Logged-in behavior was not tested in this round.
 
 ## Known Limitations

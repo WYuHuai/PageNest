@@ -8,6 +8,8 @@
     "[class*='detail-page'] [class*='content']",
     "[class*='article-detail'] [class*='content']",
     ".detail-content .markdown-body",
+    ".detail-fuwenben .html",
+    ".detail-fuwenben",
     ".detail-content .article-content",
     ".article-content",
     ".post-content",

@@ -13,8 +13,8 @@ function loadAdapter(file, state) {
     markImagePosition: () => "image-1",
     metadata: () => state.meta || "",
     resolveImage: image => image.src || "",
-    waitForContent: predicate => Promise.resolve(predicate()),
-    findArticleBySelectors: () => null,
+    waitForContent: predicate => Promise.resolve(predicate() || predicate()),
+    findArticleBySelectors: state.findArticleBySelectors || (() => null),
   };
   const context = vm.createContext({
     HermesExtractorCore: core,
@@ -27,14 +27,15 @@ function loadAdapter(file, state) {
   return registered;
 }
 
-function image() {
+function image(src = "https://sns-img-qc.xhscdn.com/image.jpg") {
   return {
-    src: "https://sns-img-qc.xhscdn.com/image.jpg",
+    src,
     className: "note-image",
     alt: "主图",
     naturalWidth: 800,
     naturalHeight: 600,
-    getAttribute: name => name === "src" ? "https://sns-img-qc.xhscdn.com/image.jpg" : "",
+    getAttribute: name => name === "src" ? src : "",
+    closest: () => null,
   };
 }
 
@@ -51,9 +52,9 @@ function xhsDocument({root = null, images = [], meta = false} = {}) {
   };
 }
 
-function guyueDocument(root) {
+function guyueDocument(root, selector = "main") {
   return {
-    querySelector: selector => selector === "main" ? root : null,
+    querySelector: value => value === selector ? root : null,
     querySelectorAll: () => [],
   };
 }
@@ -70,6 +71,7 @@ function guyueDocument(root) {
   const xhsRoot = {
     innerText: "这是一篇已经加载正文的小红书笔记，包含足够的核心内容。",
     querySelectorAll: selector => selector === "img" ? [image()] : [],
+    querySelector: () => null,
   };
   const readyXhs = loadAdapter("xiaohongshu.js", {
     hostname: "www.xiaohongshu.com",
@@ -77,6 +79,44 @@ function guyueDocument(root) {
     document: xhsDocument({root: xhsRoot, images: [image()], meta: true}),
   });
   assert.equal(await readyXhs.preparePage(), true, "正文和主图出现后应 ready");
+
+  const duplicate = image();
+  const comment = image("https://sns-img-qc.xhscdn.com/comment.jpg");
+  const media = {querySelectorAll: selector => selector === "img" ? [image(), duplicate] : []};
+  const title = {innerText: "笔记标题"};
+  const description = {innerText: "这是一篇已经加载完成的笔记正文，内容足够长。"};
+  const extractedRoot = {
+    innerText: `${title.innerText} ${description.innerText}`,
+    querySelector: selector => {
+      if (selector.includes("note-slider")) return media;
+      if (selector === ".note-title") return title;
+      if (selector === ".note-content") return description;
+      return null;
+    },
+    querySelectorAll: selector => selector === "img" ? [image(), duplicate, comment] : [],
+  };
+  const element = tagName => ({
+    tagName,
+    children: [],
+    attributes: {},
+    appendChild(child) { this.children.push(child); return child; },
+    append(...children) { this.children.push(...children); },
+    setAttribute(name, value) { this.attributes[name] = value; },
+  });
+  const extractedDocument = xhsDocument({root: extractedRoot, images: [image(), duplicate, comment]});
+  extractedDocument.createElement = element;
+  extractedDocument.querySelectorAll = selector => selector.includes("#noteContainer .comment-item")
+    ? [{innerText: "这是一条已经加载的评论。"}]
+    : [];
+  const extractingXhs = loadAdapter("xiaohongshu.js", {
+    hostname: "www.xiaohongshu.com",
+    pathname: "/explore/note-2",
+    document: extractedDocument,
+  });
+  const extraction = await extractingXhs.extract();
+  assert.equal(extraction.images.length, 1, "duplicate carousel nodes must produce one saved image");
+  assert.equal(extraction.method, "xiaohongshu:note:1-images");
+  assert.ok(extraction.element.children.some(child => child.attributes["data-hermes-kind"] === "xhs-comments"));
 
   const shell = {innerText: "页面壳", querySelectorAll: () => []};
   const guyue = loadAdapter("guyue.js", {
@@ -96,6 +136,20 @@ function guyueDocument(root) {
     document: guyueDocument(article),
   });
   assert.equal(await readyGuyue.preparePage(), true, "古月居正文出现后应 ready");
+
+  let guyueSelectors = [];
+  const legacyGuyue = loadAdapter("guyue.js", {
+    hostname: "www.guyuehome.com",
+    pathname: "/wap/detail",
+    document: guyueDocument(article, ".detail-fuwenben .html"),
+    findArticleBySelectors: selectors => {
+      guyueSelectors = selectors;
+      return {element: article, method: "guyue:.detail-fuwenben .html"};
+    },
+  });
+  assert.equal(await legacyGuyue.preparePage(), true);
+  assert.equal((await legacyGuyue.extract()).method, "guyue:.detail-fuwenben .html");
+  assert.ok(guyueSelectors.includes(".detail-fuwenben .html"));
 
   const coreContext = vm.createContext({setTimeout, clearTimeout, document: {}, PageNestContentQuality: {}});
   vm.runInContext(fs.readFileSync(path.join(extension, "core", "extractor-core.js"), "utf8"), coreContext);

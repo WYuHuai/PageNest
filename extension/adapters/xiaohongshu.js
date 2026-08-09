@@ -9,6 +9,7 @@
   };
   const isDetailPage = () => /^\/(?:explore|discovery\/item)\//.test(location.pathname);
   const NOTE_ROOT_SELECTORS = ["#detail-container", "#noteContainer", ".note-container", "[class*='note-detail']"];
+  const NOTE_MEDIA_SELECTORS = [".note-slider", "[class*='note-slider']", "[class*='image-list']", "[class*='carousel']"];
 
   function imageNodes(root) {
     const isNoteImage = image => {
@@ -20,8 +21,18 @@
         return false;
       }
     };
-    const inRoot = (root ? [...root.querySelectorAll("img")] : []).filter(isNoteImage);
-    return inRoot.length ? inRoot : [...document.images].filter(isNoteImage);
+    const mediaRoot = root ? first(root, NOTE_MEDIA_SELECTORS) : null;
+    const candidates = mediaRoot
+      ? [...mediaRoot.querySelectorAll("img")]
+      : (root ? [...root.querySelectorAll("img")] : [...document.images]);
+    const seen = new Set();
+    return candidates.filter(image => {
+      if (!isNoteImage(image) || image.closest?.("[class*='comment'],.author-wrapper,.user-info")) return false;
+      const url = resolveImage(image, location.href);
+      if (!url || seen.has(url)) return false;
+      seen.add(url);
+      return true;
+    });
   }
 
   function appendGallery(article, root, title) {
@@ -67,7 +78,7 @@
   }
 
   function appendComments(article) {
-    const nodes = [...document.querySelectorAll("#comment-container .comment-item, #comments .comment-item, .comment-container .comment-item, [class*='comment-list'] [class*='comment-item']")];
+    const nodes = [...document.querySelectorAll("#noteContainer .comment-item, .note-container .comment-item, #comment-container .comment-item, #comments .comment-item, .comment-container .comment-item, [class*='comment-list'] [class*='comment-item']")];
     const comments = [...new Set(nodes.map(text).filter(value => value.length >= 2 && value.length <= 1600))].slice(0, 80);
     if (!comments.length) return;
     const section = document.createElement("section");
@@ -77,11 +88,27 @@
     article.appendChild(section);
   }
 
-  function hasMeaningfulContent() {
+  function readinessSignature() {
     if (!isDetailPage()) return false;
     const root = first(document, NOTE_ROOT_SELECTORS);
     const body = text(root);
-    return Boolean(root && body.length >= 20 && imageNodes(root).length);
+    if (!root || body.length < 20) return "";
+    const images = imageNodes(root);
+    if (!images.length) return "";
+    const title = text(first(root, ["#detail-title", ".note-title", "[data-testid='note-title']"]));
+    const description = text(first(root, ["#detail-desc", ".note-content", ".note-desc", "[data-testid='note-content']"]));
+    const coreText = description || title || body.slice(0, 240);
+    return `${title}\n${coreText}\n${images.map(image => resolveImage(image, location.href)).join("\n")}`;
+  }
+
+  async function preparePage() {
+    let previous = "";
+    return waitForContent(() => {
+      const current = readinessSignature();
+      const stable = Boolean(current && current === previous);
+      previous = current;
+      return stable;
+    });
   }
 
   function extractNote() {
@@ -108,7 +135,7 @@
     allowFallback: false,
     notFoundMessage: "请打开一篇小红书笔记详情页后再保存；首页、草稿箱和个人中心不会被当成笔记保存。",
     detect: ({location}) => /(^|\.)xiaohongshu\.com$/i.test(location.hostname),
-    preparePage: async () => waitForContent(hasMeaningfulContent),
+    preparePage,
     extract: async () => extractNote(),
     validate: result => Boolean(result?.element && result.images?.length),
     isContentAcceptable: (value, {images}) => value.replace(/\s+/g, "").length >= 4 && images.length > 0,

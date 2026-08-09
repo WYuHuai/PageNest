@@ -269,6 +269,37 @@ end;
 
 function ServiceIsHealthy: Boolean; forward;
 
+function StopInstalledService: Boolean;
+var
+  ResultCode: Integer;
+  ServicePath: String;
+  ScriptPath: String;
+  Lines: TArrayOfString;
+begin
+  ServicePath := ExpandConstant('{app}\Service\PageNestService.exe');
+  ScriptPath := ExpandConstant('{tmp}\stop-pagenest-service.ps1');
+  SetArrayLength(Lines, 5);
+  Lines[0] := 'param([Parameter(Mandatory=$true)][string]$TargetPath)';
+  Lines[1] := '$target = [IO.Path]::GetFullPath($TargetPath)';
+  Lines[2] := 'Get-CimInstance Win32_Process -Filter "Name=''PageNestService.exe''" |';
+  Lines[3] := '  Where-Object { $_.ExecutablePath -and ([IO.Path]::GetFullPath($_.ExecutablePath) -eq $target) } |';
+  Lines[4] := '  ForEach-Object { Invoke-CimMethod -InputObject $_ -MethodName Terminate | Out-Null }';
+  if not SaveStringsToUTF8FileWithoutBOM(ScriptPath, Lines, False) then
+  begin
+    Result := False;
+    Exit;
+  end;
+  Result := Exec(
+    ExpandConstant('{sys}\WindowsPowerShell\v1.0\powershell.exe'),
+    '-NoProfile -NonInteractive -ExecutionPolicy Bypass -WindowStyle Hidden -File "' + ScriptPath +
+      '" -TargetPath "' + ServicePath + '"',
+    '',
+    SW_HIDE,
+    ewWaitUntilTerminated,
+    ResultCode
+  ) and (ResultCode = 0);
+end;
+
 function PrepareToInstall(var NeedsRestart: Boolean): String;
 begin
   if not VaultIsValid then
@@ -285,8 +316,10 @@ begin
       ServicePort := SelectServicePort;
     if ServicePort = 0 then
       Result := 'PageNest 无法找到可用的本地端口（已检查 8765、18765 和 28765）。请关闭占用这些端口的程序后重试。'
+    else if StopInstalledService then
+      Result := ''
     else
-      Result := '';
+      Result := 'PageNest could not stop the running local service. Close PageNest and try again.';
   end;
 end;
 

@@ -95,19 +95,6 @@ try {
     }
     $token = $tokenMatch.Groups[1].Value
 
-    $reinstall = Start-Process -FilePath $installerPath -ArgumentList $setupArguments -Wait -PassThru
-    if ($reinstall.ExitCode -ne 0) {
-        throw "Installer upgrade simulation failed with exit code $($reinstall.ExitCode)"
-    }
-    $configText = [IO.File]::ReadAllText($config, [Text.Encoding]::UTF8)
-    $reinstalledToken = [regex]::Match(
-        $configText,
-        '(?m)^LOCAL_COLLECTOR_TOKEN=([a-f0-9]{32})\r?$'
-    )
-    if (-not $reinstalledToken.Success -or $reinstalledToken.Groups[1].Value -ne $token) {
-        throw "Installer changed the collector token during an upgrade"
-    }
-
     $portMatch = [regex]::Match($configText, '(?m)^PAGENEST_PORT=(8765|18765|28765)\r?$')
     if (-not $portMatch.Success) {
         throw "Installer did not write a supported local service port"
@@ -171,6 +158,39 @@ try {
     if (-not $health.ok -or -not $health.vault_configured) {
         $exitState = if ($serviceProcess.HasExited) { "exited=$($serviceProcess.ExitCode)" } else { "running" }
         throw "Installed service health check failed: process=$exitState, port=$port"
+    }
+
+    $reinstall = Start-Process -FilePath $installerPath -ArgumentList $setupArguments -Wait -PassThru
+    if ($reinstall.ExitCode -ne 0) {
+        throw "Installer running-service upgrade failed with exit code $($reinstall.ExitCode)"
+    }
+    $serviceProcess.WaitForExit(10000) | Out-Null
+    if (-not $serviceProcess.HasExited) {
+        throw "Installer did not stop the service from the upgraded installation path"
+    }
+    $serviceProcess = $null
+    $configText = [IO.File]::ReadAllText($config, [Text.Encoding]::UTF8)
+    $reinstalledToken = [regex]::Match(
+        $configText,
+        '(?m)^LOCAL_COLLECTOR_TOKEN=([a-f0-9]{32})\r?$'
+    )
+    if (-not $reinstalledToken.Success -or $reinstalledToken.Groups[1].Value -ne $token) {
+        throw "Installer changed the collector token during a running-service upgrade"
+    }
+
+    $serviceProcess = [Diagnostics.Process]::Start($start)
+    $health = $null
+    for ($attempt = 0; $attempt -lt 40; $attempt++) {
+        if ($serviceProcess.HasExited) { break }
+        try {
+            $health = Invoke-RestMethod -Uri "$baseUrl/api/health" -Headers $headers -TimeoutSec 2
+            if ($health.ok) { break }
+        }
+        catch {}
+        Start-Sleep -Milliseconds 500
+    }
+    if (-not $health.ok) {
+        throw "Reinstalled service health check failed"
     }
 
     if ($ExpectedExtensionIds) {

@@ -382,7 +382,7 @@ async function initialize() {
       $("aiConnection").textContent=aiResult.reason.message;
       $("aiConnection").className="error";
     }
-  } else if(serviceResult.status==="rejected") {
+  } else {
     showServiceStatus("disconnected");
   }
 }

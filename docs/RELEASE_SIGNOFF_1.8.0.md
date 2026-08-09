@@ -2,14 +2,14 @@
 
 ## Release Candidate
 
-- Validated source commit: `cd479fcdeaf4f0ed45743c4adea1f6b86d811c5b`
+- Validated source commit: `492805b07ad23feb6b9eb817905754863a759018`
 - Branch: `codex/rc-ux-fixes`
-- Date: 2026-08-09
+- Date: 2026-08-10
 - Decision: **BLOCKED**
 
-The Local HTML feature, actual Obsidian Viewer interaction, live Xiaohongshu/Guyue regressions, installed-service lifecycle and structured Xiaohongshu comments passed. Public beta sign-off remains blocked because a clean Windows 11 installation and a real 1.7.4 to 1.8.0 upgrade have not been tested.
+The real Edge-to-Service-to-Vault path and the isolated real v1.7.4-to-v1.8.0 overwrite upgrade passed. Public beta sign-off remains blocked because a clean Windows 11 installation has not been tested. Windows 10 also remains untested.
 
-## Automated Tests
+## Automated tests
 
 | Check | Result |
 | --- | --- |
@@ -18,167 +18,113 @@ The Local HTML feature, actual Obsidian Viewer interaction, live Xiaohongshu/Guy
 | Ruff | **PASS** |
 | JavaScript syntax | **PASS — 33 files** |
 | JavaScript tests | **PASS — all 14 `tests/test_*.js` scripts** |
-| Repository/release boundary | **PASS — 153 tracked files validated** |
+| PowerShell syntax | **PASS** |
+| Repository, version and release boundary | **PASS — 153 tracked files validated** |
 
-Pytest was restricted to the tracked `tests/` directory and used an explicit unique temporary root because the current Administrator account cannot traverse test-output directories created by an earlier sandbox account. All 122 tests ran and passed.
+Pytest used the tracked `tests/` directory, a unique ignored temporary root and a process-local Git safe-directory setting. The setting was not written to global or repository configuration.
 
-## Installed Service Lifecycle
+## Real user chain
 
-The rebuilt no-Python installer was installed on the current Windows host and verified with the real unpacked extension.
-
-- setup starts PageNest Local Service automatically;
-- a per-user Startup shortcut points to the installed windowless executable;
-- the frozen service runs without a console window or administrator privileges;
-- a Windows named mutex makes a second launch exit normally instead of opening another port;
-- the installer preserves the configured port and token when the existing authenticated service is healthy;
-- the popup probes `/api/meta` with bounded startup retries and known-port fallback;
-- real popup states for connected, disconnected and manual reconnect were exercised and visually inspected;
-- service state is separate from the save-location UI.
-
-**LOGIN STARTUP NOT MANUALLY VERIFIED.** Startup registration and target correctness passed, but this round did not log out of and back into Windows.
-
-## Local HTML Capture
-
-| Scenario | Result | Evidence |
+| Checkpoint | Result | Evidence |
 | --- | --- | --- |
-| Basic HTML | PASS | Title and body captured as `standard`. |
-| Body-only AI-generated HTML | PASS | Structured body fallback captured headings, list, quote, table and code. |
-| Filename title fallback, spaces and Chinese | PASS | Synthetic tests and real Chinese filename smoke. |
-| Data image | PASS | Remained embedded. |
-| Relative local images | PASS | Two local images were inlined in the browser. |
-| Remote HTTPS image | PASS | Inlined and saved in the real fixture. |
-| Dynamic DOM | PASS | Content added after 300 ms appeared in the saved page. |
-| Same-content duplicate | PASS | Second save returned duplicate and did not create `_2`. |
-| Changed content, same filename | PASS | Version B created a second page. |
-| File access denied | PASS | Real Edge displayed the four-step “允许访问文件网址” guidance. |
-| Path privacy | PASS | Payload and both saved pages contained no absolute local path or residual `file://`. |
-| Sanitizer | PASS | Source script/style did not survive; service-side `file://` remained blocked. |
+| Service connection | PASS | The installed 1.8.0 service responded on its actual port, and the real Edge popup showed `PageNest 后台服务已连接` and `Service 1.8.0`. |
+| Vault connection | PASS | The configured real user Vault existed, had an Obsidian configuration and passed a temporary create/read/delete permission check. The absolute local path is deliberately omitted. |
+| Real save | PASS | A normal page was saved through the actual extension and service, appeared in the configured Vault and opened in actual Obsidian. |
 
-The resulting `.pagenest` was rendered and visually inspected. Headings, body, table, code block, three images and dynamic content were readable with no blank screen, overlap or obvious clipping.
-
-## Ordinary Web Smoke
-
-Actual Edge + unpacked extension + newly frozen service + a static HTTP page: **PASS**.
-
-- `page_variant=standard`
-- title/body captured
-- source script removed
-- code, data image and HTTPS link preserved
-- first save created one `.pagenest`
-- second save returned duplicate and retained one file
-
-The generated page was not opened inside the Obsidian application in this run.
-
-## Compatibility Matrix
-
-See `docs/COMPATIBILITY_MATRIX_1.8.0.md`.
-
-Summary:
-
-- Extension 1.8.0 + Service 1.8.0: **PASS**
-- Full stack with Viewer 1.3.0 inside Obsidian 1.12.7: **PASS**
-- Extension 1.8.0 + Service 1.7.4 upgrade prompt contract: **PARTIAL**
-- Extension 1.7.4 + Service 1.8.0: **NOT TESTED**
-- Viewer 1.3.0 + new page: **PASS**
-
-## Windows Smoke
-
-| Environment | Result |
-| --- | --- |
-| Current Windows 11 Pro host, fresh temporary install directory | PASS |
-| Clean Windows 11 VM/image | NOT TESTED |
-| Clean Windows 10 VM/image | NOT TESTED |
-
-The current-host installer smoke verified the bundled runtime without Python on `PATH`, service health, token generation, Unicode Vault, Viewer files, extension preconfiguration, occupied-port fallback, pairing security, collection, reinstall and uninstall preservation.
-
-## Upgrade
-
-| Path | Result |
-| --- | --- |
-| v1.8.0 repair/reinstall | PASS — token and configuration preserved |
-| v1.7.4 → v1.8.0 | NOT TESTED |
+The original connection failure was caused by a stale saved endpoint: the service was healthy on a known fallback port, while the extension kept retrying another known port with an otherwise valid token. The bounded connection logic now probes the existing token across the known local ports before pairing. Authentication remains enabled, and no manual port or token entry is required for this recovery path.
 
 ## Actual Obsidian Viewer
 
-Actual installed Obsidian was used, not a browser-only or unit-test substitute. The compatibility fixtures were previously exercised on Obsidian 1.12.7; the structured-comment acceptance in this round used Obsidian 1.13.4 with PageNest Viewer 1.3.0.
+Actual Obsidian 1.13.4 and PageNest Viewer 1.3.0 were used.
 
 | File | Result | Evidence |
 | --- | --- | --- |
-| New v1.8.0 `.pagenest` | PASS | Open, title, body, three images, code block, scrolling, external link, ordinary copy and code copy passed. |
-| Legacy v1.7.4 `.pagenest` | PASS | Open, body, images, scrolling, link and both copy paths passed. |
-| Legacy `.hermes` | PASS | The old extension was recognized and both ordinary/code copy paths passed. |
+| New v1.8.0 `.pagenest` | PASS | Open, title, body, images, code, scrolling, external link, ordinary copy and code copy passed. |
+| Real v1.7.4 `.pagenest` | PASS | Open, body, scrolling, external link and both copy paths passed. The historical capture contained no embedded image because its original remote-image download had failed. |
+| Legacy `.hermes` | PASS | The old extension was recognized and open, scroll, link and both copy paths passed. |
 
-All three cases rendered without a blank page, serious console exception or obvious layout corruption. The live Xiaohongshu and legacy-DOM Guyue captures were also opened in Obsidian and visually checked. The structured Xiaohongshu case rendered 10 top-level comments, 10 loaded first-level replies and 20 embedded avatars with separate author/content/metadata elements and visibly indented replies. The iframe sandbox remained exactly `allow-popups allow-scripts`; `allow-same-origin` was not added. Each view used a distinct random 64-hex channel, and the `postMessage` copy bridge remained functional.
+The iframe sandbox remained exactly `allow-popups allow-scripts`; `allow-same-origin` was not added. Random 64-hex channels and the source-checked `postMessage` copy bridge remained functional. No blank page or severe Viewer console error was observed.
 
-## Real Site Regression
-
-All captures used a real Edge session and the current unpacked v1.8.0 extension under normal manual browsing conditions. No login, CAPTCHA, anti-bot or account control was bypassed. Reports retain canonical URLs only and no Cookie or page token.
+## Real site regression
 
 ### Xiaohongshu: PASS
 
-Four distinct valid image notes were exercised in a fresh logged-out Edge profile: an ordinary image note, a two-image carousel, a noticeably asynchronous note, and notes with visible comment sections. Titles, authors and core bodies were present; main image counts were 1, 2, 1 and 1. Loaded comment counts were 18, 12, 20 and 20. The two-image gallery advanced to the second image in the final saved page. Main images decoded successfully, image order was preserved, exact duplicate carousel nodes were removed, and avatars/navigation/recommendations/footer were not substituted for article media. Re-saving each canonical note returned `duplicate=true` without creating `_2.pagenest`.
-
-The slow case did not complete readiness on `og:title`, an arbitrary image or the page shell. Readiness required a stable title/body/main-media signature on consecutive polls; the saved body and media were already present when `preparePage` completed. Logged-in behavior remains **NOT TESTED**.
-
-Structured-comment regression used a normal image note, a multi-image carousel and pages with loaded first-level replies. The adapter kept comments outside the article body and captured author, content, date, location, likes, author tag, avatar URL/data and loaded replies independently. Browser-side avatar inlining is bounded to 256 KiB per avatar and 4 MiB total; avatar failure leaves the comment intact with a circular placeholder. Real saved pages rendered 8–10 top-level comments and 8–10 replies, preserved multiline/emoji text, embedded all displayed avatars, and returned `duplicate=true` on a second save. Comments remain best-effort and do not block saving the note body; PageNest does not click “展开更多” or auto-scroll to collect extra comments.
+Four logged-out real image-note cases were exercised: ordinary image note, two-image carousel, asynchronous note and notes with visible comments. Core title, author, body and main media were captured; the carousel advanced in the saved page; loaded comments were structured; navigation, recommendations and footer were excluded. Re-saving returned `duplicate=true` without `_2.pagenest`. Logged-in behavior remains **NOT TESTED**. Comments remain best-effort and include only content already loaded by the site.
 
 ### Guyue: PASS
 
-Three real articles were exercised: one modern text article, one modern image-rich article and one legacy-DOM article. The adapters were respectively `guyue:.detail-content .markdown-body`, `guyue:.detail-content .markdown-body` and `guyue:.detail-fuwenben .html`. Body lengths were approximately 4,105, 15,700 and 2,893 characters; image counts were 0, 2 and 10. Every expected image in the two image-bearing pages decoded after scrolling. Titles, paragraphs and image order were intact, with no page-shell, navigation, recommendation or footer pollution. Re-saving all three returned `duplicate=true` without creating `_2.pagenest`.
+Three real articles were exercised: modern text, modern image-rich and legacy DOM. Titles, paragraphs and expected image order were intact, without page shell, navigation, recommendations or footer pollution. Re-saving returned `duplicate=true` without `_2.pagenest`.
 
-## Atomic Write and Concurrency
+## HTTP and local HTML
 
-- existing-file protection: PASS
-- temp write/fsync failure cleanup: PASS
-- `os.replace` failure cleanup: PASS
-- render failure leaves no page/temp: PASS
-- same page ×2 produces one final page: PASS
-- different pages overlap rather than using a global collector lock: PASS
-- Local HTML ×2 produces one final page: PASS
+Actual Edge captured an ordinary HTTP page and a `file://` HTML page through the installed 1.8.0 service. Both produced readable `.pagenest` files. A second capture of each returned the existing page and did not create `_2.pagenest`. Local absolute paths were not retained in payloads or output, and the server-side downloader still rejects `file://`.
 
-## Security Smoke
+## Installed upgrade
 
-Automated security coverage passed for sanitizer removal of script/style/iframe/object/embed/SVG hazards, `javascript:` and event handlers, meta refresh, bearer authentication, CORS/origin policy, path validation, SSRF/private-address rejection, redirect validation, request/download limits and server-side `file://` rejection.
+| Item | Result |
+| --- | --- |
+| Historical source | Real `PageNest-Setup-1.7.4.exe`, SHA-256 `9bcc3b099d389f33812a0fb08bdb4188664505b7a7e02bb04619f6db96d8813c`, source commit `864f2291acc6a171f8a09e75e6a35bf57b5df56b` |
+| Upgrade method | Normal v1.8.0 installer overwrite while the isolated v1.7.4 service was running |
+| Vault | PASS — preserved |
+| Historical files | PASS — exact SHA-256 values preserved |
+| Token and port | PASS — preserved |
+| Startup | PASS — one entry targeting the upgraded installation |
+| Service processes | PASS — the historical process was stopped and only one isolated instance was started afterward |
+| Old `.pagenest` and `.hermes` | PASS in actual Obsidian |
+| Post-upgrade HTTP save and duplicate | PASS |
+| Post-upgrade local HTML save and duplicate | PASS |
 
-Viewer automation confirms:
+The first overwrite attempt exposed an installer defect: Windows Restart Manager could not stop the headless service, so setup aborted. The installer now stops only a `PageNestService.exe` whose resolved executable path exactly matches the target installation. Failure is explicit; unrelated processes with the same name are not terminated. The complete upgrade was then repeated from the real v1.7.4 installer and passed.
 
-- sandbox is `allow-popups allow-scripts` with no `allow-same-origin`
-- copy bridge uses a random 64-hex channel
-- `postMessage` checks frame source and channel
-- oversized copy messages are rejected
+## Mixed versions
 
-Actual ordinary-text and code-block copy interaction passed inside Obsidian for the new and legacy fixtures, including the `.hermes` compatibility case.
+| Combination | Result |
+| --- | --- |
+| Extension 1.8.0 + Service 1.7.4 | PASS — the popup explicitly says the local service is too old; no collect call or 422 downgrade retry occurs |
+| Extension 1.7.4 + Service 1.8.0 | PASS — an ordinary page reached the new service and duplicate detection returned the historical page |
 
-## Artifacts
+The old service has no `/api/meta`. A successful authenticated `/api/health` response after metadata returns 404 is treated as an incompatible legacy service, not as an unauthenticated or disconnected service.
 
-See `docs/RELEASE_ARTIFACTS_1.8.0.md`. Four ZIPs and the no-Python Windows installer were generated. Archive extraction, required-file checks, SHA-256 generation and sensitive/path scans passed.
+## Installer and security boundaries
 
-## RC Bug Classification
+- The no-Python installer starts the service and registers one per-user Startup shortcut.
+- A named mutex prevents duplicate service instances.
+- Bearer authentication remains required.
+- CORS/origin, path validation, SSRF/private-address rejection, redirect validation, request and download limits, sanitizer boundaries and server-side `file://` rejection passed automated tests.
+- Viewer copy messages remain source/channel checked and size limited.
 
-- **P0, fixed:** Xiaohongshu readiness could complete on an incomplete shell and duplicated carousel DOM clones could be saved as repeated main images. The adapter now waits for a stable core-content/media signature and deduplicates resolved main-media URLs. Regression coverage was added.
-- **P0, fixed:** Guyue legacy articles using `.detail-fuwenben .html` were not recognized even though their body was visible. The existing selector boundary now recognizes that legacy root. Regression coverage was added.
-- **P0, fixed:** the installed extension could be ready while the Local Service was not running, forcing users to find and start it manually. Setup now starts it, login Startup registration is unconditional, duplicate launches exit through a named mutex, and the popup reconnect path is bounded and explicit.
-- **P1, fixed:** Xiaohongshu comments were flattened with `innerText`, which merged author, content, date, location and replies. Comments now cross the adapter/payload/model/renderer boundary as structured data, and loaded replies retain hierarchy.
-- **P1, fixed:** the Xiaohongshu date node includes its location child on the current site DOM. Extraction now removes that duplicated location suffix at the field boundary instead of hiding it with CSS.
-- **P2, known limitation:** Xiaohongshu comments are best-effort and include only comments already loaded by the site. Logged-in behavior was not tested in this round.
+## Windows coverage
 
-## Known Limitations
+| Environment | Result |
+| --- | --- |
+| Current Windows 11 Pro host | PASS — real chain and isolated upgrade |
+| Clean Windows 11 VM/image | NOT TESTED |
+| Clean Windows 10 VM/image | NOT TESTED |
+
+Login Startup registration was inspected, but a full Windows sign-out/sign-in cycle was not performed in this round.
+
+## RC bug classification
+
+- **P0, fixed:** a valid saved token did not discover the running service after its known local port changed.
+- **P0, fixed:** overwrite setup aborted when the installed headless service was still running.
+- **P0, fixed:** Extension 1.8.0 displayed a generic disconnection against a healthy Service 1.7.4 instead of an explicit upgrade requirement.
+- **P0, fixed:** Xiaohongshu readiness could complete on an incomplete shell and duplicated carousel clones could be saved.
+- **P0, fixed:** Guyue legacy `.detail-fuwenben .html` articles were not recognized.
+- **P1, fixed:** Xiaohongshu loaded comments lost their field and reply hierarchy.
+- **P2, known limitation:** Xiaohongshu comments include only content already loaded by the site; logged-in behavior was not tested.
+
+## Known limitations
 
 - Website DOM changes can break site adapters.
-- Xiaohongshu comments depend on what the page has loaded before capture.
-- Protected or canvas-only images may be unavailable; the article is still saved with an explicit failure count.
-- Complex local HTML CSS is not guaranteed to render exactly like the source page.
-- Source JavaScript is deliberately not executed in the saved page.
-- Local video/audio is not a core v1.8.0 support target.
-- Local HTML requires the user to enable Chrome/Edge “允许访问文件网址”.
+- Protected or canvas-only images may be unavailable; the article still saves with a failure count.
+- Complex local HTML CSS is not guaranteed to reproduce the source exactly, and source JavaScript is deliberately not executed.
+- Local video/audio is not a core v1.8.0 target.
+- Browser file access must be enabled for local HTML capture.
 - DNS rebinding hardening is deferred.
 - The installer is unsigned and may trigger SmartScreen.
 
-## Final Decision
+## Final decision
 
 **BLOCKED**
 
-To reconsider `READY FOR PUBLIC BETA`, complete and record at minimum:
-
-1. clean Windows 11 installation smoke (and Windows 10 if available);
-2. real 1.7.4 → 1.8.0 upgrade;
+To reconsider `READY FOR PUBLIC BETA`, complete and record a clean Windows 11 installation smoke. Windows 10 remains `NOT TESTED` and must not be represented as passed.

@@ -125,6 +125,39 @@ async def test_concurrent_duplicate_collects_write_one_page(tmp_path: Path, monk
     assert len(list(destination.glob('*.pagenest'))) == 1
 
 
+@pytest.mark.asyncio
+async def test_different_pages_can_be_collected_concurrently(tmp_path: Path, monkeypatch):
+    vault = tmp_path / "vault"
+    vault.mkdir()
+    monkeypatch.setattr(settings, "obsidian_vault_path", str(vault))
+    both_started = asyncio.Event()
+    active = 0
+    peak = 0
+
+    async def delayed_images(*_args):
+        nonlocal active, peak
+        active += 1
+        peak = max(peak, active)
+        if active == 2:
+            both_started.set()
+        try:
+            await asyncio.wait_for(both_started.wait(), timeout=1)
+        finally:
+            active -= 1
+        return [], {}
+
+    monkeypatch.setattr(storage, "save_images", delayed_images)
+    first, second = await asyncio.gather(
+        collect(article(title="Concurrent A", url="https://example.test/a", article_text="Page A")),
+        collect(article(title="Concurrent B", url="https://example.test/b", article_text="Page B")),
+    )
+
+    assert peak == 2
+    assert first["duplicate"] is False
+    assert second["duplicate"] is False
+    assert len(list(vault.glob("**/*.pagenest"))) == 2
+
+
 def test_atomic_page_write_does_not_replace_existing_file(tmp_path: Path):
     final = tmp_path / "page.pagenest"
     final.write_text("existing", encoding="utf-8")
@@ -148,6 +181,37 @@ def test_atomic_page_write_cleans_temp_after_write_failure(tmp_path: Path, monke
 
     assert not final.exists()
     assert not list(tmp_path.glob(f".{final.name}.*.tmp"))
+
+
+def test_atomic_page_write_cleans_temp_after_replace_failure(tmp_path: Path, monkeypatch):
+    final = tmp_path / "page.pagenest"
+
+    def fail_replace(_source, _destination):
+        raise OSError("simulated replace failure")
+
+    monkeypatch.setattr(storage.os, "replace", fail_replace)
+    with pytest.raises(OSError, match="simulated replace failure"):
+        storage._write_page_atomic(final, "complete page")
+
+    assert not final.exists()
+    assert not list(tmp_path.glob(f".{final.name}.*.tmp"))
+
+
+@pytest.mark.asyncio
+async def test_render_failure_does_not_leave_page_or_temp_file(tmp_path: Path, monkeypatch):
+    vault = tmp_path / "vault"
+    vault.mkdir()
+    monkeypatch.setattr(settings, "obsidian_vault_path", str(vault))
+
+    def fail_render(*_args):
+        raise RuntimeError("simulated render failure")
+
+    monkeypatch.setattr(storage, "render_page", fail_render)
+    with pytest.raises(RuntimeError, match="simulated render failure"):
+        await collect(article(title="Render failure", article_text="Render failure body"))
+
+    assert not list(vault.glob("**/*.pagenest"))
+    assert not list(vault.glob("**/*.tmp"))
 
 
 @pytest.mark.asyncio

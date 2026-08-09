@@ -85,11 +85,23 @@
       try{
         const connection=await load({storage,request:boundedRequest,installed,force:attempt>0});
         if(!connection.token) continue;
-        const response=await boundedRequest(connection.server+"/api/meta",{
-          method:"GET",
-          headers:{Authorization:`Bearer ${connection.token}`},
-        });
-        if(response.ok) return {connection,meta:await response.json()};
+        const servers=[connection.server.replace(/\/$/,""),...DEFAULT_SERVERS]
+          .filter((server,index,list)=>list.indexOf(server)===index);
+        for(const server of servers){
+          try{
+            const response=await boundedRequest(server+"/api/meta",{
+              method:"GET",
+              headers:{Authorization:`Bearer ${connection.token}`},
+            });
+            if(!response.ok) continue;
+            const resolved={server,token:connection.token};
+            if(connectionKey(resolved)!==connectionKey(connection)) await storage.set(resolved);
+            resolvedConnection=connectionKey(resolved);
+            return {connection:resolved,meta:await response.json()};
+          }catch{
+            // The same valid token may belong to a service on another known port.
+          }
+        }
       }catch{
         // A short bounded retry handles service startup and known port fallback.
       }

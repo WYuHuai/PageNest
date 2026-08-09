@@ -107,11 +107,12 @@ function storage(initial){
     delays:[0,300,700,1500],
     sleep:async delay=>waited.push(delay),
     request:async url=>{
-      if(url.endsWith("/api/meta")){
+      if(url==="http://127.0.0.1:8765/api/meta"){
         metaRequests++;
         if(metaRequests===1) throw new TypeError("service is starting");
         return {ok:true,json:async()=>({service_version:"1.8.0"})};
       }
+      if(url.endsWith("/api/meta")) return {ok:false};
       if(url.endsWith("/api/pair")) return {ok:true,json:async()=>({token:"starting"})};
       return {ok:false};
     },
@@ -132,6 +133,25 @@ function storage(initial){
     },
   });
   assert.deepEqual(recoveredFallback.connection,{server:"http://127.0.0.1:18765",token:"fallback"});
+
+  const movedService=storage({server:"http://127.0.0.1:18765",token:"still-valid"});
+  const movedRequests=[];
+  const recoveredMovedService=await PageNestConnection.connect({
+    storage:movedService,
+    delays:[0],
+    request:async(url,options)=>{
+      movedRequests.push({url,authorization:options?.headers?.Authorization});
+      if(url==="http://127.0.0.1:8765/api/meta"){
+        return {ok:true,json:async()=>({service_version:"1.8.0"})};
+      }
+      return {ok:false};
+    },
+  });
+  assert.deepEqual(recoveredMovedService.connection,{server:"http://127.0.0.1:8765",token:"still-valid"});
+  assert.deepEqual(movedService.value(),{server:"http://127.0.0.1:8765",token:"still-valid"});
+  assert.ok(movedRequests.some(item=>
+    item.url==="http://127.0.0.1:8765/api/meta"&&item.authorization==="Bearer still-valid"
+  ));
 
   PageNestConnection.invalidate();
   const offline=await PageNestConnection.connect({

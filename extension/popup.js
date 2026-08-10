@@ -186,6 +186,30 @@ async function loadAiSettings() {
   $("aiModel").value=data.model_name||"";
   $("aiKey").value=data.has_api_key?"********":"";
   $("aiKey").dataset.saved=data.has_api_key?"true":"false";
+  syncAiPresetControls();
+}
+
+function fillAiProviderPresets() {
+  const options=PageNestAiPresets.providers.map(provider=>new Option(provider.label,provider.id));
+  $("aiProviderPreset").replaceChildren(...options);
+}
+
+function fillAiModelPresets(providerId) {
+  const provider=PageNestAiPresets.findProvider(providerId);
+  const custom=new Option("自己填写（使用上方当前模型）","");
+  const options=provider.models.map(model=>new Option(model,model));
+  $("aiModelPreset").replaceChildren(custom,...options);
+  $("aiModelHint").textContent=provider.models.length
+    ?"选择后会填入上方，仍可继续手动修改。"
+    :"该接口的模型由本机或账号决定，请在上方填写模型 ID。";
+}
+
+function syncAiPresetControls() {
+  const provider=PageNestAiPresets.findProviderByUrl($("aiUrl").value);
+  $("aiProviderPreset").value=provider.id;
+  fillAiModelPresets(provider.id);
+  const model=$("aiModel").value.trim();
+  $("aiModelPreset").value=provider.models.includes(model)?model:"";
 }
 
 async function identify() {
@@ -450,6 +474,23 @@ $("saveSettings").onclick=async()=>{
   }
 };
 
+fillAiProviderPresets();
+syncAiPresetControls();
+$("aiProviderPreset").onchange=()=>{
+  const provider=PageNestAiPresets.findProvider($("aiProviderPreset").value);
+  if(provider.url) $("aiUrl").value=provider.url;
+  fillAiModelPresets(provider.id);
+  $("aiModelPreset").value=provider.models.includes($("aiModel").value.trim())?$("aiModel").value.trim():"";
+};
+$("aiModelPreset").onchange=()=>{
+  if($("aiModelPreset").value) $("aiModel").value=$("aiModelPreset").value;
+};
+$("aiUrl").oninput=syncAiPresetControls;
+$("aiModel").oninput=()=>{
+  const model=$("aiModel").value.trim();
+  const provider=PageNestAiPresets.findProvider($("aiProviderPreset").value);
+  $("aiModelPreset").value=provider.models.includes(model)?model:"";
+};
 $("aiKey").oninput=()=>{$("aiKey").dataset.saved="false"};
 $("saveAiSettings").onclick=async()=>{
   $("saveAiSettings").disabled=true;

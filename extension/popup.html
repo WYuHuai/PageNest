@@ -134,8 +134,15 @@
           </summary>
           <div class="settings-content">
             <p class="settings-help">兼容 OpenAI 接口；LM Studio 的 API Key 可留空。</p>
-            <label class="field">Base URL<input id="aiUrl" placeholder="例如 http://127.0.0.1:1234/v1"></label>
-            <label class="field">模型名称<input id="aiModel" placeholder="接口提供的模型 ID"></label>
+            <label class="field">Base URL <em>可自行填写</em><input id="aiUrl" placeholder="例如 http://127.0.0.1:1234/v1"></label>
+            <label class="field preset-field">常用接口
+              <select id="aiProviderPreset" aria-label="选择常用 API 接口"></select>
+            </label>
+            <label class="field">当前模型 <em>可自行填写</em><input id="aiModel" placeholder="接口提供的模型 ID"></label>
+            <label class="field preset-field">模型快捷选择
+              <select id="aiModelPreset" aria-label="选择当前模型"></select>
+              <small id="aiModelHint" class="field-hint">选择接口后显示常用模型；本地模型请填写已加载的模型 ID。</small>
+            </label>
             <label class="field">API Key<input id="aiKey" type="password" autocomplete="off" placeholder="本地模型通常留空"></label>
             <button id="saveAiSettings" class="secondary-action" type="button">保存并测试接口</button>
             <small id="aiConnection"></small>
@@ -179,6 +186,7 @@
   <script src="capture-selection.js"></script>
   <script src="connection-config.js"></script>
   <script src="core/connection.js"></script>
+  <script src="core/ai-presets.js"></script>
   <script src="popup.js"></script>
 </body>
 </html>

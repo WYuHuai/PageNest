@@ -684,6 +684,21 @@ textarea:focus {
   font-size: 11px;
 }
 
+.preset-field {
+  padding: 7px 9px 8px;
+  border-radius: 11px;
+  background: var(--surface);
+}
+
+.preset-field select {
+  height: 36px;
+  border-color: var(--line);
+}
+
+.preset-field .field-hint {
+  white-space: normal;
+}
+
 .settings-content .secondary-action {
   min-height: 40px;
   margin-top: 1px;

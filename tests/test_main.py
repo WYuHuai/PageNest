@@ -147,6 +147,34 @@ def test_pairing_returns_token_only_to_trusted_store_extension(monkeypatch):
     assert "private-token" not in denied.text
 
 
+def test_ai_models_requires_auth_and_returns_provider_model_ids(monkeypatch):
+    monkeypatch.setattr(settings, "local_collector_token", "test-token")
+    seen = {}
+
+    async def fake_available_models(api_url, api_key):
+        seen.update(api_url=api_url, api_key=api_key)
+        return ["deepseek-v4-flash", "deepseek-v4-pro"]
+
+    monkeypatch.setattr(main, "available_models", fake_available_models)
+    payload = {
+        "api_url": "https://api.deepseek.com/",
+        "model_name": "",
+        "api_key": "private-test-key",
+    }
+    denied = client.post("/api/ai-models", json=payload)
+    allowed = client.post(
+        "/api/ai-models",
+        json=payload,
+        headers={"Authorization": "Bearer test-token"},
+    )
+
+    assert denied.status_code == 401
+    assert allowed.status_code == 200
+    assert allowed.json() == {"models": ["deepseek-v4-flash", "deepseek-v4-pro"]}
+    assert seen == {"api_url": "https://api.deepseek.com", "api_key": "private-test-key"}
+    assert "private-test-key" not in allowed.text
+
+
 def test_vault_selection_requires_auth_and_accepts_no_client_path(monkeypatch):
     monkeypatch.setattr(settings, "local_collector_token", "test-token")
     called = 0

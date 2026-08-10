@@ -194,14 +194,15 @@ function fillAiProviderPresets() {
   $("aiProviderPreset").replaceChildren(...options);
 }
 
-function fillAiModelPresets(providerId) {
+function fillAiModelPresets(providerId, availableModels=null) {
   const provider=PageNestAiPresets.findProvider(providerId);
+  const models=[...new Set(availableModels??provider.models)];
   const custom=new Option("自己填写（使用上方当前模型）","");
-  const options=provider.models.map(model=>new Option(model,model));
+  const options=models.map(model=>new Option(model,model));
   $("aiModelPreset").replaceChildren(custom,...options);
-  $("aiModelHint").textContent=provider.models.length
+  $("aiModelHint").textContent=models.length
     ?"选择后会填入上方，仍可继续手动修改。"
-    :"该接口的模型由本机或账号决定，请在上方填写模型 ID。";
+    :"该平台的模型会动态变化，请填写 API Key 后读取实际可用模型。";
 }
 
 function syncAiPresetControls() {
@@ -492,6 +493,26 @@ $("aiModel").oninput=()=>{
   $("aiModelPreset").value=provider.models.includes(model)?model:"";
 };
 $("aiKey").oninput=()=>{$("aiKey").dataset.saved="false"};
+$("refreshAiModels").onclick=async()=>{
+  $("refreshAiModels").disabled=true;
+  $("aiModelHint").textContent="正在读取平台模型…";
+  try {
+    const keyUnchanged=$("aiKey").dataset.saved==="true" && $("aiKey").value==="********";
+    const data=await api("/api/ai-models",{
+      api_url:$("aiUrl").value.trim(),
+      model_name:$("aiModel").value.trim(),
+      api_key:keyUnchanged?null:$("aiKey").value
+    });
+    fillAiModelPresets($("aiProviderPreset").value,data.models);
+    const model=$("aiModel").value.trim();
+    $("aiModelPreset").value=data.models.includes(model)?model:"";
+    $("aiModelHint").textContent=`已读取 ${data.models.length} 个当前账号可用模型；选择后会填入上方。`;
+  } catch(error) {
+    $("aiModelHint").textContent=error.message;
+  } finally {
+    $("refreshAiModels").disabled=false;
+  }
+};
 $("saveAiSettings").onclick=async()=>{
   $("saveAiSettings").disabled=true;
   $("aiConnection").textContent="正在测试接口…";

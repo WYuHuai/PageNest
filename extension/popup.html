@@ -141,10 +141,12 @@
             <label class="field">当前模型 <em>可自行填写</em><input id="aiModel" placeholder="接口提供的模型 ID"></label>
             <label class="field preset-field">模型快捷选择
               <select id="aiModelPreset" aria-label="选择当前模型"></select>
-              <small id="aiModelHint" class="field-hint">选择接口后显示常用模型；本地模型请填写已加载的模型 ID。</small>
+              <small id="aiModelHint" class="field-hint">先显示官方常用模型；填写 API Key 后可读取账号实际可用模型。</small>
             </label>
             <label class="field">API Key<input id="aiKey" type="password" autocomplete="off" placeholder="本地模型通常留空"></label>
+            <button id="refreshAiModels" class="text-button" type="button">读取当前账号可用模型</button>
             <button id="saveAiSettings" class="secondary-action" type="button">保存并测试接口</button>
+            <small class="field-hint">保存时会真实调用一次所选模型，可能产生少量 API 费用。</small>
             <small id="aiConnection"></small>
           </div>
         </details>

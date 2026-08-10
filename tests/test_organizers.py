@@ -1,5 +1,15 @@
 from collector.config import settings
-from collector.organizers import QUICK_RESULT_KEYS, request_payload, request_timeout, result_schema
+import httpx
+import pytest
+
+from collector.organizers import (
+    QUICK_RESULT_KEYS,
+    _available_models,
+    probe_connection,
+    request_payload,
+    request_timeout,
+    result_schema,
+)
 
 
 def test_http_timeout_outlives_outer_model_deadline():
@@ -29,3 +39,35 @@ def test_quick_schema_requests_only_core_fields():
     assert quick["required"] == QUICK_RESULT_KEYS
     assert set(quick["properties"]) == set(QUICK_RESULT_KEYS)
     assert len(deep["properties"]) > len(quick["properties"])
+
+
+@pytest.mark.asyncio
+async def test_model_discovery_and_probe_use_exact_selected_model(monkeypatch):
+    requests = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        requests.append(request)
+        if request.url.path.endswith("/models"):
+            return httpx.Response(200, json={"data": [
+                {"id": "deepseek-v4-flash"},
+                {"id": "deepseek-v4-pro"},
+            ]})
+        payload = __import__("json").loads(request.content)
+        assert payload["model"] == "deepseek-v4-pro"
+        return httpx.Response(200, json={"choices": [{"message": {"content": "OK"}}]})
+
+    async with httpx.AsyncClient(transport=httpx.MockTransport(handler)) as client:
+        models = await _available_models(client, "https://api.deepseek.com", "test-key")
+    assert models == ["deepseek-v4-flash", "deepseek-v4-pro"]
+
+    original_client = httpx.AsyncClient
+    monkeypatch.setattr(
+        httpx,
+        "AsyncClient",
+        lambda **_: original_client(transport=httpx.MockTransport(handler)),
+    )
+    result = await probe_connection("https://api.deepseek.com", "test-key", "deepseek-v4-pro")
+
+    assert result["online"] is True
+    assert result["model"] == "deepseek-v4-pro"
+    assert any(request.method == "POST" and request.url.path.endswith("/chat/completions") for request in requests)

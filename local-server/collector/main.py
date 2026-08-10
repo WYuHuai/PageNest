@@ -12,8 +12,9 @@ from .config import (
     save_organizer_configuration,
     settings,
     trusted_extension_origins,
+    validate_organizer_url,
 )
-from .organizers import probe, probe_connection
+from .organizers import available_models, probe, probe_connection
 from .limits import MAX_CONCURRENT_COLLECTIONS, MAX_REQUEST_BYTES
 from .models import ArticleInput, OrganizerSettingsInput
 from .request_limits import RequestSizeLimitMiddleware
@@ -89,6 +90,18 @@ async def pair_extension(origin: str = Header(default="")):
 @app.get("/api/ai-settings")
 async def ai_settings(_: None = Depends(auth)):
     return organizer_configuration()
+
+
+@app.post("/api/ai-models")
+async def ai_models(payload: OrganizerSettingsInput, _: None = Depends(auth)):
+    try:
+        api_url = validate_organizer_url(payload.api_url)
+        if not api_url:
+            raise ValueError("请先填写或选择 Base URL")
+        api_key = settings.hermes_api_key if payload.api_key is None else payload.api_key.strip()
+        return {"models": await available_models(api_url, api_key)}
+    except ValueError as exc:
+        raise HTTPException(400, str(exc)) from exc
 
 
 @app.post("/api/ai-settings")

@@ -117,9 +117,13 @@
           <div class="section-title">
             <div>
               <span>当前 Vault</span>
+              <strong id="vaultName">正在读取…</strong>
               <small id="folderStatus">连接后会自动读取 Obsidian 文件夹</small>
             </div>
-            <button id="refreshFolders" type="button" class="small-button">刷新</button>
+            <div class="vault-actions">
+              <button id="changeVault" type="button" class="change-vault-button">更换仓库</button>
+              <button id="refreshFolders" type="button" class="refresh-vault-button" aria-label="刷新当前 Vault" title="刷新当前 Vault">↻</button>
+            </div>
           </div>
         </section>
 

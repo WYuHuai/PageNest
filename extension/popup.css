@@ -534,8 +534,7 @@ textarea:focus {
   box-shadow: 0 0 0 4px #ffe5e9;
 }
 
-.text-button,
-.small-button {
+.text-button {
   border-radius: 9px;
   background: var(--blue-soft);
   color: var(--blue);
@@ -545,10 +544,6 @@ textarea:focus {
 
 .text-button {
   padding: 8px 9px;
-}
-
-.small-button {
-  padding: 7px 11px;
 }
 
 .vault-section {
@@ -569,6 +564,7 @@ textarea:focus {
 }
 
 .section-title span,
+.section-title strong,
 .section-title small {
   display: block;
 }
@@ -578,14 +574,60 @@ textarea:focus {
   font-weight: 750;
 }
 
+.section-title strong {
+  margin-top: 4px;
+  overflow: hidden;
+  color: var(--ink);
+  font-size: 16px;
+  font-weight: 760;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .section-title small {
-  max-width: 270px;
+  max-width: 230px;
   margin-top: 3px;
   overflow: hidden;
   color: var(--muted);
   font-size: 11px;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.vault-actions {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: 7px;
+}
+
+.change-vault-button,
+.refresh-vault-button {
+  border: 1px solid #dce4ff;
+  background: var(--blue-soft);
+  color: var(--blue);
+  font-weight: 720;
+}
+
+.change-vault-button {
+  padding: 8px 11px;
+  border-radius: 10px;
+  font-size: 11px;
+}
+
+.refresh-vault-button {
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border-radius: 10px;
+  font-size: 18px;
+  line-height: 1;
+}
+
+.change-vault-button:hover,
+.refresh-vault-button:hover {
+  border-color: #b9c7ff;
+  background: #e7ecff;
 }
 
 .settings-group {

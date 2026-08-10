@@ -192,6 +192,9 @@ function storage(initial){
   assert.match(popupHtml,/id="serviceStatus"/);
   assert.match(popupHtml,/id="reconnectService"/);
   assert.match(popupHtml,/id="folderStatus"/);
+  assert.match(popupHtml,/id="vaultName"/);
+  assert.match(popupHtml,/id="changeVault"[^>]*>更换仓库<\/button>/);
+  assert.match(popupHtml,/id="refreshFolders"[^>]*aria-label="刷新当前 Vault"/);
   assert.match(popupHtml,/id="view-save"[^>]*data-view="save"/);
   assert.match(popupHtml,/id="view-identify"[^>]*data-view="identify"/);
   assert.match(popupHtml,/id="view-settings"[^>]*data-view="settings"/);
@@ -204,6 +207,9 @@ function storage(initial){
   assert.ok(!popupJs.includes("本地收藏服务未启动，请从开始菜单启动 PageNest 后重试"));
   assert.ok(!popupJs.includes("[object Object]"));
   assert.match(popupJs,/Service 版本过旧/);
+  assert.match(popupJs,/api\("\/api\/vault\/select",\{\}\)/);
+  assert.match(popupJs,/if\(data\.cancelled\)/);
+  assert.match(popupJs,/textContent="重新选择"/);
   assert.ok(!popupJs.includes('} else {\n    showServiceStatus("disconnected");'));
 
   assert.deepEqual(PageNestConnection.DEFAULT_SERVERS,[

@@ -283,7 +283,7 @@ function showResult(data) {
 async function api(path, body, retryPairing=true) {
   const cfg=await getSettings();
   const controller=new AbortController();
-  const timeoutMs=body?300000:15000;
+  const timeoutMs=path==="/api/vault/select"?3600000:body?300000:15000;
   const timeout=setTimeout(()=>controller.abort(),timeoutMs);
   try {
     const response=await fetch(cfg.server+path,{method:body?"POST":"GET",headers:{"Content-Type":"application/json","Authorization":`Bearer ${cfg.token}`},body:body?JSON.stringify(body):undefined,signal:controller.signal});
@@ -303,7 +303,9 @@ async function api(path, body, retryPairing=true) {
     }
     return data;
   } catch(error) {
-    if(error.name==="AbortError") throw new Error("保存超过 5 分钟，客户端已停止等待；请先检查知识库中是否出现新页面，再决定是否重试");
+    if(error.name==="AbortError") throw new Error(path==="/api/vault/select"
+      ?"文件夹选择器等待超时，请重新选择仓库"
+      :"保存超过 5 分钟，客户端已停止等待；请先检查知识库中是否出现新页面，再决定是否重试");
     if(error instanceof TypeError) throw new Error("PageNest 后台服务未连接，请启动 PageNest 后重试");
     throw error;
   } finally {
@@ -330,14 +332,9 @@ async function collectWithServiceCapabilities(payload, request=api) {
   return request("/api/collect",payload);
 }
 
-async function loadFolders() {
+function applyFolderData(data) {
   const select=$("category");
   const selected=select.value;
-  $("folderStatus").textContent="正在读取 Obsidian 文件夹…";
-  $("folderStatus").className="";
-  $("saveFolderStatus").textContent="正在读取 Obsidian 文件夹…";
-  $("saveFolderStatus").className="field-hint";
-  const data=await api("/api/folders");
   const auto=document.createElement("option");
   auto.value="auto";
   auto.textContent="智能整理自动判断";
@@ -349,8 +346,19 @@ async function loadFolders() {
     select.append(option);
   }
   select.value=data.folders.includes(selected)?selected:"auto";
-  $("folderStatus").textContent=`${data.vault_name} · 已识别 ${data.folders.length} 个文件夹；每次打开扩展都会刷新`;
+  $("vaultName").textContent=data.vault_name;
+  $("folderStatus").textContent=`已识别 ${data.folders.length} 个文件夹`;
+  $("folderStatus").className="";
   $("saveFolderStatus").textContent=`${data.vault_name} · ${data.folders.length} 个文件夹`;
+  $("saveFolderStatus").className="field-hint";
+}
+
+async function loadFolders() {
+  $("folderStatus").textContent="正在读取 Obsidian 文件夹…";
+  $("folderStatus").className="";
+  $("saveFolderStatus").textContent="正在读取 Obsidian 文件夹…";
+  $("saveFolderStatus").className="field-hint";
+  applyFolderData(await api("/api/folders"));
 }
 
 document.querySelectorAll(".tab-button").forEach(button=>{
@@ -390,6 +398,33 @@ $("refreshFolders").onclick=()=>loadFolders().catch(error=>{
   $("saveFolderStatus").textContent=error.message;
   $("saveFolderStatus").className="field-hint error";
 });
+$("changeVault").onclick=async()=>{
+  const previousName=$("vaultName").textContent;
+  const previousStatus=$("folderStatus").textContent;
+  const previousLabel=$("changeVault").textContent;
+  $("changeVault").disabled=true;
+  $("refreshFolders").disabled=true;
+  $("folderStatus").textContent="请在 Windows 窗口中选择 Obsidian Vault…";
+  $("folderStatus").className="";
+  try {
+    const data=await api("/api/vault/select",{});
+    if(data.cancelled) {
+      $("vaultName").textContent=previousName;
+      $("folderStatus").textContent=previousStatus;
+      $("changeVault").textContent=previousLabel;
+      return;
+    }
+    applyFolderData(data);
+    $("changeVault").textContent="更换仓库";
+  } catch(error) {
+    $("folderStatus").textContent=error.message;
+    $("folderStatus").className="error";
+    $("changeVault").textContent="重新选择";
+  } finally {
+    $("changeVault").disabled=false;
+    $("refreshFolders").disabled=false;
+  }
+};
 $("reconnectService").onclick=async()=>{
   if(await connectService()) await Promise.all([loadFolders(),loadAiSettings()]);
 };

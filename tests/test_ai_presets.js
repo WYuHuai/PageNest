@@ -29,18 +29,18 @@ assert.strictEqual(
   "localhost 与 127.0.0.1 应识别为同一本地接口"
 );
 assert.strictEqual(presets.findProviderByUrl("https://example.com/v1").id, "custom");
-assert.deepStrictEqual(presets.findProvider("deepseek").models, ["deepseek-v4-flash", "deepseek-v4-pro"]);
-assert(!presets.findProvider("deepseek").models.includes("deepseek-chat"));
-assert(presets.findProvider("zhipu").models.includes("glm-5.2"));
-assert(presets.findProvider("gemini").models.includes("gemini-3.6-flash"));
-assert(presets.findProvider("minimax").models.includes("MiniMax-M2.7"));
-assert.deepStrictEqual(presets.findProvider("ollama").models, [], "本地模型名称不应被硬编码");
+assert(
+  presets.providers.every(provider => !("models" in provider)),
+  "平台模型会变化，不应维护不完整的硬编码快捷清单"
+);
 
 const popupHtml = fs.readFileSync(path.resolve(__dirname, "../extension/popup.html"), "utf8");
 const popupJs = fs.readFileSync(path.resolve(__dirname, "../extension/popup.js"), "utf8");
 assert(popupHtml.indexOf('id="aiUrl"') < popupHtml.indexOf('id="aiProviderPreset"'));
 assert(popupHtml.indexOf('id="aiModel"') < popupHtml.indexOf('id="aiModelPreset"'));
 assert(popupHtml.includes('id="refreshAiModels"'));
+assert(popupHtml.includes("当前账号完整模型列表"));
 assert(popupJs.includes('api("/api/ai-models"'));
+assert(popupJs.includes("savedAiKeyCanBeReused"));
 
 console.log("AI provider preset tests passed");

@@ -155,19 +155,44 @@ async def call_hermes(article: ArticleInput, images: list[dict]) -> tuple[Hermes
 
 def _model_ids(payload: dict) -> list[str]:
     items = payload.get("data", payload.get("models", []))
+    if not isinstance(items, list):
+        items = payload.get("output", {}).get("models", [])
     models = []
     for item in items if isinstance(items, list) else []:
-        model = (item.get("id") or item.get("key")) if isinstance(item, dict) else item
-        if isinstance(model, str) and model.strip() and model not in models:
-            models.append(model.strip())
+        if isinstance(item, dict):
+            methods = item.get("supportedGenerationMethods")
+            if methods and "generateContent" not in methods:
+                continue
+            model = (
+                item.get("id")
+                or item.get("model_name")
+                or item.get("baseModelId")
+                or item.get("key")
+                or item.get("name")
+            )
+        else:
+            model = item
+        if isinstance(model, str):
+            model = model.removeprefix("models/").strip()
+        if model and model not in models:
+            models.append(model)
         if len(models) >= MAX_AVAILABLE_MODELS:
             break
     return models
 
 
 async def _available_models(client: httpx.AsyncClient, api_url: str, api_key: str) -> list[str]:
-    headers = {"Authorization": f"Bearer {api_key}"} if api_key else {}
-    response = await client.get(api_url.rstrip("/") + "/models", headers=headers)
+    parts = urlsplit(api_url)
+    if parts.hostname == "generativelanguage.googleapis.com":
+        response = await client.get(
+            f"{parts.scheme}://{parts.netloc}/v1beta/models",
+            headers={"x-goog-api-key": api_key} if api_key else {},
+            params={"pageSize": MAX_AVAILABLE_MODELS},
+        )
+    else:
+        params = {"type": "text", "sub_type": "chat"} if parts.hostname == "api.siliconflow.cn" else None
+        headers = {"Authorization": f"Bearer {api_key}"} if api_key else {}
+        response = await client.get(api_url.rstrip("/") + "/models", headers=headers, params=params)
     response.raise_for_status()
     return _model_ids(response.json())
 
@@ -175,9 +200,14 @@ async def _available_models(client: httpx.AsyncClient, api_url: str, api_key: st
 async def available_models(api_url: str, api_key: str) -> list[str]:
     try:
         async with httpx.AsyncClient(timeout=12) as client:
-            return await _available_models(client, api_url, api_key)
+            models = await _available_models(client, api_url, api_key)
+            if not models:
+                raise ValueError("接口没有返回可用模型，请手动填写模型 ID")
+            return models
     except httpx.HTTPStatusError as exc:
         raise ValueError(f"读取模型失败：HTTP {exc.response.status_code}，请检查 API Key 和接口地址") from exc
+    except ValueError:
+        raise
     except Exception as exc:
         raise ValueError(f"无法读取模型：{type(exc).__name__}") from exc
 
@@ -188,7 +218,12 @@ async def probe_connection(api_url: str, api_key: str, model_name: str) -> dict:
     headers = {"Authorization": f"Bearer {api_key}"} if api_key else {}
     try:
         async with httpx.AsyncClient(timeout=20) as client:
-            available = await _available_models(client, api_url, api_key)
+            try:
+                available = await _available_models(client, api_url, api_key)
+            except httpx.HTTPStatusError as exc:
+                if exc.response.status_code not in {404, 405}:
+                    raise
+                available = []
             if available and model_name not in available:
                 return {
                     "online": False,

@@ -2,6 +2,20 @@ let article;
 let tab;
 const $ = id => document.getElementById(id);
 
+function showView(name) {
+  $("tabBar").dataset.active=name;
+  document.querySelectorAll(".app-view").forEach(view=>{
+    const active=view.dataset.view===name;
+    view.hidden=!active;
+    view.classList.toggle("is-active",active);
+  });
+  document.querySelectorAll(".tab-button").forEach(button=>{
+    const active=button.dataset.target===name;
+    button.classList.toggle("is-active",active);
+    button.setAttribute("aria-selected",String(active));
+  });
+}
+
 async function getSettings() {
   return PageNestConnection.load();
 }
@@ -208,14 +222,25 @@ async function identify() {
   await inlineCommentAvatars(article);
   redactLocalCapture(article);
   $("title").textContent=article.title;
+  $("detailTitle").textContent=article.title;
   $("domain").textContent=article.source_kind==="local-html"
     ?`本地 HTML · ${article.source_name||"本地文件"}`
     :new URL(article.url).hostname;
   $("status").textContent=article.extraction_warning||(
     article.source_kind==="local-html"?"已识别 · 本地 HTML":`已识别 · ${article.extraction_method}`
   );
-  $("length").textContent=`${article.article_text.length.toLocaleString()} 字`;
-  $("images").textContent=`${article.images.length} 张图片 · ${(article.media||[]).length} 个视频`;
+  const textLength=article.article_text.length.toLocaleString();
+  const imageCount=article.images.length;
+  const videoCount=(article.media||[]).length;
+  $("length").textContent=textLength;
+  $("images").textContent=imageCount.toLocaleString();
+  $("videos").textContent=videoCount.toLocaleString();
+  $("saveLength").textContent=textLength;
+  $("saveImages").textContent=imageCount.toLocaleString();
+  $("saveVideos").textContent=videoCount.toLocaleString();
+  $("saveStatus").textContent=article.extraction_warning?"建议检查":"识别成功";
+  $("saveStatus").className=`status-pill ${article.extraction_warning?"is-warning":"is-ready"}`;
+  $("status").className="";
   $("progress").classList.add("hidden");
 }
 
@@ -310,6 +335,8 @@ async function loadFolders() {
   const selected=select.value;
   $("folderStatus").textContent="正在读取 Obsidian 文件夹…";
   $("folderStatus").className="";
+  $("saveFolderStatus").textContent="正在读取 Obsidian 文件夹…";
+  $("saveFolderStatus").className="field-hint";
   const data=await api("/api/folders");
   const auto=document.createElement("option");
   auto.value="auto";
@@ -323,7 +350,12 @@ async function loadFolders() {
   }
   select.value=data.folders.includes(selected)?selected:"auto";
   $("folderStatus").textContent=`${data.vault_name} · 已识别 ${data.folders.length} 个文件夹；每次打开扩展都会刷新`;
+  $("saveFolderStatus").textContent=`${data.vault_name} · ${data.folders.length} 个文件夹`;
 }
+
+document.querySelectorAll(".tab-button").forEach(button=>{
+  button.onclick=()=>showView(button.dataset.target);
+});
 
 $("save").onclick=async()=>{
   let timer;
@@ -355,11 +387,18 @@ $("save").onclick=async()=>{
 $("refreshFolders").onclick=()=>loadFolders().catch(error=>{
   $("folderStatus").textContent=error.message;
   $("folderStatus").className="error";
+  $("saveFolderStatus").textContent=error.message;
+  $("saveFolderStatus").className="field-hint error";
 });
 $("reconnectService").onclick=async()=>{
   if(await connectService()) await Promise.all([loadFolders(),loadAiSettings()]);
 };
-$("retry").onclick=()=>identify().catch(error=>{$("status").textContent=error.message;$("status").className="error"});
+$("retry").onclick=()=>identify().catch(error=>{
+  $("status").textContent=error.message;
+  $("status").className="error";
+  $("saveStatus").textContent="识别失败";
+  $("saveStatus").className="status-pill is-warning";
+});
 $("cancel").onclick=()=>window.close();
 $("saveSettings").onclick=async()=>{
   await chrome.storage.local.set({server:$("server").value.replace(/\/$/,""),token:$("token").value});
@@ -410,6 +449,8 @@ async function initialize() {
   if(pageResult.status==="rejected") {
     $("status").textContent=pageResult.reason.message;
     $("status").className="error";
+    $("saveStatus").textContent="识别失败";
+    $("saveStatus").className="status-pill is-warning";
     $("progress").classList.add("hidden");
   }
   if(serviceResult.status==="fulfilled"&&serviceResult.value) {
@@ -417,6 +458,8 @@ async function initialize() {
     if(folderResult.status==="rejected") {
       $("folderStatus").textContent=folderResult.reason.message;
       $("folderStatus").className="error";
+      $("saveFolderStatus").textContent=folderResult.reason.message;
+      $("saveFolderStatus").className="field-hint error";
     }
     if(aiResult.status==="rejected") {
       $("aiConnection").textContent=aiResult.reason.message;

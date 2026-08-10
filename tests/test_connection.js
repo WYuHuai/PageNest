@@ -192,7 +192,15 @@ function storage(initial){
   assert.match(popupHtml,/id="serviceStatus"/);
   assert.match(popupHtml,/id="reconnectService"/);
   assert.match(popupHtml,/id="folderStatus"/);
-  assert.ok(popupHtml.indexOf('id="serviceStatus"')<popupHtml.indexOf("保存位置"));
+  assert.match(popupHtml,/id="view-save"[^>]*data-view="save"/);
+  assert.match(popupHtml,/id="view-identify"[^>]*data-view="identify"/);
+  assert.match(popupHtml,/id="view-settings"[^>]*data-view="settings"/);
+  assert.equal((popupHtml.match(/class="tab-button/g)||[]).length,3);
+  assert.match(popupHtml,/class="tab-slider"/);
+  assert.match(popupHtml,/id="tabBar"[^>]*data-active="save"/);
+  assert.ok(popupHtml.indexOf("保存位置")<popupHtml.indexOf('id="serviceStatus"'));
+  assert.match(popupJs,/function showView\(name\)/);
+  assert.match(popupJs,/\$\("tabBar"\)\.dataset\.active=name/);
   assert.ok(!popupJs.includes("本地收藏服务未启动，请从开始菜单启动 PageNest 后重试"));
   assert.ok(!popupJs.includes("[object Object]"));
   assert.match(popupJs,/Service 版本过旧/);

@@ -1,23 +1,180 @@
-<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width"><title>PageNest</title><link rel="stylesheet" href="popup.css"></head><body>
-<main><header><div class="logo">P</div><div><h1>PageNest</h1><p><span id="extensionVersion"></span> · <span id="domain">正在读取当前网页…</span></p></div></header>
-<section class="card"><h2 id="title">当前网页</h2><div class="stats"><span id="status">正在识别网页正文……</span><span id="length">— 字</span><span id="images">— 张图片</span></div></section>
-<div id="serviceStatus" class="service-status connecting"><div><strong>正在连接 PageNest 后台服务</strong><small id="serviceStatusDetail">通常只需要片刻</small></div><button id="reconnectService" type="button" class="hidden">重新连接</button></div>
-<label>保存模式<select id="mode"><option value="original">完整保存网页（不调用 AI，推荐）</option><option value="quick">完整保存 + AI 文字总结</option><option value="deep">完整保存 + AI 图文总结</option></select></label>
-<label>保存位置</label><div class="folder-row"><select id="category"><option value="auto">智能整理自动判断</option><option value="阅读记录/待整理">阅读记录/待整理</option></select><button id="refreshFolders" type="button">刷新</button></div><small id="folderStatus">连接后会自动读取 Obsidian 文件夹</small>
-<label>我的收藏备注<textarea id="note" rows="3" placeholder="记录为什么收藏、准备怎么使用（可不填）"></textarea></label>
-<div id="progress" class="progress hidden"></div><div id="result" class="card hidden"></div>
-<div class="buttons"><button id="save" class="primary">保存到 Obsidian</button><button id="retry">重新识别正文</button><button id="cancel">取消</button></div>
-<details><summary>连接设置</summary>
-<h3>本地收藏服务</h3>
-<label>服务地址<input id="server" value="http://127.0.0.1:8765"></label>
-<label>收藏器令牌<input id="token" type="password" placeholder="通常由安装程序自动配置"></label>
-<button id="saveSettings">保存并检查收藏服务</button><small id="connection"></small>
-<div class="settings-separator"></div>
-<h3>智能整理接口 <span>OpenAI 兼容</span></h3>
-<p class="settings-help">所有服务都只需填写这一套。LM Studio 的 API Key 留空即可。</p>
-<label>Base URL<input id="aiUrl" placeholder="例如 http://127.0.0.1:1234/v1"></label>
-<label>模型名称<input id="aiModel" placeholder="接口提供的模型 ID"></label>
-<label>API Key<input id="aiKey" type="password" autocomplete="off" placeholder="本地模型通常留空"></label>
-<button id="saveAiSettings">保存并测试智能整理接口</button><small id="aiConnection"></small>
-</details>
-</main><script src="core/content-quality.js"></script><script src="core/extractor-core.js"></script><script src="capture-selection.js"></script><script src="connection-config.js"></script><script src="core/connection.js"></script><script src="popup.js"></script></body></html>
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width">
+  <title>PageNest</title>
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <main class="app-shell">
+    <header class="app-header">
+      <div class="brand-mark" aria-hidden="true">P</div>
+      <div class="brand-copy">
+        <h1>PageNest</h1>
+        <p><span id="extensionVersion"></span> · 网页收藏到 Obsidian</p>
+      </div>
+      <button id="cancel" class="icon-button" type="button" aria-label="关闭">×</button>
+    </header>
+
+    <div class="view-stack">
+      <section id="view-save" class="app-view is-active" data-view="save" aria-labelledby="tab-save">
+        <div class="page-heading">
+          <div>
+            <span class="eyebrow">快速收藏</span>
+            <h2 id="title">当前网页</h2>
+          </div>
+          <span id="saveStatus" class="status-pill is-loading">正在识别</span>
+        </div>
+
+        <div class="metric-row" aria-label="页面统计">
+          <div class="metric-card"><strong id="saveLength">—</strong><span>正文字符</span></div>
+          <div class="metric-card"><strong id="saveImages">—</strong><span>正文图片</span></div>
+          <div class="metric-card"><strong id="saveVideos">—</strong><span>媒体视频</span></div>
+        </div>
+
+        <div class="form-grid">
+          <label class="field">
+            <span>保存模式</span>
+            <select id="mode">
+              <option value="original">完整保存网页（推荐）</option>
+              <option value="quick">完整保存 + AI 文字总结</option>
+              <option value="deep">完整保存 + AI 图文总结</option>
+            </select>
+          </label>
+
+          <label class="field">
+            <span>保存位置</span>
+            <select id="category">
+              <option value="auto">智能整理自动判断</option>
+              <option value="阅读记录/待整理">阅读记录/待整理</option>
+            </select>
+            <small id="saveFolderStatus" class="field-hint">连接后自动读取 Obsidian 文件夹</small>
+          </label>
+
+          <label class="field note-field">
+            <span>收藏备注 <em>可选</em></span>
+            <textarea id="note" rows="2" placeholder="记录收藏原因或后续用途"></textarea>
+          </label>
+        </div>
+
+        <div id="progress" class="progress hidden"></div>
+        <div id="result" class="result-panel hidden"></div>
+        <button id="save" class="primary-action" type="button">保存到 Obsidian</button>
+      </section>
+
+      <section id="view-identify" class="app-view" data-view="identify" aria-labelledby="tab-identify" hidden>
+        <div class="page-heading">
+          <div>
+            <span class="eyebrow">识别结果</span>
+            <h2 id="detailTitle">当前网页</h2>
+          </div>
+          <span class="status-pill is-ready">已完成</span>
+        </div>
+
+        <dl class="detail-list">
+          <div>
+            <dt>来源网站</dt>
+            <dd id="domain">正在读取当前网页…</dd>
+          </div>
+          <div class="recognition-method">
+            <dt>识别方式</dt>
+            <dd id="status">正在识别网页正文……</dd>
+          </div>
+        </dl>
+
+        <div class="detail-metrics">
+          <div><strong id="length">—</strong><span>正文字符</span></div>
+          <div><strong id="images">—</strong><span>正文图片</span></div>
+          <div><strong id="videos">—</strong><span>媒体视频</span></div>
+        </div>
+
+        <div class="info-note">
+          <span class="info-dot" aria-hidden="true"></span>
+          识别详情不会影响原网页，保存前可随时重新识别。
+        </div>
+        <button id="retry" class="secondary-action" type="button">重新识别正文</button>
+      </section>
+
+      <section id="view-settings" class="app-view settings-view" data-view="settings" aria-labelledby="tab-settings" hidden>
+        <div class="page-heading compact-heading">
+          <div>
+            <span class="eyebrow">本机配置</span>
+            <h2>设置与连接</h2>
+          </div>
+        </div>
+
+        <div id="serviceStatus" class="service-status connecting">
+          <span class="service-indicator" aria-hidden="true"></span>
+          <div>
+            <strong>正在连接 PageNest 后台服务</strong>
+            <small id="serviceStatusDetail">通常只需要片刻</small>
+          </div>
+          <button id="reconnectService" type="button" class="text-button hidden">重新连接</button>
+        </div>
+
+        <section class="vault-section">
+          <div class="section-title">
+            <div>
+              <span>当前 Vault</span>
+              <small id="folderStatus">连接后会自动读取 Obsidian 文件夹</small>
+            </div>
+            <button id="refreshFolders" type="button" class="small-button">刷新</button>
+          </div>
+        </section>
+
+        <details class="settings-group">
+          <summary>
+            <span><strong>高级设置</strong><small>智能整理接口</small></span>
+            <span class="chevron" aria-hidden="true">⌄</span>
+          </summary>
+          <div class="settings-content">
+            <p class="settings-help">兼容 OpenAI 接口；LM Studio 的 API Key 可留空。</p>
+            <label class="field">Base URL<input id="aiUrl" placeholder="例如 http://127.0.0.1:1234/v1"></label>
+            <label class="field">模型名称<input id="aiModel" placeholder="接口提供的模型 ID"></label>
+            <label class="field">API Key<input id="aiKey" type="password" autocomplete="off" placeholder="本地模型通常留空"></label>
+            <button id="saveAiSettings" class="secondary-action" type="button">保存并测试接口</button>
+            <small id="aiConnection"></small>
+          </div>
+        </details>
+
+        <details class="settings-group">
+          <summary>
+            <span><strong>连接设置</strong><small>本地服务地址与令牌</small></span>
+            <span class="chevron" aria-hidden="true">⌄</span>
+          </summary>
+          <div class="settings-content">
+            <label class="field">服务地址<input id="server" value="http://127.0.0.1:8765"></label>
+            <label class="field">收藏器令牌<input id="token" type="password" placeholder="通常由安装程序自动配置"></label>
+            <button id="saveSettings" class="secondary-action" type="button">保存并检查服务</button>
+            <small id="connection"></small>
+          </div>
+        </details>
+      </section>
+    </div>
+
+    <nav id="tabBar" class="tab-bar" data-active="save" aria-label="PageNest 功能导航">
+      <span class="tab-slider" aria-hidden="true"></span>
+      <button id="tab-save" class="tab-button is-active" type="button" data-target="save" aria-selected="true">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 4.75h12v14.5l-6-3.5-6 3.5V4.75Z"/></svg>
+        <span>保存</span>
+      </button>
+      <button id="tab-identify" class="tab-button" type="button" data-target="identify" aria-selected="false">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4.75 8V4.75H8M16 4.75h3.25V8M19.25 16v3.25H16M8 19.25H4.75V16M8.5 12h7"/></svg>
+        <span>识别</span>
+      </button>
+      <button id="tab-settings" class="tab-button" type="button" data-target="settings" aria-selected="false">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 8.25A3.75 3.75 0 1 1 12 15.75 3.75 3.75 0 0 1 12 8.25ZM19 12l1.25-1.1-1.5-2.6-1.63.55a7.1 7.1 0 0 0-1.5-.87L15.3 6.3h-3l-.33 1.68a7.1 7.1 0 0 0-1.5.87L8.85 8.3l-1.5 2.6L8.6 12l-1.25 1.1 1.5 2.6 1.63-.55c.46.35.96.64 1.5.87l.33 1.68h3l.33-1.68c.54-.23 1.04-.52 1.5-.87l1.63.55 1.5-2.6L19 12Z"/></svg>
+        <span>设置</span>
+      </button>
+    </nav>
+  </main>
+
+  <script src="core/content-quality.js"></script>
+  <script src="core/extractor-core.js"></script>
+  <script src="capture-selection.js"></script>
+  <script src="connection-config.js"></script>
+  <script src="core/connection.js"></script>
+  <script src="popup.js"></script>
+</body>
+</html>

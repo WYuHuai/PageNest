@@ -1,6 +1,8 @@
 import os
 import re
 import sys
+import tempfile
+import threading
 from pathlib import Path
 from urllib.parse import urlsplit
 
@@ -17,11 +19,7 @@ def default_env_file() -> Path:
 
 
 ENV_FILE = default_env_file()
-ORGANIZER_ENV_NAMES = {
-    "HERMES_API_URL": "hermes_api_url",
-    "HERMES_MODEL_NAME": "hermes_model_name",
-    "HERMES_API_KEY": "hermes_api_key",
-}
+CONFIG_WRITE_LOCK = threading.Lock()
 EXTENSION_ID_PATTERN = re.compile(r"^[a-p]{32}$")
 
 
@@ -83,6 +81,47 @@ def _quoted_env_value(value: str) -> str:
     return f'"{escaped}"'
 
 
+def _save_env_values(values: dict[str, str]) -> None:
+    """Atomically update selected values while preserving the rest of the user config."""
+    with CONFIG_WRITE_LOCK:
+        text = ENV_FILE.read_text("utf-8") if ENV_FILE.exists() else ""
+        lines = text.splitlines()
+        found: set[str] = set()
+        updated: list[str] = []
+        pattern = re.compile(rf"^({'|'.join(map(re.escape, values))})\s*=")
+        for line in lines:
+            match = pattern.match(line)
+            if match:
+                name = match.group(1)
+                updated.append(f"{name}={_quoted_env_value(values[name])}")
+                found.add(name)
+            else:
+                updated.append(line)
+        for name, value in values.items():
+            if name not in found:
+                updated.append(f"{name}={_quoted_env_value(value)}")
+
+        ENV_FILE.parent.mkdir(parents=True, exist_ok=True)
+        temporary: Path | None = None
+        try:
+            with tempfile.NamedTemporaryFile(
+                mode="w",
+                encoding="utf-8",
+                dir=ENV_FILE.parent,
+                prefix=f".{ENV_FILE.name}.",
+                suffix=".tmp",
+                delete=False,
+            ) as handle:
+                temporary = Path(handle.name)
+                handle.write("\n".join(updated).rstrip() + "\n")
+                handle.flush()
+                os.fsync(handle.fileno())
+            os.replace(temporary, ENV_FILE)
+        finally:
+            if temporary is not None:
+                temporary.unlink(missing_ok=True)
+
+
 def _is_secure_organizer_url(parts) -> bool:
     return parts.scheme == "https" or (
         parts.scheme == "http"
@@ -107,27 +146,15 @@ def save_organizer_configuration(api_url: str, model_name: str, api_key: str | N
         "HERMES_MODEL_NAME": model_name,
         "HERMES_API_KEY": resolved_key,
     }
-    text = ENV_FILE.read_text("utf-8") if ENV_FILE.exists() else ""
-    lines = text.splitlines()
-    found: set[str] = set()
-    updated: list[str] = []
-    pattern = re.compile(r"^(HERMES_API_URL|HERMES_MODEL_NAME|HERMES_API_KEY)\s*=")
-    for line in lines:
-        match = pattern.match(line)
-        if match:
-            name = match.group(1)
-            updated.append(f"{name}={_quoted_env_value(values[name])}")
-            found.add(name)
-        else:
-            updated.append(line)
-    for name in ORGANIZER_ENV_NAMES:
-        if name not in found:
-            updated.append(f"{name}={_quoted_env_value(values[name])}")
-    temporary = ENV_FILE.with_suffix(".env.tmp")
-    temporary.write_text("\n".join(updated).rstrip() + "\n", "utf-8")
-    temporary.replace(ENV_FILE)
+    _save_env_values(values)
     settings.hermes_api_url = api_url
     settings.hermes_model_name = model_name
     settings.hermes_api_key = resolved_key
     return organizer_configuration()
+
+
+def save_vault_configuration(vault: Path) -> None:
+    resolved = str(vault.resolve(strict=True))
+    _save_env_values({"OBSIDIAN_VAULT_PATH": resolved})
+    settings.obsidian_vault_path = resolved
 

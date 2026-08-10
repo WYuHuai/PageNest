@@ -145,3 +145,43 @@ def test_pairing_returns_token_only_to_trusted_store_extension(monkeypatch):
     assert allowed.json() == {"token": "private-token"}
     assert denied.status_code == 403
     assert "private-token" not in denied.text
+
+
+def test_vault_selection_requires_auth_and_accepts_no_client_path(monkeypatch):
+    monkeypatch.setattr(settings, "local_collector_token", "test-token")
+    called = 0
+
+    def fake_switch():
+        nonlocal called
+        called += 1
+        return {"ok": True, "cancelled": True}
+
+    monkeypatch.setattr(main, "switch_vault", fake_switch)
+    denied = client.post("/api/vault/select", json={"path": "C:/not-accepted"})
+    allowed = client.post(
+        "/api/vault/select",
+        json={"path": "C:/not-accepted"},
+        headers={"Authorization": "Bearer test-token"},
+    )
+
+    assert denied.status_code == 401
+    assert allowed.status_code == 200
+    assert allowed.json() == {"ok": True, "cancelled": True}
+    assert called == 1
+
+
+def test_vault_selection_returns_readable_validation_error(monkeypatch):
+    monkeypatch.setattr(settings, "local_collector_token", "test-token")
+
+    def fail_switch():
+        raise main.VaultSelectionError("这个文件夹似乎不是 Obsidian Vault。")
+
+    monkeypatch.setattr(main, "switch_vault", fail_switch)
+    response = client.post(
+        "/api/vault/select",
+        json={},
+        headers={"Authorization": "Bearer test-token"},
+    )
+
+    assert response.status_code == 400
+    assert response.json() == {"detail": "这个文件夹似乎不是 Obsidian Vault。"}

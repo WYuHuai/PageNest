@@ -20,6 +20,7 @@ from .request_limits import RequestSizeLimitMiddleware
 from .rendering import PAGENEST_FORMAT_VERSION
 from .storage import collect
 from .vault import DEFAULT_CATEGORY, list_vault_folders
+from .vault_selection import VaultSelectionError, switch_vault
 
 app = FastAPI(title="PageNest Web Collector", version="1.8.0")
 app.add_middleware(RequestSizeLimitMiddleware, max_bytes=MAX_REQUEST_BYTES)
@@ -123,6 +124,14 @@ async def folders(_: None = Depends(auth)):
         "default": DEFAULT_CATEGORY,
         "folders": list_vault_folders(vault),
     }
+
+
+@app.post("/api/vault/select")
+async def select_vault(_: None = Depends(auth)):
+    try:
+        return await asyncio.to_thread(switch_vault)
+    except VaultSelectionError as exc:
+        raise HTTPException(exc.status_code, str(exc)) from exc
 
 
 @app.get("/status", response_class=HTMLResponse)

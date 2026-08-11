@@ -2,13 +2,23 @@
 
 ## The extension says the local service is not running
 
-1. Open the Start menu and run **PageNest**.
-2. Open **PageNest 运行状态** from the Start menu. The installer records the
-   selected address in `连接设置.txt`.
-3. If another program uses port 8765, rerun the installer; it automatically
-   falls back to 18765 or 28765 and preconfigures the extension accordingly.
-4. If PageNest was installed over an older Hermes setup, stop the older local
-   service and start PageNest again.
+Normally, the installer starts PageNest Service immediately and registers it
+to start after Windows sign-in. The extension can use its existing token to
+rediscover the service on the restricted known local ports `8765`, `18765`,
+and `28765`.
+
+If the popup still reports that it is disconnected:
+
+1. Open **Settings** in the PageNest popup and choose **Reconnect**.
+2. Check that **PageNest Service** is present in the installed PageNest folder.
+3. Open **PageNest 运行状态** from the Start menu to inspect the current
+   connection state.
+4. If the service is not running, start **PageNest** from the Start menu once.
+5. If reconnection still fails, rerun the installer to repair the installed
+   service, startup entry, extension configuration, and Viewer files.
+
+Manual service startup is a recovery step, not part of normal daily use. Do not
+disable authentication or copy tokens into public issue reports.
 
 Source developers can instead run `启动网页收藏器.bat` after configuring
 `local-server\.env`.
@@ -30,6 +40,16 @@ A browser-store installation does not read the bundled extension folder. It can
 auto-pair only when its exact 32-character extension ID is present in
 `PAGENEST_EXTENSION_IDS`. Pre-public builds without assigned store IDs must use
 the bundled unpacked extension or enter the token from `连接设置.txt` manually.
+
+## I want to use a different Obsidian vault
+
+Open **PageNest → Settings → Current Vault → Change Vault** and choose the new
+vault. PageNest validates the folder, remembers the selection, rescans its
+folders, and uses it for future collections. Files in the old vault are not
+moved or deleted.
+
+The adjacent refresh icon only rescans folders inside the current vault; it
+does not change the vault.
 
 ## Obsidian cannot open a `.pagenest` or `.hermes` file
 

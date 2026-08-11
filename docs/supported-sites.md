@@ -7,6 +7,8 @@ future layout or protected resource will remain accessible.
 | --- | --- | --- | --- | --- |
 | Generic article pages | Best effort | HTTP(S), data URLs, lazy images | Direct video when exposed | Reader-like selectors and metadata fallback |
 | Local HTML opened in Edge/Chrome | Current rendered DOM, including body-only generated reports | Data URLs, remote HTTP(S), and browser-readable relative local images | Local media is not a v1.8.0 core feature | Requires **Allow access to file URLs**; scripts and source CSS are not preserved |
+| Xiaohongshu image notes | Dedicated note body, asynchronous readiness, image carousel and currently loaded structured comments | Main note images in visible order; avatar images are embedded when available | Video notes are not the primary v1.8.0 target | Best effort; comments include avatar, author, text, time, location, likes and first-level replies already loaded by the site |
+| Guyue articles | Dedicated current article structure and legacy `.detail-fuwenben .html` | Inline and lazy article images in document order | Best effort | Navigation, recommendations and page shell are excluded when the known article structures are detected |
 | Feishu / Lark documents | Dedicated virtual-block and embedded-frame capture | Signed-in browser fetch, position markers | Embedded players treated as media-only | Canvas content is preserved as an image fallback |
 | WeChat Official Account articles | Dedicated cleanup | Lazy images, invalid placeholder filtering | Best effort | Login or anti-hotlinking can still block resources |
 | CSDN articles | Dedicated code and layout cleanup | Inline and lazy images | Best effort | Preserves syntax colors, folding, copy controls, and repository links |
@@ -17,6 +19,12 @@ future layout or protected resource will remain accessible.
 
 - A website can change its DOM without notice and temporarily break a dedicated
   adapter.
+- Xiaohongshu support is best effort. PageNest saves only comments already
+  loaded by the site and does not automatically expand the full comment tree.
+  Logged-in behavior has not been fully validated.
+- Guyue support covers the current article DOM and the known legacy
+  `.detail-fuwenben .html` structure; it is not a promise that every future or
+  non-article layout will remain compatible.
 - DRM, encrypted streams, expiring signatures, strict anti-hotlinking, or
   resources that require a different browser session may not be downloadable.
 - Canvas and WebGL have no semantic HTML. PageNest preserves a visual capture

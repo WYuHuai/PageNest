@@ -1,10 +1,75 @@
 <!doctype html>
-<html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>PageNest 安装说明</title>
-<style>body{font:17px system-ui;line-height:1.75;max-width:900px;margin:40px auto;padding:20px;color:#17203b}section{padding:18px 24px;border:1px solid #dce2f1;border-radius:16px;margin:18px 0}code{background:#eef1f8;padding:3px 7px;border-radius:5px;word-break:break-all}.ok{color:#087f5b}</style></head><body>
-<h1>PageNest</h1>
-<section><h2>1. 运行安装程序</h2><p>双击 <code>PageNest-Setup-1.8.0.exe</code>，选择一个已经包含 <code>.obsidian</code> 文件夹的 Obsidian 知识库。安装包已包含 Python 运行环境和本地服务，无需另外安装 Python 或填写令牌。</p></section>
-<section><h2>2. Edge / Chrome 扩展</h2><ol><li>打开 <code>edge://extensions/</code> 或 <code>chrome://extensions/</code>。</li><li>开启开发人员模式。</li><li>加载 <code>%LOCALAPPDATA%\Programs\PageNest\Extension</code> 文件夹。</li></ol><p>连接信息已由安装程序配置。</p></section>
-<section><h2>3. Obsidian 查看器</h2><p>重启 Obsidian，在“设置 → 第三方插件”中启用 <strong>PageNest Viewer</strong>。安装程序已把查看器复制到所选知识库。</p></section>
-<section><h2>可选：智能整理</h2><p>需要时在扩展中填写 OpenAI 兼容接口。快速模式只分析文字；深度模式额外分析最多 8 张图片；仅保存原文不会调用模型。</p></section>
-<section><h2>收藏结果</h2><p>每篇网页生成一个 <code>.pagenest</code> 文件，正文与成功下载的图片都封装在其中；旧 <code>.hermes</code> 文件仍可由 PageNest Viewer 打开。</p><p class="ok">页面断网可读；原网站删除后，已成功内嵌的内容仍然存在。</p></section>
-</body></html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>PageNest v1.8.0 安装说明</title>
+<style>
+:root{color-scheme:light;--ink:#111827;--muted:#667085;--blue:#1e45fb;--soft:#f5f7fb;--line:#e4e8f0;--lime:#cdf22b}*{box-sizing:border-box}body{font:16px/1.75 system-ui,-apple-system,"Segoe UI","Microsoft YaHei",sans-serif;max-width:880px;margin:0 auto;padding:48px 24px 80px;color:var(--ink);background:#fff}header{margin-bottom:32px}h1{font-size:38px;line-height:1.2;margin:0 0 10px}h2{font-size:22px;margin:0 0 10px}.lead,.muted{color:var(--muted)}section{padding:22px 24px;border:1px solid var(--line);border-radius:18px;margin:16px 0;background:var(--soft)}code{background:#e9edff;padding:3px 7px;border-radius:6px;word-break:break-all}.step{display:inline-grid;place-items:center;width:30px;height:30px;border-radius:10px;background:var(--blue);color:#fff;margin-right:8px}.ok{display:inline-block;background:var(--lime);padding:4px 10px;border-radius:999px;font-weight:700}.warning{border-left:4px solid #f5a524;padding-left:14px}.path{display:block;margin:10px 0;padding:12px;background:#fff;border:1px solid var(--line)}ul,ol{padding-left:22px}@media(max-width:600px){body{padding:28px 16px}section{padding:18px}}
+</style>
+</head>
+<body>
+<header>
+  <span class="ok">Public Beta RC</span>
+  <h1>PageNest v1.8.0</h1>
+  <p class="lead">三步完成安装：安装程序、浏览器扩展、Obsidian Viewer。</p>
+</header>
+
+<section>
+  <h2><span class="step">1</span>安装 PageNest</h2>
+  <p>下载并运行 <code>PageNest-Setup-1.8.0.exe</code>，选择一个已经包含 <code>.obsidian</code> 文件夹的 Obsidian 知识库。</p>
+  <ul>
+    <li>不需要安装 Python。</li>
+    <li>不需要安装 Node.js。</li>
+    <li>不需要手工填写连接 token。</li>
+    <li>安装完成后 Service 自动启动，并在登录 Windows 后自动启动。</li>
+  </ul>
+  <p class="warning">安装器目前没有 Authenticode 签名，Windows SmartScreen 可能显示“未知发布者”。PageNest 不要求关闭 Microsoft Defender。</p>
+</section>
+
+<section>
+  <h2><span class="step">2</span>加载 Edge / Chrome 扩展</h2>
+  <ol>
+    <li>打开 <code>edge://extensions/</code> 或 <code>chrome://extensions/</code>。</li>
+    <li>开启“开发人员模式”。</li>
+    <li>点击“加载解压缩的扩展”。</li>
+    <li>选择下面的文件夹：</li>
+  </ol>
+  <code class="path">%LOCALAPPDATA%\Programs\PageNest\Extension</code>
+  <p class="muted">Edge Add-ons 正式上线后，这一步会改为从商店安装；当前 Public Beta 仍使用安装器内置扩展。</p>
+</section>
+
+<section>
+  <h2><span class="step">3</span>启用 Obsidian Viewer</h2>
+  <p>重启 Obsidian，打开“设置 → 第三方插件”，启用 <strong>PageNest Viewer</strong>。</p>
+  <p>随后打开网页 → 点击 PageNest → 选择保存位置 → 点击“保存到 Obsidian”。</p>
+</section>
+
+<section>
+  <h2>更换 Obsidian 仓库</h2>
+  <p>打开“PageNest → 设置 → 当前 Vault → 更换仓库”，选择新的 Obsidian Vault。</p>
+  <ul>
+    <li>新收藏进入新 Vault。</li>
+    <li>原 Vault 中的文件不会移动或删除。</li>
+    <li>选择会保存，PageNest 或 Windows 重启后仍然有效。</li>
+    <li>旁边的刷新按钮只重新扫描当前 Vault 内的文件夹。</li>
+  </ul>
+</section>
+
+<section>
+  <h2>连接异常时</h2>
+  <ol>
+    <li>在 Popup 设置页点击“重新连接”。</li>
+    <li>检查 PageNest Service 是否已安装。</li>
+    <li>从开始菜单打开“PageNest 运行状态”。</li>
+    <li>仍无法恢复时，重新运行安装器进行修复。</li>
+  </ol>
+  <p class="muted">正常使用不需要每天手动启动 Service。Extension 会使用已有 token，在 <code>8765</code>、<code>18765</code>、<code>28765</code> 三个已知本地端口中进行有限重新发现。</p>
+</section>
+
+<section>
+  <h2>当前平台状态</h2>
+  <p>Windows 11 处于 RC 验收阶段，干净 Windows 11 安装冒烟仍未完成；Windows 10 尚未完整验证。安装器未签名。</p>
+</section>
+</body>
+</html>

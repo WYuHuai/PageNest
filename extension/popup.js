@@ -188,10 +188,6 @@ async function loadAiSettings() {
   $("aiKey").dataset.saved=data.has_api_key?"true":"false";
   $("aiKey").dataset.savedUrl=data.has_api_key?(data.api_url||""):"";
   syncAiPresetControls();
-  const provider=PageNestAiPresets.findProviderByUrl($("aiUrl").value);
-  if(data.has_api_key || ["openrouter","lmstudio","ollama"].includes(provider.id)) {
-    await refreshAiModels();
-  }
 }
 
 function fillAiProviderPresets() {
@@ -199,22 +195,9 @@ function fillAiProviderPresets() {
   $("aiProviderPreset").replaceChildren(...options);
 }
 
-function fillAiModelPresets(availableModels=null) {
-  const models=[...new Set(availableModels||[])];
-  const custom=new Option(
-    models.length?"自己填写（使用上方当前模型）":"请先读取模型列表，或在上方手动填写",
-    ""
-  );
-  const options=models.map(model=>new Option(model,model));
-  $("aiModelPreset").replaceChildren(custom,...options);
-  $("aiModelPreset").disabled=!models.length;
-}
-
 function syncAiPresetControls() {
   const provider=PageNestAiPresets.findProviderByUrl($("aiUrl").value);
   $("aiProviderPreset").value=provider.id;
-  fillAiModelPresets();
-  $("aiModelHint").textContent="模型会随平台和账号权限变化，请读取接口返回的完整列表。";
 }
 
 function savedAiKeyCanBeReused() {
@@ -227,27 +210,6 @@ function clearStaleSavedAiKey() {
   if(savedAiKeyCanBeReused() || $("aiKey").value!=="********") return;
   $("aiKey").value="";
   $("aiKey").dataset.saved="false";
-}
-
-async function refreshAiModels() {
-  $("refreshAiModels").disabled=true;
-  $("aiModelHint").textContent="正在读取平台模型…";
-  try {
-    const data=await api("/api/ai-models",{
-      api_url:$("aiUrl").value.trim(),
-      model_name:$("aiModel").value.trim(),
-      api_key:savedAiKeyCanBeReused()?null:$("aiKey").value
-    });
-    fillAiModelPresets(data.models);
-    const model=$("aiModel").value.trim();
-    $("aiModelPreset").value=data.models.includes(model)?model:"";
-    $("aiModelHint").textContent=`已读取 ${data.models.length} 个接口返回的模型；保存时会真实验证所选模型。`;
-  } catch(error) {
-    fillAiModelPresets();
-    $("aiModelHint").textContent=`${error.message}；仍可在上方手动填写模型 ID。`;
-  } finally {
-    $("refreshAiModels").disabled=false;
-  }
 }
 
 async function identify() {
@@ -520,20 +482,11 @@ $("aiProviderPreset").onchange=()=>{
   clearStaleSavedAiKey();
   syncAiPresetControls();
 };
-$("aiModelPreset").onchange=()=>{
-  if($("aiModelPreset").value) $("aiModel").value=$("aiModelPreset").value;
-};
 $("aiUrl").oninput=()=>{
   clearStaleSavedAiKey();
   syncAiPresetControls();
 };
-$("aiModel").oninput=()=>{
-  const model=$("aiModel").value.trim();
-  const options=[...$("aiModelPreset").options].map(option=>option.value);
-  $("aiModelPreset").value=options.includes(model)?model:"";
-};
 $("aiKey").oninput=()=>{$("aiKey").dataset.saved="false"};
-$("refreshAiModels").onclick=refreshAiModels;
 $("saveAiSettings").onclick=async()=>{
   $("saveAiSettings").disabled=true;
   $("aiConnection").textContent="正在测试接口…";

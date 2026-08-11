@@ -37,10 +37,10 @@ assert(
 const popupHtml = fs.readFileSync(path.resolve(__dirname, "../extension/popup.html"), "utf8");
 const popupJs = fs.readFileSync(path.resolve(__dirname, "../extension/popup.js"), "utf8");
 assert(popupHtml.indexOf('id="aiUrl"') < popupHtml.indexOf('id="aiProviderPreset"'));
-assert(popupHtml.indexOf('id="aiModel"') < popupHtml.indexOf('id="aiModelPreset"'));
-assert(popupHtml.includes('id="refreshAiModels"'));
-assert(popupHtml.includes("当前账号完整模型列表"));
-assert(popupJs.includes('api("/api/ai-models"'));
+assert(popupHtml.includes('id="aiModel"'));
+assert(!popupHtml.includes('id="aiModelPreset"'));
+assert(!popupHtml.includes('id="refreshAiModels"'));
+assert(!popupJs.includes('api("/api/ai-models"'));
 assert(popupJs.includes("savedAiKeyCanBeReused"));
 
 console.log("AI provider preset tests passed");

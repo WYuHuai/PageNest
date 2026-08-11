@@ -138,13 +138,8 @@
             <label class="field preset-field">常用接口
               <select id="aiProviderPreset" aria-label="选择常用 API 接口"></select>
             </label>
-            <label class="field">当前模型 <em>可自行填写</em><input id="aiModel" placeholder="接口提供的模型 ID"></label>
-            <label class="field preset-field">当前账号可用模型
-              <select id="aiModelPreset" aria-label="选择当前模型"></select>
-              <small id="aiModelHint" class="field-hint">模型会随平台和账号权限变化，请读取接口返回的完整列表。</small>
-            </label>
+            <label class="field">当前模型 <em>手动填写</em><input id="aiModel" placeholder="接口提供的准确模型 ID"></label>
             <label class="field">API Key<input id="aiKey" type="password" autocomplete="off" placeholder="本地模型通常留空"></label>
-            <button id="refreshAiModels" class="text-button" type="button">读取当前账号完整模型列表</button>
             <button id="saveAiSettings" class="secondary-action" type="button">保存并测试接口</button>
             <small class="field-hint">保存时会真实调用一次所选模型，可能产生少量 API 费用。</small>
             <small id="aiConnection"></small>

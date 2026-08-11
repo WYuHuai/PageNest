@@ -207,7 +207,8 @@ function storage(initial){
   assert.ok(!popupJs.includes("本地收藏服务未启动，请从开始菜单启动 PageNest 后重试"));
   assert.ok(!popupJs.includes("[object Object]"));
   assert.match(popupJs,/Service 版本过旧/);
-  assert.match(popupJs,/api\("\/api\/vault\/select",\{\}\)/);
+  assert.match(popupJs,/function selectVaultWithServiceCapabilities/);
+  assert.match(popupJs,/request\("\/api\/vault\/select",\{\}\)/);
   assert.match(popupJs,/if\(data\.cancelled\)/);
   assert.match(popupJs,/textContent="重新选择"/);
   assert.ok(!popupJs.includes('} else {\n    showServiceStatus("disconnected");'));

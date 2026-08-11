@@ -39,6 +39,7 @@ SUPPORTED_PAGE_VARIANTS = (
     "feishu-document",
     "xiaohongshu-note",
 )
+SERVICE_CAPABILITIES = ("vault-selection",)
 
 
 def auth(authorization: str = Header(default="")):
@@ -71,6 +72,7 @@ async def meta(_: None = Depends(auth)):
         "api_protocol_version": API_PROTOCOL_VERSION,
         "pagenest_format_version": PAGENEST_FORMAT_VERSION,
         "supported_page_variants": list(SUPPORTED_PAGE_VARIANTS),
+        "capabilities": list(SERVICE_CAPABILITIES),
     }
 
 

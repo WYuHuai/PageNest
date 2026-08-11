@@ -157,6 +157,9 @@ def test_installer_accepts_only_explicit_store_extension_ids():
     assert configured_ids == ["lbefpoljnlieecogeihhdmgnmjmjkmmd"]
     assert all(re.fullmatch(r"[a-p]{32}", value) for value in configured_ids)
     assert "PAGENEST_EXTENSION_IDS={#ExtensionIds}" in definition
+    assert "ExistingConfigLine('HERMES_API_URL=')" in definition
+    assert "ExistingConfigLine('HERMES_MODEL_NAME=')" in definition
+    assert "ExistingConfigLine('HERMES_API_KEY=')" in definition
     assert "[string]$ExpectedExtensionIds" in smoke
     assert "Store extension pairing: passed" in smoke
     assert "Upgrade token preservation: passed" in smoke

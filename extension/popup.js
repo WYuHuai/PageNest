@@ -356,6 +356,14 @@ async function collectWithServiceCapabilities(payload, request=api) {
   return request("/api/collect",payload);
 }
 
+async function selectVaultWithServiceCapabilities(request=api) {
+  const meta=await request("/api/meta");
+  if(!Array.isArray(meta?.capabilities)||!meta.capabilities.includes("vault-selection")) {
+    throw new Error("本地 PageNest Service 不支持更换仓库，请重新安装当前版本的 PageNest 本地服务");
+  }
+  return request("/api/vault/select",{});
+}
+
 function applyFolderData(data) {
   const select=$("category");
   const selected=select.value;
@@ -431,7 +439,7 @@ $("changeVault").onclick=async()=>{
   $("folderStatus").textContent="请在 Windows 窗口中选择 Obsidian Vault…";
   $("folderStatus").className="";
   try {
-    const data=await api("/api/vault/select",{});
+    const data=await selectVaultWithServiceCapabilities();
     if(data.cancelled) {
       $("vaultName").textContent=previousName;
       $("folderStatus").textContent=previousStatus;

@@ -65,6 +65,7 @@ def test_meta_reports_explicit_service_capabilities(monkeypatch):
             "feishu-document",
             "xiaohongshu-note",
         ],
+        "capabilities": ["vault-selection"],
     }
 
 

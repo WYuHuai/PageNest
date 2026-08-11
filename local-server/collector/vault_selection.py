@@ -54,6 +54,8 @@ def open_windows_vault_picker(initial_path: Path | None = None) -> Path | None:
             str(powershell),
             "-NoProfile",
             "-NonInteractive",
+            "-WindowStyle",
+            "Hidden",
             "-STA",
             "-ExecutionPolicy",
             "Bypass",
@@ -69,7 +71,6 @@ def open_windows_vault_picker(initial_path: Path | None = None) -> Path | None:
                 command,
                 capture_output=True,
                 check=False,
-                creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0),
             )
         except OSError as exc:
             raise VaultSelectionError("无法打开文件夹选择器，请重新启动 PageNest 后再试。", 500) from exc

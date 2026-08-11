@@ -9,7 +9,7 @@ const end = source.indexOf("async function loadFolders", start);
 assert.ok(start >= 0 && end > start, "capability negotiation function is required");
 const context = {};
 vm.runInNewContext(
-  `${source.slice(start, end)}\nthis.collectWithServiceCapabilities = collectWithServiceCapabilities;`,
+  `${source.slice(start, end)}\nthis.collectWithServiceCapabilities = collectWithServiceCapabilities; this.selectVaultWithServiceCapabilities = selectVaultWithServiceCapabilities;`,
   context,
 );
 
@@ -87,5 +87,21 @@ async function expectError(run, status, message) {
     /invalid payload/,
   );
   assert.equal(collectCalled, true);
+
+  const vaultCalls = [];
+  const switched = await context.selectVaultWithServiceCapabilities(async (url, body) => {
+    vaultCalls.push([url, body]);
+    return url === "/api/meta"
+      ? {capabilities: ["vault-selection"]}
+      : {ok: true, vault_name: "Vault B"};
+  });
+  assert.deepEqual(switched, {ok: true, vault_name: "Vault B"});
+  assert.deepEqual(vaultCalls.map(([url]) => url), ["/api/meta", "/api/vault/select"]);
+
+  await expectError(
+    () => context.selectVaultWithServiceCapabilities(async () => ({capabilities: []})),
+    undefined,
+    /不支持更换仓库/,
+  );
   console.log("service capability negotiation tests passed");
 })().catch(error => { console.error(error); process.exitCode = 1; });

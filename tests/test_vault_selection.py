@@ -99,6 +99,22 @@ def test_picker_launch_failure_has_readable_error(monkeypatch):
     assert error.value.status_code == 500
 
 
+@pytest.mark.skipif(vault_selection.os.name != "nt", reason="Windows picker only")
+def test_picker_hides_only_powershell_console_not_the_dialog(monkeypatch):
+    captured = {}
+
+    def cancel_picker(command, **kwargs):
+        captured["command"] = command
+        captured["kwargs"] = kwargs
+        return vault_selection.subprocess.CompletedProcess(command, 2)
+
+    monkeypatch.setattr(vault_selection.subprocess, "run", cancel_picker)
+
+    assert vault_selection.open_windows_vault_picker() is None
+    assert captured["command"][3:5] == ["-WindowStyle", "Hidden"]
+    assert "creationflags" not in captured["kwargs"]
+
+
 @pytest.mark.asyncio
 async def test_new_collections_go_to_vault_b_without_changing_vault_a(tmp_path, monkeypatch):
     vault_a = make_vault(tmp_path, "Vault A", ("Old Folder",))

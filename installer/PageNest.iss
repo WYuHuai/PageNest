@@ -182,6 +182,22 @@ begin
     end;
 end;
 
+function ExistingConfigLine(Prefix: String): String;
+var
+  Lines: TArrayOfString;
+  Index: Integer;
+begin
+  Result := '';
+  if not LoadStringsFromFile(ExpandConstant('{app}\Service\.env'), Lines) then
+    Exit;
+  for Index := 0 to GetArrayLength(Lines) - 1 do
+    if Pos(Prefix, Lines[Index]) = 1 then
+    begin
+      Result := Lines[Index];
+      Exit;
+    end;
+end;
+
 function PortIsListening(Lines: TArrayOfString; Port: Integer): Boolean;
 var
   Index: Integer;
@@ -330,15 +346,30 @@ var
   ExtensionLines: TArrayOfString;
   VaultValue: String;
   ConfigPath: String;
+  ApiUrlLine: String;
+  ModelLine: String;
+  ApiKeyLine: String;
+  LineCount: Integer;
 begin
+  ApiUrlLine := ExistingConfigLine('HERMES_API_URL=');
+  ModelLine := ExistingConfigLine('HERMES_MODEL_NAME=');
+  ApiKeyLine := ExistingConfigLine('HERMES_API_KEY=');
   VaultValue := SelectedVault;
   StringChangeEx(VaultValue, '\', '/', True);
-  SetArrayLength(Lines, 5);
+  LineCount := 5;
+  if ApiUrlLine <> '' then LineCount := LineCount + 1;
+  if ModelLine <> '' then LineCount := LineCount + 1;
+  if ApiKeyLine <> '' then LineCount := LineCount + 1;
+  SetArrayLength(Lines, LineCount);
   Lines[0] := 'OBSIDIAN_VAULT_PATH="' + VaultValue + '"';
   Lines[1] := 'LOCAL_COLLECTOR_TOKEN=' + CollectorToken;
   Lines[2] := 'ALLOW_LOCAL_NETWORK_DOWNLOADS=false';
   Lines[3] := 'PAGENEST_EXTENSION_IDS={#ExtensionIds}';
   Lines[4] := 'PAGENEST_PORT=' + IntToStr(ServicePort);
+  LineCount := 5;
+  if ApiUrlLine <> '' then begin Lines[LineCount] := ApiUrlLine; LineCount := LineCount + 1; end;
+  if ModelLine <> '' then begin Lines[LineCount] := ModelLine; LineCount := LineCount + 1; end;
+  if ApiKeyLine <> '' then Lines[LineCount] := ApiKeyLine;
   ConfigPath := ExpandConstant('{app}\Service\.env');
   if not SaveStringsToUTF8FileWithoutBOM(ConfigPath, Lines, False) then
     RaiseException('无法写入 PageNest 本地服务配置。');

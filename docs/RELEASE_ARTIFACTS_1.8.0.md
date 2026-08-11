@@ -1,16 +1,16 @@
 # PageNest 1.8.0 Release Artifacts
 
-Generated from validated source commit `9b3d046a558a024718aa398e6b93218e0b80a740` on 2026-08-09.
+Generated from validated source commit `24e021c12a29612162be90f724a23b5e9243ac73` on 2026-08-11.
 
 ## User and submission artifacts
 
 | Artifact | Bytes | SHA-256 | Purpose |
 | --- | ---: | --- | --- |
-| `PageNest-Setup-1.8.0.exe` | 49,840,917 | `8e2468728f51312ccdc44252c81df7320682ee8c8c96e94f2debd6e4ee104da7` | Recommended Windows installer; includes the Python runtime, service, extension files and Viewer. |
-| `pagenest-browser-extension-v1.8.0.zip` | 52,356 | `22bf371efe398dc1619d9d6debbb04c4ac89a3dc7a4517b4b29baf9128c0c290` | Unpacked/manual Edge or Chrome extension package. |
-| `pagenest-web-store-v1.8.0.zip` | 52,356 | `22bf371efe398dc1619d9d6debbb04c4ac89a3dc7a4517b4b29baf9128c0c290` | Edge Add-ons upload package. |
+| `PageNest-Setup-1.8.0.exe` | 49,860,255 | `f7969ff80b4f24bd63b08e12554bb88f0aecfc466c73ee57d8670e7eab671602` | Recommended Windows installer; includes the Python runtime, service, extension files and Viewer. |
+| `pagenest-browser-extension-v1.8.0.zip` | 59,746 | `a37a0293b909f5dcba4e5e6ca3268baccc16fb7cec2b50ebf602321a12a43952` | Unpacked/manual Edge or Chrome extension package. |
+| `pagenest-web-store-v1.8.0.zip` | 59,746 | `a37a0293b909f5dcba4e5e6ca3268baccc16fb7cec2b50ebf602321a12a43952` | Edge Add-ons upload package. |
 | `pagenest-obsidian-viewer-v1.3.0.zip` | 2,826 | `3cdfb82f02270ef44fbdcddc377f1f2296dca47566161d5241edee67aa063c59` | Manual Obsidian Viewer installation. |
-| `pagenest-local-server-windows-v1.8.0.zip` | 49,093 | `599df8b3c3b34f820fa5eedce7d864017e1846cc981e986097492454f8413816` | Source/portable service files. This ZIP requires Python; end users should use the installer. |
+| `pagenest-local-server-windows-v1.8.0.zip` | 52,850 | `d8e897cd0ea5a8890fe3fabcabe56bdd4411a9eb6306efbaf997631d22fd782e` | Source/portable service files. This ZIP requires Python; end users should use the installer. |
 
 Local outputs:
 
@@ -47,6 +47,8 @@ Result: **PASS**. `.env.example` is included intentionally and contains placehol
 - Occupied 8765 fallback to 18765: **PASS**.
 - Edge store ID pairing and untrusted-origin rejection: **PASS**.
 - Same-version reinstall preserved the token: **PASS**.
+- Installed service opened a visible native Vault picker; cancelling kept the existing Vault and configuration: **PASS**.
+- Same-version reinstall preserved the configured AI URL, model name and API key: **PASS**.
 - Uninstall removed connection secrets and preserved the user-created page: **PASS**.
 
 The installer is not Authenticode-signed. Windows SmartScreen warnings therefore remain possible.

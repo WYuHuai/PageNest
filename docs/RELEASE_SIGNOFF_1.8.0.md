@@ -2,9 +2,9 @@
 
 ## Release Candidate
 
-- Validated source commit: `492805b07ad23feb6b9eb817905754863a759018`
-- Branch: `codex/rc-ux-fixes`
-- Date: 2026-08-10
+- Validated source commit: `24e021c12a29612162be90f724a23b5e9243ac73`
+- Branch: `codex/ai-provider-presets`
+- Date: 2026-08-11
 - Decision: **BLOCKED**
 
 The real Edge-to-Service-to-Vault path and the isolated real v1.7.4-to-v1.8.0 overwrite upgrade passed. Public beta sign-off remains blocked because a clean Windows 11 installation has not been tested. Windows 10 also remains untested.
@@ -13,13 +13,13 @@ The real Edge-to-Service-to-Vault path and the isolated real v1.7.4-to-v1.8.0 ov
 
 | Check | Result |
 | --- | --- |
-| Python | **PASS — 122 passed** |
-| Python branch coverage | **PASS — 79%** (required minimum 70%) |
+| Python | **PASS — 135 passed** |
+| Python branch coverage | **PASS — 80%** (required minimum 70%) |
 | Ruff | **PASS** |
-| JavaScript syntax | **PASS — 33 files** |
-| JavaScript tests | **PASS — all 14 `tests/test_*.js` scripts** |
+| JavaScript syntax | **PASS — 35 files** |
+| JavaScript tests | **PASS — all 15 `tests/test_*.js` scripts** |
 | PowerShell syntax | **PASS** |
-| Repository, version and release boundary | **PASS — 153 tracked files validated** |
+| Repository, version and release boundary | **PASS — 157 tracked files validated** |
 
 Pytest used the tracked `tests/` directory, a unique ignored temporary root and a process-local Git safe-directory setting. The setting was not written to global or repository configuration.
 
@@ -29,6 +29,7 @@ Pytest used the tracked `tests/` directory, a unique ignored temporary root and 
 | --- | --- | --- |
 | Service connection | PASS | The installed 1.8.0 service responded on its actual port, and the real Edge popup showed `PageNest 后台服务已连接` and `Service 1.8.0`. |
 | Vault connection | PASS | The configured real user Vault existed, had an Obsidian configuration and passed a temporary create/read/delete permission check. The absolute local path is deliberately omitted. |
+| Vault reselection | PASS | The installed service opened a visible native Windows folder picker. Cancelling returned `cancelled=true` and kept the previous Vault configuration unchanged. |
 | Real save | PASS | A normal page was saved through the actual extension and service, appeared in the configured Vault and opened in actual Obsidian. |
 
 The original connection failure was caused by a stale saved endpoint: the service was healthy on a known fallback port, while the extension kept retrying another known port with an otherwise valid token. The bounded connection logic now probes the existing token across the known local ports before pairing. Authentication remains enabled, and no manual port or token entry is required for this recovery path.
@@ -108,6 +109,8 @@ Login Startup registration was inspected, but a full Windows sign-out/sign-in cy
 - **P0, fixed:** a valid saved token did not discover the running service after its known local port changed.
 - **P0, fixed:** overwrite setup aborted when the installed headless service was still running.
 - **P0, fixed:** Extension 1.8.0 displayed a generic disconnection against a healthy Service 1.7.4 instead of an explicit upgrade requirement.
+- **P0, fixed:** the installed same-version service could lack the Vault-selection endpoint without an explicit capability warning.
+- **P0, fixed:** the Vault picker process started but `CREATE_NO_WINDOW` also hid its native dialog.
 - **P0, fixed:** Xiaohongshu readiness could complete on an incomplete shell and duplicated carousel clones could be saved.
 - **P0, fixed:** Guyue legacy `.detail-fuwenben .html` articles were not recognized.
 - **P1, fixed:** Xiaohongshu loaded comments lost their field and reply hierarchy.

@@ -107,7 +107,7 @@ globalThis.HermesExtractorCore = (() => {
   }
   function resolveImage(img, base) {
     const srcset = (img.getAttribute("srcset") || "").split(",").pop()?.trim().split(/\s+/)[0];
-    const raw = img.getAttribute("data-original") || img.getAttribute("data-origin") || img.getAttribute("data-src") || img.getAttribute("data-lazy-src") || img.getAttribute("data-actualsrc") || img.getAttribute("data-image-src") || img.getAttribute("data-zoom-image") || srcset || img.currentSrc || img.getAttribute("src") || "";
+    const raw = img.getAttribute("data-canonical-src") || img.getAttribute("data-original") || img.getAttribute("data-origin") || img.getAttribute("data-src") || img.getAttribute("data-lazy-src") || img.getAttribute("data-actualsrc") || img.getAttribute("data-image-src") || img.getAttribute("data-zoom-image") || srcset || img.currentSrc || img.getAttribute("src") || "";
     try { return new URL(raw, base).href; } catch { return raw; }
   }
   function externalLinkLabel(url) {

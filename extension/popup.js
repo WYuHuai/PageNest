@@ -237,6 +237,7 @@ async function identify() {
     "adapters/guyue.js",
     "adapters/xiaohongshu.js",
     "adapters/local-html.js",
+    "adapters/github.js",
     "adapters/generic.js",
     "extractor.js",
   ]});

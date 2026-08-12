@@ -5,6 +5,7 @@ future layout or protected resource will remain accessible.
 
 | Site or page type | Text and layout | Images | Media | Notes |
 | --- | --- | --- | --- | --- |
+| GitHub README | Dedicated rendered README extraction | Canonical and rendered README images | Best effort | Heading permalink clutter is removed; one source-page link remains in the saved page |
 | Generic article pages | Best effort | HTTP(S), data URLs, lazy images | Direct video when exposed | Reader-like selectors and metadata fallback |
 | Local HTML opened in Edge/Chrome | Current rendered DOM, including body-only generated reports | Data URLs, remote HTTP(S), and browser-readable relative local images | Local media is not a v1.8.0 core feature | Requires **Allow access to file URLs**; scripts and source CSS are not preserved |
 | Xiaohongshu image notes | Dedicated note body, asynchronous readiness, image carousel and currently loaded structured comments | Main note images in visible order; avatar images are embedded when available | Video notes are not the primary v1.8.0 target | Best effort; comments include avatar, author, text, time, location, likes and first-level replies already loaded by the site |

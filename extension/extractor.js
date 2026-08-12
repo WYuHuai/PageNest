@@ -14,6 +14,7 @@ async function buildCapture(adapter, context) {
   const media = dynamic?.media || await HermesMedia.collect(found.element);
   const clone = found.element.cloneNode(true);
   clone.querySelectorAll("script,style,noscript,template").forEach(element => element.remove());
+  adapter.transformClone?.(clone, context);
   core.normalizeLinks(clone);
   core.unwrapHeadingLinks(clone);
   if (!dynamic) core.materializeBackgroundImages(clone);

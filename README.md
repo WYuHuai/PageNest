@@ -1,9 +1,10 @@
 <p align="center"><img src="docs/assets/pagenest-icon-256.png" alt="PageNest" width="112"></p>
 <h1 align="center">PageNest</h1>
-<p align="center"><strong>Save webpages into Obsidian as self-contained offline files.</strong></p>
-<p align="center">Text, images, code, links, and loaded content are saved together. Ordinary capture needs neither AI nor a separate Python installation.</p>
+<p align="center"><strong>Keep the webpage—not just the text.</strong></p>
+<p align="center">Save a webpage as one self-contained <code>.pagenest</code> file, then reopen it inside Obsidian with a dedicated web-style Viewer.</p>
 
 <p align="center">
+  <a href="https://github.com/WYuHuai/PageNest/releases/tag/v1.8.0"><img alt="PageNest v1.8.0 Public Beta" src="https://img.shields.io/badge/release-v1.8.0%20Public%20Beta-1E45FB"></a>
   <a href="https://github.com/WYuHuai/PageNest/actions/workflows/ci.yml"><img alt="CI" src="https://github.com/WYuHuai/PageNest/actions/workflows/ci.yml/badge.svg"></a>
   <img alt="Windows validation" src="https://img.shields.io/badge/Windows-11%20RC%20%7C%2010%20not%20fully%20validated-0078D4?logo=windows">
   <img alt="Edge and Chrome" src="https://img.shields.io/badge/Browser-Edge%20%7C%20Chrome-4285F4">
@@ -18,11 +19,30 @@
   <a href="docs/troubleshooting.md">Troubleshooting</a>
 </p>
 
-<p align="center"><img src="store/assets/01-popup-save.png" alt="PageNest browser popup save screen" width="420"></p>
-
 PageNest is a local-first web collector for Windows, Edge/Chrome, and Obsidian.
 Click the extension on a page and PageNest creates one portable `.pagenest`
 file in your vault—without a sidecar asset folder.
+
+## Web clipping without flattening the web
+
+Most web clippers are designed to turn a page into a Markdown note. PageNest
+takes a different approach: it preserves the collected page as an offline
+document and gives Obsidian a dedicated Viewer for reading it.
+
+| | Typical Markdown clipper | PageNest |
+| --- | --- | --- |
+| Saved result | Converted `.md` note | Self-contained `.pagenest` page |
+| Images and loaded media | References or attachment folders | Embedded into the page when available |
+| Reading in Obsidian | Markdown document | Dedicated web-style Viewer |
+| Moving the collection | Move the note and its assets together | Move one portable file |
+| AI requirement | Depends on the tool | Not required for ordinary capture |
+
+PageNest does not promise a pixel-perfect copy of every website. Its goal is
+to preserve more of the useful webpage experience—while keeping the result
+local, portable, and readable inside your vault.
+
+<p align="center"><img src="store/assets/05-obsidian-viewer.png" alt="A self-contained offline webpage opened by PageNest Viewer inside Obsidian" width="720"></p>
+<p align="center"><sub>The page remains a page: text, images, code, links, layout, and personal notes stay together in one portable file.</sub></p>
 
 ## Why PageNest
 
@@ -30,8 +50,9 @@ file in your vault—without a sidecar asset folder.
   GIFs, and supported media are embedded into one offline file.
 - **Local-first.** Ordinary capture goes from the browser to the loopback-only
   PageNest service and then to your Obsidian vault.
-- **Readable in Obsidian.** PageNest Viewer opens `.pagenest` files and remains
-  compatible with legacy `.hermes` collections.
+- **A webpage Viewer for Obsidian.** PageNest Viewer opens the offline page in
+  a restricted frame, supports code copying, and remains compatible with
+  legacy `.hermes` collections.
 - **AI is optional.** Saving the original page does not require an API key or
   send the page to an AI provider.
 
@@ -176,9 +197,6 @@ content. They contain no personal vault path, token, API key, or account data.
   <tr>
     <td width="50%"><img src="store/assets/03-xiaohongshu-comments.png" alt="Sanitized Xiaohongshu structured comments"><br><sub>Sanitized Xiaohongshu carousel and structured comments</sub></td>
     <td width="50%"><img src="store/assets/04-local-html.png" alt="Local HTML saved as an offline PageNest file"><br><sub>Local HTML saved as one offline file</sub></td>
-  </tr>
-  <tr>
-    <td colspan="2" align="center"><img src="store/assets/05-obsidian-viewer.png" alt="PageNest offline page rendered for Obsidian" width="650"><br><sub>Self-contained page rendered by PageNest Viewer</sub></td>
   </tr>
 </table>
 

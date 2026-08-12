@@ -1,9 +1,10 @@
 <p align="center"><img src="docs/assets/pagenest-icon-256.png" alt="PageNest" width="112"></p>
 <h1 align="center">PageNest</h1>
-<p align="center"><strong>把网页完整收藏进 Obsidian，保存为单个可离线阅读的文件。</strong></p>
-<p align="center">正文、图片、代码、链接和已加载内容一次保存；普通收藏无需 AI，也无需单独安装 Python。</p>
+<p align="center"><strong>收藏的是网页，不只是文字。</strong></p>
+<p align="center">把网页保存为一个自包含的 <code>.pagenest</code> 文件，再用专属网页模式 Viewer 直接在 Obsidian 里打开。</p>
 
 <p align="center">
+  <a href="https://github.com/WYuHuai/PageNest/releases/tag/v1.8.0"><img alt="PageNest v1.8.0 Public Beta" src="https://img.shields.io/badge/release-v1.8.0%20Public%20Beta-1E45FB"></a>
   <a href="https://github.com/WYuHuai/PageNest/actions/workflows/ci.yml"><img alt="CI" src="https://github.com/WYuHuai/PageNest/actions/workflows/ci.yml/badge.svg"></a>
   <img alt="Windows 验证状态" src="https://img.shields.io/badge/Windows-11%20RC%20%7C%2010%20尚未完整验证-0078D4?logo=windows">
   <img alt="Edge 和 Chrome" src="https://img.shields.io/badge/浏览器-Edge%20%7C%20Chrome-4285F4">
@@ -18,11 +19,28 @@
   <a href="docs/troubleshooting.md">故障排查</a>
 </p>
 
-<p align="center"><img src="store/assets/01-popup-save.png" alt="PageNest 浏览器扩展保存页" width="420"></p>
-
 PageNest 是面向 Windows、Edge/Chrome 和 Obsidian 的本地优先网页收藏工具。
 在浏览器中点击扩展，即可在知识库内生成一个可移动的 `.pagenest` 文件，不需要
 旁边再带一个附件文件夹。
+
+## 不把网页压扁成 Markdown
+
+大多数网页剪藏器的目标，是把网页转换成一篇 Markdown 笔记。PageNest 选择另一条
+路线：把采集到的页面保存成离线文档，再由 Obsidian 中的专属 Viewer 以网页模式阅读。
+
+| | 常见 Markdown 剪藏器 | PageNest |
+| --- | --- | --- |
+| 保存结果 | 转换后的 `.md` 笔记 | 自包含的 `.pagenest` 页面 |
+| 图片与已加载媒体 | 外链或附件目录 | 可用时嵌入页面文件 |
+| 在 Obsidian 中阅读 | Markdown 文档 | 专属网页模式 Viewer |
+| 搬运收藏 | 笔记与附件需要一起移动 | 只移动一个文件 |
+| AI 要求 | 取决于具体工具 | 普通收藏不需要 AI |
+
+PageNest 不承诺对所有网站逐像素复刻。它的目标是保留更多有用的网页阅读体验，同时
+让收藏保持本地、可移动，并能直接在你的 Obsidian 知识库中阅读。
+
+<p align="center"><img src="store/assets/05-obsidian-viewer.png" alt="PageNest Viewer 在 Obsidian 中打开自包含离线网页" width="720"></p>
+<p align="center"><sub>网页仍然像网页：正文、图片、代码、链接、排版和收藏备注都留在一个可移动文件里。</sub></p>
 
 ## 为什么用 PageNest
 
@@ -30,8 +48,8 @@ PageNest 是面向 Windows、Edge/Chrome 和 Obsidian 的本地优先网页收�
   离线文件中。
 - **本地优先。** 普通收藏只经过浏览器、本机环回服务和用户选择的 Obsidian
   知识库。
-- **直接在 Obsidian 阅读。** PageNest Viewer 打开 `.pagenest`，并继续兼容旧
-  `.hermes` 收藏。
+- **为 Obsidian 提供网页模式 Viewer。** PageNest Viewer 在受限框架中打开离线
+  页面，支持代码复制，并继续兼容旧 `.hermes` 收藏。
 - **AI 完全可选。** 仅保存原网页不需要 API Key，也不会把页面发送给 AI 平台。
 
 ## v1.8.0 核心亮点
@@ -156,9 +174,6 @@ token、API Key 或账号隐私。
   <tr>
     <td width="50%"><img src="store/assets/03-xiaohongshu-comments.png" alt="脱敏的小红书结构化评论"><br><sub>脱敏小红书轮播与结构化评论</sub></td>
     <td width="50%"><img src="store/assets/04-local-html.png" alt="本地 HTML 保存为离线 PageNest 文件"><br><sub>本地 HTML 保存为单个离线文件</sub></td>
-  </tr>
-  <tr>
-    <td colspan="2" align="center"><img src="store/assets/05-obsidian-viewer.png" alt="PageNest Viewer 渲染离线页面" width="650"><br><sub>PageNest Viewer 渲染的自包含页面</sub></td>
   </tr>
 </table>
 

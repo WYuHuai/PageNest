@@ -92,7 +92,9 @@ hash is authoritative.
 ## Known limitations / 已知限制
 
 - Windows 10 has not been fully validated.
-- A clean Windows 11 installation smoke test is still pending.
+- A persistent clean Windows 11 VM restart and sign-in cycle has not been
+  completed. The real Windows 11 workflow, Windows CI, and automated Windows
+  Sandbox installer smoke have been exercised.
 - The installer is unsigned; Windows SmartScreen may show **Unknown
   publisher**.
 - Website DOM changes can temporarily break dedicated adapters.
@@ -115,6 +117,7 @@ hash is authoritative.
 ## Release gate
 
 This document prepares the v1.8.0 Public Beta Draft. It is not authorization to
-publish. The Release must remain a draft while
-[`RELEASE_SIGNOFF_1.8.0.md`](RELEASE_SIGNOFF_1.8.0.md) says **BLOCKED**. The
-title for the eventual release is **PageNest v1.8.0 — Public Beta**.
+publish. The sign-off decision accepts the explicitly documented Beta
+validation gaps; it does not mark untested environments as passed. The Release
+remains a draft until an explicit publish decision. The eventual title is
+**PageNest v1.8.0 — Public Beta**.

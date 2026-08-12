@@ -3,6 +3,11 @@
 Validated source commit: `492805b07ad23feb6b9eb817905754863a759018`
 Validation date: 2026-08-10
 
+This commit intentionally remains the last source baseline on which the matrix
+below was exercised. Later feature commits are not retroactively claimed as
+part of this matrix; later documentation-only commits do not change the
+compatibility evidence, and no untested environment is promoted to `PASS`.
+
 ## Version contract
 
 | Component | Version | Definition |

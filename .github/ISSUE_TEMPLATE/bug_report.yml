@@ -25,14 +25,14 @@ body:
     id: versions
     attributes:
       label: Component versions
-      placeholder: "Extension 1.7.4, service 1.7.4, viewer 1.3.0"
+      placeholder: "Extension 1.8.0, service 1.8.0, viewer 1.3.0"
     validations:
       required: true
   - type: input
     id: page_type
     attributes:
       label: Website or page type
-      placeholder: "Public CSDN article, Bilibili video, generic article"
+      placeholder: "Public Xiaohongshu note, Guyue article, local HTML, generic article"
     validations:
       required: true
   - type: textarea

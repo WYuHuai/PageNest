@@ -2,12 +2,12 @@
 
 ## Supported versions
 
-Security fixes are applied to the latest release.
+Security fixes are applied to the latest public Beta version line.
 
 | Component | Supported line |
 | --- | --- |
-| Browser extension | 1.7.x |
-| Local service | 1.7.x |
+| Browser extension | 1.8.x |
+| Local service | 1.8.x |
 | Obsidian viewer | 1.3.x |
 
 ## Report a vulnerability privately

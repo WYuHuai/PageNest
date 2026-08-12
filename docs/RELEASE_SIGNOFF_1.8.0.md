@@ -5,9 +5,12 @@
 - Validated source commit: `24e021c12a29612162be90f724a23b5e9243ac73`
 - Branch: `codex/ai-provider-presets`
 - Date: 2026-08-11
-- Decision: **BLOCKED**
+- Decision: **READY FOR PUBLIC BETA WITH KNOWN LIMITATIONS**
 
-The real Edge-to-Service-to-Vault path and the isolated real v1.7.4-to-v1.8.0 overwrite upgrade passed. Public beta sign-off remains blocked because a clean Windows 11 installation has not been tested. Windows 10 also remains untested.
+The real Edge-to-Service-to-Vault path, actual Obsidian Viewer interactions and
+the isolated real v1.7.4-to-v1.8.0 overwrite upgrade passed. This Beta decision
+accepts the validation gaps documented below; it does not mark an untested
+environment as passed.
 
 ## Automated tests
 
@@ -99,10 +102,13 @@ The old service has no `/api/meta`. A successful authenticated `/api/health` res
 | Environment | Result |
 | --- | --- |
 | Current Windows 11 Pro host | PASS — real chain and isolated upgrade |
+| Automated Windows Sandbox smoke | PASS — installer, no-Python service, Unicode Vault, port fallback and uninstall checks |
 | Clean Windows 11 VM/image | NOT TESTED |
 | Clean Windows 10 VM/image | NOT TESTED |
 
-Login Startup registration was inspected, but a full Windows sign-out/sign-in cycle was not performed in this round.
+Login Startup registration was inspected, but a persistent clean-VM Windows
+restart and sign-in cycle was not completed. This remains a known Beta
+validation gap rather than a passed test.
 
 ## RC bug classification
 
@@ -128,6 +134,9 @@ Login Startup registration was inspected, but a full Windows sign-out/sign-in cy
 
 ## Final decision
 
-**BLOCKED**
+**READY FOR PUBLIC BETA WITH KNOWN LIMITATIONS**
 
-To reconsider `READY FOR PUBLIC BETA`, complete and record a clean Windows 11 installation smoke. Windows 10 remains `NOT TESTED` and must not be represented as passed.
+This decision accepts the documented Beta validation gaps; it does not mark
+the clean Windows 11 VM, Windows 10, logged-in Xiaohongshu behavior or the
+unsigned installer as fully validated. The GitHub Release remains a draft until
+an explicit publish decision.

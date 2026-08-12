@@ -89,9 +89,10 @@ not automatically expand the complete comment tree.
 
 ## Install in 3 steps
 
-> Current platform status: Windows 11 is a release candidate environment. A
-> clean Windows 11 installation smoke test is still pending, and Windows 10 has
-> not been fully validated.
+> Current platform status: the real workflow has been tested on a Windows 11
+> host and in Windows CI, and an automated Windows Sandbox installer smoke test
+> passes. A persistent clean-VM restart cycle is not complete, and Windows 10
+> has not been fully validated.
 
 ### 1. Install PageNest
 
@@ -212,8 +213,8 @@ Read [Security](SECURITY.md), [Privacy](PRIVACY.md), and
 
 ## Known limitations
 
-- Windows 10 has not been fully validated; a clean Windows 11 installation
-  smoke test is still pending.
+- Windows 10 has not been fully validated; a persistent clean Windows 11 VM
+  restart and sign-in cycle has not been completed.
 - The installer is unsigned and may trigger a SmartScreen **Unknown publisher**
   warning.
 - Dedicated site adapters can temporarily break after a website DOM change.

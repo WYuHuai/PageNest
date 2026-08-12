@@ -16,7 +16,7 @@
   },
   "compatibility": {
     "browser_extension": {
-      "local_server": "1.7.x"
+      "local_server": "1.8.x"
     },
     "obsidian_viewer": {
       "file_format": "1.x",

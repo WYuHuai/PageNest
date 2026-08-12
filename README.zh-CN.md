@@ -78,8 +78,9 @@ Claude 等工具生成的 HTML。PageNest 采集当前渲染后的 DOM 和浏览
 
 ## 三步安装
 
-> 当前平台状态：Windows 11 处于 RC 验收阶段，干净 Windows 11 安装冒烟仍未完成；
-> Windows 10 尚未完整验证。
+> 当前平台状态：真实工作流已在 Windows 11 实机与 Windows CI 中测试，自动化
+> Windows Sandbox 安装冒烟通过；可持久化干净 Windows 11 虚拟机的重启登录流程
+> 尚未完成，Windows 10 尚未完整验证。
 
 ### 1. 安装 PageNest
 
@@ -188,7 +189,7 @@ flowchart LR
 
 ## 已知限制
 
-- Windows 10 尚未完整验证；干净 Windows 11 安装冒烟仍未完成。
+- Windows 10 尚未完整验证；可持久化干净 Windows 11 虚拟机的重启登录流程尚未完成。
 - 安装器未签名，SmartScreen 可能提示**未知发布者**。
 - 网站 DOM 改版可能临时影响专用适配器。
 - 小红书只保存网站当前已经加载的评论，登录状态尚未完整测试。

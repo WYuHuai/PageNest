@@ -10,7 +10,7 @@
 - [x] `CHANGELOG.md`, `release-manifest.json`, README files, and release notes
       describe the same versions and installation flow.
 
-## Clean Windows smoke test
+## Windows Beta validation
 
 - [x] Run the automated [Windows Sandbox smoke test](windows-sandbox-smoke.md)
       and retain its `RESULT: PASS` report.
@@ -26,6 +26,10 @@
 - [ ] Verify images, GIFs, supported video, links, code folding, and copying.
 - [x] Uninstall PageNest; confirm connection secrets are removed and collected
       files in the vault remain.
+
+The unchecked persistent restart, browser matrix, offline fidelity and store
+reviewer-flow items are post-beta validation gaps. They are not recorded as
+passed and do not change the Public Beta scope described in the release notes.
 
 ## GitHub
 

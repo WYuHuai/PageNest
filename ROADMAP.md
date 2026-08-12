@@ -3,15 +3,20 @@
 Security, reliable offline fidelity, and simple installation take priority over
 new features.
 
-## Release readiness
+## Public Beta readiness
 
-- Run the complete installer flow on a clean Windows 10/11 machine without
-  Python installed.
-- Add Authenticode signing and document Windows SmartScreen expectations.
 - Finish version update guidance, public repository metadata, and private
-  vulnerability reporting before the first public release.
+  vulnerability reporting for the Public Beta.
 - Verify the configured Edge store ID through the certification channel, then
   add the Chrome ID before a later Chrome Web Store release.
+
+## Post-beta validation and distribution hardening
+
+- Complete a persistent clean Windows 11 restart and sign-in validation.
+- Run the full installer and Viewer workflow on Windows 10.
+- Add Authenticode signing; until then, keep SmartScreen expectations explicit.
+- Complete Edge Add-ons certification and evaluate Chrome Web Store
+  publication.
 
 ## Collection quality
 
@@ -31,12 +36,12 @@ new features.
 3. Support multiple configured Obsidian vaults.
 4. Generate a one-click diagnostic report with explicit redaction.
 
-## Distribution
+## Additional distribution options
 
 - Optional BRAT installation for preview builds.
 - Evaluate Obsidian Community Plugins submission.
-- Evaluate Edge Add-ons and Chrome Web Store publication after the GitHub
-  release and permission documentation are stable.
+- Evaluate additional preview channels after the GitHub release and permission
+  documentation are stable.
 
 The roadmap is directional. A feature is complete only after focused tests and
 real interaction verification.

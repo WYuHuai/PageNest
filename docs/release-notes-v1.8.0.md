@@ -82,7 +82,7 @@ new clients from silently using unsupported older service behavior.
 Current RC installer SHA-256:
 
 ```text
-f7969ff80b4f24bd63b08e12554bb88f0aecfc466c73ee57d8670e7eab671602
+f23e45603e67764a7efc0a6d6743dece3611bdbf95ba0265beca5696e9e44eb6
 ```
 
 This value must be recalculated from the final artifact before the Draft

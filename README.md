@@ -48,13 +48,21 @@ local, portable, and readable inside your vault.
 
 - Article structure, original-position images, GIFs, tables, code blocks,
   links, supported media, and your collection note.
-- Dedicated capture for Xiaohongshu, Guyue, Feishu/Lark, WeChat, CSDN, and
+- Dedicated capture for GitHub README pages, Xiaohongshu, Guyue, Feishu/Lark, WeChat, CSDN, and
   Bilibili, plus a generic article path for other sites.
 - Local HTML files explicitly opened in Edge/Chrome, including the rendered
   DOM and browser-readable images.
 - Currently loaded Xiaohongshu comments and image carousels on supported notes.
 - Duplicate-safe, atomic saves. Optional OpenAI-compatible organization never
   blocks saving the original page when the AI endpoint fails.
+
+### Three save modes
+
+| Mode | Saved result | AI required |
+| --- | --- | --- |
+| Complete webpage | Original text, images, code, links, and best-effort web layout | No; recommended default |
+| Webpage + AI text summary | Complete webpage plus a text-only summary | Yes |
+| Webpage + AI visual summary | Complete webpage plus a text-and-image summary with a vision-capable model | Yes |
 
 ## Install in 3 steps
 
@@ -112,6 +120,7 @@ Current Vault → Change Vault**. Existing files remain in the old vault.
 
 | Site or page type | Current support |
 | --- | --- |
+| GitHub README | README body and images; heading permalink clutter is removed while one source-page link remains |
 | Generic article pages | Main content, headings, images, links, code, best-effort layout |
 | Local HTML | Current rendered DOM, code, tables, links, and browser-readable images |
 | Xiaohongshu | Image notes, carousels, asynchronous content, and currently loaded structured comments; best effort |

@@ -260,6 +260,30 @@ h1 {
   font-weight: 500;
 }
 
+.mode-guide {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 5px;
+  margin-top: 6px;
+}
+
+.mode-guide small {
+  min-width: 0;
+  padding: 6px;
+  border-radius: 9px;
+  background: var(--surface);
+  color: var(--muted);
+  font-size: 10px;
+  line-height: 1.25;
+}
+
+.mode-guide b {
+  display: block;
+  margin-bottom: 2px;
+  color: var(--ink);
+  font-size: 11px;
+}
+
 select,
 input,
 textarea {

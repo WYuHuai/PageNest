@@ -209,6 +209,9 @@ function storage(initial){
   assert.equal((popupHtml.match(/class="tab-button/g)||[]).length,3);
   assert.match(popupHtml,/class="tab-slider"/);
   assert.match(popupHtml,/id="tabBar"[^>]*data-active="save"/);
+  assert.equal((popupHtml.match(/class="mode-guide"/g)||[]).length,1);
+  assert.match(popupHtml,/网页 \+ AI 文字总结/);
+  assert.match(popupHtml,/网页 \+ AI 图文总结/);
   assert.ok(popupHtml.indexOf("保存位置")<popupHtml.indexOf('id="serviceStatus"'));
   assert.match(popupJs,/function showView\(name\)/);
   assert.match(popupJs,/\$\("tabBar"\)\.dataset\.active=name/);

@@ -80,9 +80,15 @@ async def meta(_: None = Depends(auth)):
 async def pair_extension(origin: str = Header(default="")):
     allowed = trusted_extension_origins()
     if not allowed:
-        raise HTTPException(404, "商店扩展自动配对尚未启用")
+        raise HTTPException(
+            404,
+            "自动配对未启用；请加载 PageNest 安装目录中的 Extension 文件夹",
+        )
     if origin not in allowed:
-        raise HTTPException(403, "该扩展来源无权配对")
+        raise HTTPException(
+            403,
+            "当前扩展 ID 未获授权；请加载 PageNest 安装目录中的 Extension 文件夹",
+        )
     if not settings.local_collector_token:
         raise HTTPException(503, "本地收藏器尚未生成连接令牌")
     return {"token": settings.local_collector_token}

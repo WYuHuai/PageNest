@@ -44,7 +44,13 @@ async function connectService() {
   showServiceStatus("connecting");
   const result=await PageNestConnection.connect();
   if(!result){
-    showServiceStatus("disconnected");
+    const diagnostic=PageNestConnection.diagnostic();
+    const detail={
+      "untrusted-extension":"当前扩展未获本机服务授权。请删除这个扩展，再从 %LOCALAPPDATA%\\Programs\\PageNest\\Extension 加载。",
+      "pairing-disabled":"当前扩展没有安装器配置的连接信息。请从 %LOCALAPPDATA%\\Programs\\PageNest\\Extension 重新加载。",
+      "service-unreachable":"无法连接 PageNest 后台服务。请先从开始菜单启动 PageNest，再重试。",
+    }[diagnostic]||"连接配置无效。请重新运行 PageNest 安装器进行修复。";
+    showServiceStatus("disconnected",detail);
     return false;
   }
   fillSettings(result.connection);

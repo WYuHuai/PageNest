@@ -80,8 +80,16 @@ function storage(initial){
   const unavailable=storage({server:"http://127.0.0.1:8765",token:""});
   assert.equal((await PageNestConnection.load({
     storage:unavailable,
-    request:async()=>({ok:false}),
+    request:async()=>({ok:false,status:403}),
   })).token,"");
+  assert.equal(PageNestConnection.diagnostic(),"untrusted-extension");
+
+  const pairingDisabled=storage({server:"http://127.0.0.1:8765",token:""});
+  assert.equal((await PageNestConnection.load({
+    storage:pairingDisabled,
+    request:async()=>({ok:false,status:404}),
+  })).token,"");
+  assert.equal(PageNestConnection.diagnostic(),"pairing-disabled");
 
   PageNestConnection.invalidate();
 
@@ -207,6 +215,7 @@ function storage(initial){
   assert.ok(!popupJs.includes("本地收藏服务未启动，请从开始菜单启动 PageNest 后重试"));
   assert.ok(!popupJs.includes("[object Object]"));
   assert.match(popupJs,/Service 版本过旧/);
+  assert.match(popupJs,/%LOCALAPPDATA%\\\\Programs\\\\PageNest\\\\Extension/);
   assert.match(popupJs,/function selectVaultWithServiceCapabilities/);
   assert.match(popupJs,/request\("\/api\/vault\/select",\{\}\)/);
   assert.match(popupJs,/if\(data\.cancelled\)/);

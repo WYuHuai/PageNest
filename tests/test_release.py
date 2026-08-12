@@ -166,6 +166,15 @@ def test_installer_accepts_only_explicit_store_extension_ids():
     assert "PAGENEST_EXTENSION_IDS=" in example
 
 
+def test_installer_opens_the_preconfigured_extension_directory():
+    definition = (ROOT / "installer" / "PageNest.iss").read_text("utf-8")
+    guide = (ROOT / "installer" / "extension-install.html").read_text("utf-8")
+    assert 'Parameters: """{app}\\Extension"""' in definition
+    assert "请勿加载下载的源码目录" in definition
+    assert "%LOCALAPPDATA%\\Programs\\PageNest\\Extension" in guide
+    assert "不要选择下载的源码目录" in guide
+
+
 def test_local_service_port_candidates_stay_in_sync():
     ports = (8765, 18765, 28765)
     connection = (ROOT / "extension" / "core" / "connection.js").read_text("utf-8")

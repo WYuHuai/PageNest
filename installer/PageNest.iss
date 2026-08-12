@@ -61,7 +61,8 @@ Type: filesandordirs; Name: "{app}\Service\logs"
 Type: files; Name: "{app}\连接设置.txt"
 
 [Run]
-Filename: "{app}\extension-install.html"; Description: "查看 Edge/Chrome 扩展安装步骤"; Flags: shellexec postinstall skipifsilent unchecked
+Filename: "{app}\extension-install.html"; Description: "查看 Edge/Chrome 扩展安装步骤"; Flags: shellexec postinstall skipifsilent
+Filename: "{sys}\explorer.exe"; Parameters: """{app}\Extension"""; Description: "打开正确的浏览器扩展文件夹"; Flags: postinstall skipifsilent nowait
 
 [Code]
 const
@@ -463,5 +464,6 @@ begin
   if CurPageID = wpFinished then
     WizardForm.FinishedLabel.Caption :=
       'PageNest 已安装，浏览器扩展连接信息已经预配置。' + #13#10 + #13#10 +
-      '接下来安装 Edge/Chrome 扩展，并在 Obsidian 的第三方插件中启用 PageNest Viewer。';
+      '点击完成后会打开正确的 Extension 文件夹和安装说明。' + #13#10 +
+      '请勿加载下载的源码目录，否则扩展无法连接本机服务。';
 end;

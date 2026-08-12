@@ -5,6 +5,7 @@
     "http://127.0.0.1:28765",
   ]);
   let resolvedConnection="";
+  let lastDiagnostic="";
 
   function connectionKey(connection){
     return `${connection.server}\n${connection.token}`;
@@ -20,6 +21,7 @@
   }
 
   async function pair(request,servers){
+    let serviceResponded=false;
     for(const server of servers){
       try{
         const response=await request(server+"/api/pair",{
@@ -27,13 +29,20 @@
           headers:{"Content-Type":"application/json"},
           body:"{}",
         });
+        serviceResponded=true;
+        if(response.status===403) lastDiagnostic="untrusted-extension";
+        else if(response.status===404&&lastDiagnostic!=="untrusted-extension") lastDiagnostic="pairing-disabled";
         if(!response.ok) continue;
         const paired=await response.json();
-        if(paired.token) return {server,token:paired.token};
+        if(paired.token){
+          lastDiagnostic="";
+          return {server,token:paired.token};
+        }
       }catch{
         // Try the next known local port.
       }
     }
+    if(!serviceResponded) lastDiagnostic="service-unreachable";
     return null;
   }
 
@@ -52,6 +61,7 @@
     request=request||fetch;
     installed=installed||scope.PAGENEST_CONNECTION||{};
     const configured=installedConnection(installed);
+    lastDiagnostic="";
     const current=await storage.get({
       server:configured?.server||DEFAULT_SERVERS[0],
       token:configured?.token||"",
@@ -132,7 +142,12 @@
 
   function invalidate(){
     resolvedConnection="";
+    lastDiagnostic="";
   }
 
-  scope.PageNestConnection=Object.freeze({load,connect,invalidate,DEFAULT_SERVERS});
+  function diagnostic(){
+    return lastDiagnostic;
+  }
+
+  scope.PageNestConnection=Object.freeze({load,connect,invalidate,diagnostic,DEFAULT_SERVERS});
 })(globalThis);

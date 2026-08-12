@@ -145,6 +145,7 @@ def test_pairing_returns_token_only_to_trusted_store_extension(monkeypatch):
     assert allowed.status_code == 200
     assert allowed.json() == {"token": "private-token"}
     assert denied.status_code == 403
+    assert "PageNest 安装目录" in denied.json()["detail"]
     assert "private-token" not in denied.text
 
 

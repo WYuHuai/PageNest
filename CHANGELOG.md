@@ -4,6 +4,8 @@ All notable user-facing changes are recorded here.
 
 ## Unreleased
 
+## 1.8.0 - 2026-08-12
+
 - Development line 1.8.0 coordinates the extension and local service versions.
 - Service capabilities are negotiated before saving page variants.
 - Renderer system metadata is shared so duplicate detection remains reliable.

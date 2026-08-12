@@ -42,57 +42,13 @@ PageNest 不承诺对所有网站逐像素复刻。它的目标是保留更多�
 <p align="center"><img src="store/assets/05-obsidian-viewer.png" alt="PageNest Viewer 在 Obsidian 中打开自包含离线网页" width="720"></p>
 <p align="center"><sub>网页仍然像网页：正文、图片、代码、链接、排版和收藏备注都留在一个可移动文件里。</sub></p>
 
-## 为什么用 PageNest
+## PageNest 会保留什么
 
-- **一页一文件。** 正文、原位图片、代码、链接、GIF 和支持的媒体封装在同一个
-  离线文件中。
-- **本地优先。** 普通收藏只经过浏览器、本机环回服务和用户选择的 Obsidian
-  知识库。
-- **为 Obsidian 提供网页模式 Viewer。** PageNest Viewer 在受限框架中打开离线
-  页面，支持代码复制，并继续兼容旧 `.hermes` 收藏。
-- **AI 完全可选。** 仅保存原网页不需要 API Key，也不会把页面发送给 AI 平台。
-
-## v1.8.0 核心亮点
-
-### 一页一文件
-
-一个网页最终对应一个自包含的 `.pagenest` 文件，没有需要一起搬运、改名或维护
-的附件目录。
-
-### 本地优先
-
-```text
-Edge / Chrome → PageNest Local Service → Obsidian 知识库
-```
-
-Service 只监听 `127.0.0.1`。普通收藏不会上传到 PageNest 服务器，项目也没有遥测。
-
-### 本地 HTML
-
-支持收藏用户在 Edge/Chrome 中主动打开的 `file://*.html`，包括 ChatGPT、Codex、
-Claude 等工具生成的 HTML。PageNest 采集当前渲染后的 DOM 和浏览器可读取图片，
-不会把本地绝对路径发送给 Service，也不会赋予 Service 任意读取硬盘的能力。
-
-### 随时更换知识库
-
-安装后仍可打开**设置 → 当前 Vault → 更换仓库**重新选择 Obsidian 知识库。新收藏
-进入新 Vault，旧 Vault 中的文件不会被移动或删除。
-
-### 小红书结构化评论
-
-对支持的小红书笔记，PageNest 会保存网页当前已经加载的评论头像、用户名、正文、
-时间、地区、点赞和一级回复；不会自动展开完整评论树。
-
-## 核心功能
-
-- 普通文章通用采集，并为小红书、古月居、飞书、微信、CSDN 和 B站提供专用适配。
-- 保存原位图片、GIF、标题、表格、代码块、外部仓库链接和独立收藏备注。
-- 小红书图片轮播和尽力而为的结构化评论。
-- 古月居当前文章 DOM 和旧 `.detail-fuwenben .html` 结构。
-- 通过已登录浏览器读取飞书受保护图片，并为 Canvas 内容提供视觉兜底。
-- 保存 B站元数据，并对支持的公开页面提供受限媒体采集。
-- 原子写入和重复收藏保护。
-- 可选 OpenAI 兼容智能整理；AI 失败不影响原文和已下载图片保存。
+- 文章结构、原位图片、GIF、表格、代码块、链接、支持的媒体和收藏备注。
+- 为小红书、古月居、飞书、微信、CSDN、B站提供专用适配，其他网站使用通用文章采集。
+- 用户在 Edge/Chrome 中主动打开的本地 HTML，包括当前渲染 DOM 和浏览器可读图片。
+- 支持的小红书笔记中当前已加载的评论与图片轮播。
+- 重复收藏保护和原子写入；可选 AI 整理失败也不会阻止保存原网页。
 
 ## 三步安装
 
@@ -128,12 +84,17 @@ Edge 扩展商店版本正式上线前：
 重启 Obsidian，打开**设置 → 第三方插件**，启用 **PageNest Viewer**。随后打开网页，
 点击 PageNest，再点击**保存到 Obsidian**。
 
-### 更换 Obsidian 仓库
-
-打开 **PageNest → 设置 → 当前 Vault → 更换仓库**，选择新的 Obsidian Vault。
-选择会持久保存，重启后仍然有效。原 Vault 文件保持不变，只有后续收藏进入新 Vault。
-
 详细恢复步骤见[安装说明](docs/安装说明.html)和[故障排查](docs/troubleshooting.md)。
+
+## 收藏并打开一个网页
+
+1. 在 Edge 或 Chrome 中打开支持的网页。
+2. 打开 PageNest，确认保存位置，点击**保存到 Obsidian**。
+3. 在所选知识库文件夹中找到新生成的 `.pagenest` 文件。
+4. 在 Obsidian 中打开它，PageNest Viewer 会渲染离线页面。
+
+收藏本地 HTML 前，请先在扩展详情中开启**允许访问文件网址**。以后需要更换知识库时，
+使用 **PageNest → 设置 → 当前 Vault → 更换仓库**；旧知识库中的文件不会被移动。
 
 ## 支持网站
 
@@ -149,17 +110,6 @@ Edge 扩展商店版本正式上线前：
 | B站 | 视频页、专栏、动态、元数据和支持的媒体采集 |
 
 网站结构可能随时变化，完整说明见[网站支持矩阵](docs/supported-sites.md)。
-
-## 本地 HTML
-
-在扩展详情中开启**允许访问文件网址**，用浏览器打开 HTML，再像普通网页一样保存。
-成品不会执行源 JavaScript，复杂源 CSS 也不保证逐像素还原。
-
-## 可选 AI 整理
-
-PageNest 支持用户自行配置 OpenAI Chat Completions 兼容接口，模型名称由用户明确
-填写。只有主动选择 AI 整理模式时才会调用接口；AI 失败不会阻止保存原文和已成功
-下载的图片。
 
 ## 截图
 
@@ -211,31 +161,17 @@ flowchart LR
 - DRM、受保护资源、过期链接或严格防盗链可能导致部分媒体无法收藏。
 - 复杂本地 HTML 不执行源 JavaScript，原始 CSS 不保证 1:1 复现。
 
-## 开发与参与贡献
+## 文档与参与贡献
 
-```powershell
-python -m venv local-server\.venv
-local-server\.venv\Scripts\python -m pip install -r local-server\requirements-dev.txt
-local-server\.venv\Scripts\python -m pytest -q
-
-Get-ChildItem extension,obsidian-plugin,tests -Recurse -Filter *.js |
-  ForEach-Object { node --check $_.FullName }
-Get-ChildItem tests -Filter "test_*.js" |
-  ForEach-Object { node $_.FullName }
-```
-
-欢迎提交聚焦的问题报告和 Pull Request。请先阅读
-[CONTRIBUTING.md](CONTRIBUTING.md)，不要上传私人网页、知识库内容、API Key 或未脱敏日志。
-
-### 进阶文档
-
+- [安装说明](docs/安装说明.html)
+- [故障排查](docs/troubleshooting.md)
 - [架构与数据流](docs/architecture.md)
 - [版本兼容说明](docs/version-compatibility.md)
-- [发布检查清单](docs/release-checklist.md)
-- [v1.8.0 兼容矩阵](docs/COMPATIBILITY_MATRIX_1.8.0.md)
-- [v1.8.0 发布验收](docs/RELEASE_SIGNOFF_1.8.0.md)
-- [v1.8.0 发布产物](docs/RELEASE_ARTIFACTS_1.8.0.md)
 - [路线图](ROADMAP.md)
+- [参与贡献](CONTRIBUTING.md)
+
+欢迎提交聚焦的问题报告和 Pull Request。请勿上传私人网页、知识库内容、API Key
+或未脱敏日志。
 
 ## License
 

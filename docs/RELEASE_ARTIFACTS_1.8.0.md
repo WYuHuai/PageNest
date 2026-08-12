@@ -1,12 +1,12 @@
 # PageNest 1.8.0 Release Artifacts
 
-Generated from validated source commit `c2389834496f440f951032d010d0818518a02ecd` on 2026-08-12.
+Generated from validated source commit `06fb684d9c858c48badf7064502c03e22fa9e456` on 2026-08-12.
 
 ## User and submission artifacts
 
 | Artifact | Bytes | SHA-256 | Purpose |
 | --- | ---: | --- | --- |
-| `PageNest-Setup-1.8.0.exe` | 49,860,255 | `f23e45603e67764a7efc0a6d6743dece3611bdbf95ba0265beca5696e9e44eb6` | Recommended Windows installer; includes the Python runtime, service, extension files and Viewer. |
+| `PageNest-Setup-1.8.0.exe` | 49,860,255 | `c22d9868bdf3ae8f55f7d83d4769c92fe61e7dbe8b2076a5a22e41e69a213865` | Recommended Windows installer; includes the Python runtime, service, extension files and Viewer. |
 | `pagenest-browser-extension-v1.8.0.zip` | 59,746 | `a37a0293b909f5dcba4e5e6ca3268baccc16fb7cec2b50ebf602321a12a43952` | Unpacked/manual Edge or Chrome extension package. |
 | `pagenest-web-store-v1.8.0.zip` | 59,746 | `a37a0293b909f5dcba4e5e6ca3268baccc16fb7cec2b50ebf602321a12a43952` | Edge Add-ons upload package. |
 | `pagenest-obsidian-viewer-v1.3.0.zip` | 2,826 | `3cdfb82f02270ef44fbdcddc377f1f2296dca47566161d5241edee67aa063c59` | Manual Obsidian Viewer installation. |

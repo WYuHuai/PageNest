@@ -13,7 +13,7 @@
 
 <p align="center">
   <a href="README.zh-CN.md">简体中文</a> ·
-  <a href="https://github.com/WYuHuai/PageNest/releases">Download</a> ·
+  <a href="https://github.com/WYuHuai/PageNest/releases/download/v1.8.0/PageNest-Setup-1.8.0.exe">Download installer</a> ·
   <a href="#install-in-3-steps">Install</a> ·
   <a href="docs/supported-sites.md">Supported sites</a> ·
   <a href="docs/troubleshooting.md">Troubleshooting</a>
@@ -65,9 +65,10 @@ local, portable, and readable inside your vault.
 
 ### 1. Install PageNest
 
-Download `PageNest-Setup-1.8.0.exe` and its checksum from
-[GitHub Releases](https://github.com/WYuHuai/PageNest/releases), verify the
-SHA-256 value, run the installer, and select an existing Obsidian vault.
+Download [`PageNest-Setup-1.8.0.exe`](https://github.com/WYuHuai/PageNest/releases/download/v1.8.0/PageNest-Setup-1.8.0.exe)
+and its [SHA-256 checksum](https://github.com/WYuHuai/PageNest/releases/download/v1.8.0/PageNest-Setup-1.8.0.exe.sha256),
+verify the checksum, run the installer, and select an existing Obsidian vault.
+Windows users should use this installer rather than clone the source repository.
 
 - No Python installation required.
 - No Node.js installation required.

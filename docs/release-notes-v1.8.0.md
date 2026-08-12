@@ -85,9 +85,8 @@ Current RC installer SHA-256:
 c22d9868bdf3ae8f55f7d83d4769c92fe61e7dbe8b2076a5a22e41e69a213865
 ```
 
-This value must be recalculated from the final artifact before the Draft
-Release is published. If the final installer changes, the final recalculated
-hash is authoritative.
+This is the checksum of the installer published with v1.8.0. If the installer
+asset ever changes, the checksum published beside that asset is authoritative.
 
 ## Known limitations / 已知限制
 
@@ -114,10 +113,7 @@ hash is authoritative.
 - [Security](../SECURITY.md)
 - [Privacy](../PRIVACY.md)
 
-## Release gate
+## Release status
 
-This document prepares the v1.8.0 Public Beta Draft. It is not authorization to
-publish. The sign-off decision accepts the explicitly documented Beta
-validation gaps; it does not mark untested environments as passed. The Release
-remains a draft until an explicit publish decision. The eventual title is
-**PageNest v1.8.0 — Public Beta**.
+PageNest v1.8.0 Public Beta was published on August 12, 2026. It remains a
+pre-release while the limitations above are being validated.

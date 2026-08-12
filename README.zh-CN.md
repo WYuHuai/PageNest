@@ -13,7 +13,7 @@
 
 <p align="center">
   <a href="README.md">English</a> ·
-  <a href="https://github.com/WYuHuai/PageNest/releases">下载</a> ·
+  <a href="https://github.com/WYuHuai/PageNest/releases/download/v1.8.0/PageNest-Setup-1.8.0.exe">下载安装器</a> ·
   <a href="#三步安装">安装</a> ·
   <a href="docs/supported-sites.md">支持网站</a> ·
   <a href="docs/troubleshooting.md">故障排查</a>
@@ -58,9 +58,10 @@ PageNest 不承诺对所有网站逐像素复刻。它的目标是保留更多�
 
 ### 1. 安装 PageNest
 
-从 [GitHub Releases](https://github.com/WYuHuai/PageNest/releases) 下载
-`PageNest-Setup-1.8.0.exe` 和校验文件，核对 SHA-256 后运行安装程序，并选择一个
-已有的 Obsidian 知识库。
+直接下载 [`PageNest-Setup-1.8.0.exe`](https://github.com/WYuHuai/PageNest/releases/download/v1.8.0/PageNest-Setup-1.8.0.exe)
+及其 [SHA-256 校验文件](https://github.com/WYuHuai/PageNest/releases/download/v1.8.0/PageNest-Setup-1.8.0.exe.sha256)，
+核对校验值后运行安装程序，并选择一个已有的 Obsidian 知识库。普通 Windows 用户
+不需要克隆源码，也不要按照 Python 项目的方式安装依赖。
 
 - 不需要安装 Python。
 - 不需要安装 Node.js。

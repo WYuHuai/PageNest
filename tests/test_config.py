@@ -6,6 +6,10 @@ import run as service_run
 from collector import config
 
 
+def test_new_install_has_no_default_ai_model():
+    assert config.Settings(_env_file=None).hermes_model_name == ""
+
+
 def test_generic_organizer_settings_are_persisted_without_exposing_key(tmp_path, monkeypatch):
     env_file = tmp_path / ".env"
     env_file.write_text("OBSIDIAN_VAULT_PATH=D:/Vault\nHERMES_API_URL=\n", "utf-8")

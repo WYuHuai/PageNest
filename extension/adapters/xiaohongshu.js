@@ -11,6 +11,19 @@
   const NOTE_ROOT_SELECTORS = ["#detail-container", "#noteContainer", ".note-container", "[class*='note-detail']"];
   const NOTE_MEDIA_SELECTORS = [".note-slider", "[class*='note-slider']", "[class*='image-list']", "[class*='carousel']"];
 
+  function carouselIndex(image, fallback) {
+    const slide = image.closest?.("[data-swiper-slide-index],[data-slide-index],[data-index],[aria-label]");
+    if (!slide) return fallback;
+    const raw = [
+      slide.getAttribute("data-swiper-slide-index"),
+      slide.getAttribute("data-slide-index"),
+      slide.getAttribute("data-index"),
+    ].find(value => value != null && value !== "");
+    if (raw != null && Number.isFinite(Number(raw))) return Number(raw);
+    const ariaIndex = slide.getAttribute("aria-label")?.match(/^\s*(\d+)\s*\//)?.[1];
+    return ariaIndex ? Number(ariaIndex) - 1 : fallback;
+  }
+
   function imageNodes(root) {
     const isNoteImage = image => {
       if (!noteImage(image)) return false;
@@ -25,14 +38,18 @@
     const candidates = mediaRoot
       ? [...mediaRoot.querySelectorAll("img")]
       : (root ? [...root.querySelectorAll("img")] : [...document.images]);
-    const seen = new Set();
-    return candidates.filter(image => {
+    const ordered = candidates.map((image, domIndex) => ({image, domIndex, slideIndex: carouselIndex(image, domIndex)})).filter(({image}) => {
       if (!isNoteImage(image) || image.closest?.("[class*='comment'],.author-wrapper,.user-info")) return false;
       const url = resolveImage(image, location.href);
-      if (!url || seen.has(url)) return false;
+      return Boolean(url);
+    }).sort((left, right) => left.slideIndex - right.slideIndex || left.domIndex - right.domIndex);
+    const seen = new Set();
+    return ordered.filter(({image}) => {
+      const url = resolveImage(image, location.href);
+      if (seen.has(url)) return false;
       seen.add(url);
       return true;
-    });
+    }).map(item => item.image);
   }
 
   function appendGallery(article, root, title) {
@@ -63,13 +80,15 @@
       const previous = document.createElement("a");
       previous.href = "#";
       previous.setAttribute("data-hermes-gallery-prev", "");
-      previous.textContent = "‹ 上一张";
+      previous.setAttribute("aria-label", "上一张");
+      previous.textContent = "‹";
       const counter = document.createElement("span");
       counter.setAttribute("data-hermes-kind", "xhs-gallery-count");
       const next = document.createElement("a");
       next.href = "#";
       next.setAttribute("data-hermes-gallery-next", "");
-      next.textContent = "下一张 ›";
+      next.setAttribute("aria-label", "下一张");
+      next.textContent = "›";
       controls.append(previous, counter, next);
       gallery.appendChild(controls);
     }

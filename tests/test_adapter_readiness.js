@@ -27,7 +27,8 @@ function loadAdapter(file, state) {
   return registered;
 }
 
-function image(src = "https://sns-img-qc.xhscdn.com/image.jpg") {
+function image(src = "https://sns-img-qc.xhscdn.com/image.jpg", slideIndex = null) {
+  const slide = slideIndex == null ? null : {getAttribute: name => name === "data-swiper-slide-index" ? String(slideIndex) : ""};
   return {
     src,
     className: "note-image",
@@ -35,7 +36,7 @@ function image(src = "https://sns-img-qc.xhscdn.com/image.jpg") {
     naturalWidth: 800,
     naturalHeight: 600,
     getAttribute: name => name === "src" ? src : "",
-    closest: () => null,
+    closest: selector => selector.includes("data-swiper-slide-index") ? slide : null,
   };
 }
 
@@ -117,6 +118,26 @@ function guyueDocument(root, selector = "main") {
   assert.equal(extraction.images.length, 1, "duplicate carousel nodes must produce one saved image");
   assert.equal(extraction.method, "xiaohongshu:note:1-images");
   assert.equal(extraction.comments.length, 0, "comments stay separate from the article body");
+
+  const third = image("https://sns-img-qc.xhscdn.com/third.jpg", 2);
+  const clonedThird = image("https://sns-img-qc.xhscdn.com/third.jpg", 2);
+  const firstImage = image("https://sns-img-qc.xhscdn.com/first.jpg", 0);
+  const second = image("https://sns-img-qc.xhscdn.com/second.jpg", 1);
+  const orderedMedia = {querySelectorAll: selector => selector === "img" ? [clonedThird, firstImage, second, third] : []};
+  const orderedRoot = {
+    innerText: `${title.innerText} ${description.innerText}`,
+    querySelector: selector => selector.includes("note-slider") ? orderedMedia : selector === ".note-title" ? title : selector === ".note-content" ? description : null,
+    querySelectorAll: () => [],
+  };
+  const orderedDocument = xhsDocument({root: orderedRoot});
+  orderedDocument.createElement = element;
+  const orderedAdapter = loadAdapter("xiaohongshu.js", {
+    hostname: "www.xiaohongshu.com",
+    pathname: "/explore/note-ordered",
+    document: orderedDocument,
+  });
+  const ordered = await orderedAdapter.extract();
+  assert.deepEqual(Array.from(ordered.images, item => item.resolved_url), [firstImage.src, second.src, third.src]);
 
   const shell = {innerText: "页面壳", querySelectorAll: () => []};
   const guyue = loadAdapter("guyue.js", {

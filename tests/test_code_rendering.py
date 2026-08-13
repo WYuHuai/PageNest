@@ -76,8 +76,8 @@ def test_xiaohongshu_gallery_controls_are_sanitized_and_rendered():
         '<article data-hermes-kind="xhs-note"><h1>笔记</h1>'
         '<section data-hermes-kind="xhs-gallery" data-hermes-gallery="" data-hermes-gallery-index="0">'
         '<figure data-hermes-kind="xhs-slide"><img src="data:image/png;base64,AAAA"></figure>'
-        '<p><a href="#" data-hermes-gallery-prev="">上一张</a>'
-        '<a href="#" data-hermes-gallery-next="">下一张</a></p></section>'
+        '<p><a href="#" aria-label="上一张" data-hermes-gallery-prev="">‹</a>'
+        '<a href="#" aria-label="下一张" data-hermes-gallery-next="">›</a></p></section>'
         '<section data-hermes-kind="xhs-comments"><p data-hermes-kind="xhs-comment">评论内容</p></section>'
         '</article>'
     )
@@ -88,6 +88,9 @@ def test_xiaohongshu_gallery_controls_are_sanitized_and_rendered():
     assert 'data-hermes-gallery-index="0"' in cleaned
     assert 'xhs-gallery-controls' in rendered
     assert 'hermesShowGallerySlide' in rendered
+    assert 'aria-label="上一张"' in cleaned
+    assert ':hover [data-hermes-kind="xhs-gallery-controls"] a' in rendered
+    assert 'position:absolute;inset:0' in rendered
     assert '[data-hermes-kind="xhs-comments"]' in rendered
 
 

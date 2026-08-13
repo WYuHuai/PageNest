@@ -82,7 +82,7 @@ new clients from silently using unsupported older service behavior.
 Current RC installer SHA-256:
 
 ```text
-e548a6af582b99e17ef2810e082b9828e1165abc9e8e57d8381b8a9203cadc13
+b9a722cac22376c51c2232c7d75d18c6eba400cf35d26b0d9bf76a1376d7107f
 ```
 
 This is the checksum of the installer published with v1.8.0. If the installer

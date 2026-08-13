@@ -6,11 +6,11 @@ Generated from validated source commit `06fb684d9c858c48badf7064502c03e22fa9e456
 
 | Artifact | Bytes | SHA-256 | Purpose |
 | --- | ---: | --- | --- |
-| `PageNest-Setup-1.8.0.exe` | 49,853,409 | `e548a6af582b99e17ef2810e082b9828e1165abc9e8e57d8381b8a9203cadc13` | Recommended Windows installer; includes the Python runtime, service, extension files and Viewer. |
-| `pagenest-browser-extension-v1.8.0.zip` | 60,820 | `8b54c3b7d07425af11eb5bd90c684ce2585b72d33933d40d8c166c449ed59d84` | Unpacked/manual Edge or Chrome extension package. |
-| `pagenest-web-store-v1.8.0.zip` | 60,820 | `8b54c3b7d07425af11eb5bd90c684ce2585b72d33933d40d8c166c449ed59d84` | Edge Add-ons upload package. |
+| `PageNest-Setup-1.8.0.exe` | 49,850,509 | `b9a722cac22376c51c2232c7d75d18c6eba400cf35d26b0d9bf76a1376d7107f` | Recommended Windows installer; includes the Python runtime, service, extension files and Viewer. |
+| `pagenest-browser-extension-v1.8.0.zip` | 61,095 | `10dc8d1c0e22c408211c6d2588df4e8bbc6757afeeb1e06ce7389e491943bf19` | Unpacked/manual Edge or Chrome extension package. |
+| `pagenest-web-store-v1.8.0.zip` | 61,095 | `10dc8d1c0e22c408211c6d2588df4e8bbc6757afeeb1e06ce7389e491943bf19` | Edge Add-ons upload package. |
 | `pagenest-obsidian-viewer-v1.3.0.zip` | 2,826 | `3cdfb82f02270ef44fbdcddc377f1f2296dca47566161d5241edee67aa063c59` | Manual Obsidian Viewer installation. |
-| `pagenest-local-server-windows-v1.8.0.zip` | 53,271 | `d01b61fd425dc69015f33f3e173c766dbffd375a5d1369f981537ba264e57ec7` | Source/portable service files. This ZIP requires Python; end users should use the installer. |
+| `pagenest-local-server-windows-v1.8.0.zip` | 53,439 | `32a46d2de9fbe124754e7d339d184cbfdf7965560057b2d52b975d50ba666bea` | Source/portable service files. This ZIP requires Python; end users should use the installer. |
 
 Local outputs:
 

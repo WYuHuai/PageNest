@@ -41,8 +41,19 @@ PageNest does not promise a pixel-perfect copy of every website. Its goal is
 to preserve more of the useful webpage experience—while keeping the result
 local, portable, and readable inside your vault.
 
-<p align="center"><img src="store/assets/05-obsidian-viewer.png" alt="A self-contained offline webpage opened by PageNest Viewer inside Obsidian" width="720"></p>
-<p align="center"><sub>The page remains a page: text, images, code, links, layout, and personal notes stay together in one portable file.</sub></p>
+**The result stays useful, not just readable:**
+
+- **Web-style offline reading:** PageNest keeps the article structure, images,
+  loaded comments, tables, code, and best-effort layout instead of flattening
+  everything into plain text.
+- **Viewer interactions:** Open the saved page inside Obsidian, browse supported
+  image carousels, follow links, and copy ordinary text or code blocks with one
+  click.
+- **One portable file:** The page and its embedded resources travel together as
+  a single `.pagenest` file, without a sidecar asset folder.
+- **Optional AI organization:** Keep the full offline page and optionally add a
+  text or visual summary through your own OpenAI-compatible endpoint. An AI
+  failure does not discard the original capture.
 
 ## What PageNest preserves
 

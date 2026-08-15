@@ -65,7 +65,7 @@ def test_meta_reports_explicit_service_capabilities(monkeypatch):
             "feishu-document",
             "xiaohongshu-note",
         ],
-        "capabilities": ["vault-selection"],
+        "capabilities": ["vault-selection", "search-index-v1"],
     }
 
 
@@ -159,6 +159,7 @@ def test_vault_selection_requires_auth_and_accepts_no_client_path(monkeypatch):
         return {"ok": True, "cancelled": True}
 
     monkeypatch.setattr(main, "switch_vault", fake_switch)
+    monkeypatch.setattr(main, "refresh_configured_index", lambda: asyncio.sleep(0))
     denied = client.post("/api/vault/select", json={"path": "C:/not-accepted"})
     allowed = client.post(
         "/api/vault/select",
@@ -170,6 +171,19 @@ def test_vault_selection_requires_auth_and_accepts_no_client_path(monkeypatch):
     assert allowed.status_code == 200
     assert allowed.json() == {"ok": True, "cancelled": True}
     assert called == 1
+
+
+@pytest.mark.asyncio
+async def test_search_index_refresh_uses_only_configured_vault(tmp_path, monkeypatch):
+    vault = tmp_path / "vault"
+    vault.mkdir()
+    called = []
+    monkeypatch.setattr(settings, "obsidian_vault_path", str(vault))
+    monkeypatch.setattr(main, "refresh_search_index", called.append)
+
+    await main.refresh_configured_index()
+
+    assert called == [vault.resolve()]
 
 
 def test_vault_selection_returns_readable_validation_error(monkeypatch):

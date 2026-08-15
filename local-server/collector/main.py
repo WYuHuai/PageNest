@@ -1,6 +1,7 @@
 import asyncio
 import logging
 import subprocess
+from contextlib import asynccontextmanager
 from pathlib import Path
 from time import perf_counter
 from fastapi import Depends, FastAPI, Header, HTTPException
@@ -18,11 +19,31 @@ from .limits import MAX_CONCURRENT_COLLECTIONS, MAX_REQUEST_BYTES
 from .models import ArticleInput, OrganizerSettingsInput
 from .request_limits import RequestSizeLimitMiddleware
 from .rendering import PAGENEST_FORMAT_VERSION
+from .search_index import refresh_search_index
 from .storage import collect
 from .vault import DEFAULT_CATEGORY, list_vault_folders
 from .vault_selection import VaultSelectionError, switch_vault
 
-app = FastAPI(title="PageNest Web Collector", version="1.8.0")
+logger = logging.getLogger("uvicorn.error")
+
+
+async def refresh_configured_index() -> None:
+    vault = settings.vault
+    if not vault or not vault.is_dir():
+        return
+    try:
+        await asyncio.to_thread(refresh_search_index, vault)
+    except Exception as error:
+        logger.warning("PageNest search index refresh failed: %s", error)
+
+
+@asynccontextmanager
+async def lifespan(_app: FastAPI):
+    await refresh_configured_index()
+    yield
+
+
+app = FastAPI(title="PageNest Web Collector", version="1.8.0", lifespan=lifespan)
 app.add_middleware(RequestSizeLimitMiddleware, max_bytes=MAX_REQUEST_BYTES)
 app.add_middleware(
     CORSMiddleware,
@@ -30,7 +51,6 @@ app.add_middleware(
     allow_methods=["GET", "POST"],
     allow_headers=["Authorization", "Content-Type"],
 )
-logger = logging.getLogger("uvicorn.error")
 collection_slots = asyncio.Semaphore(MAX_CONCURRENT_COLLECTIONS)
 API_PROTOCOL_VERSION = 1
 SUPPORTED_PAGE_VARIANTS = (
@@ -39,7 +59,7 @@ SUPPORTED_PAGE_VARIANTS = (
     "feishu-document",
     "xiaohongshu-note",
 )
-SERVICE_CAPABILITIES = ("vault-selection",)
+SERVICE_CAPABILITIES = ("vault-selection", "search-index-v1")
 
 
 def auth(authorization: str = Header(default="")):
@@ -137,7 +157,10 @@ async def folders(_: None = Depends(auth)):
 @app.post("/api/vault/select")
 async def select_vault(_: None = Depends(auth)):
     try:
-        return await asyncio.to_thread(switch_vault)
+        result = await asyncio.to_thread(switch_vault)
+        if not result.get("cancelled"):
+            await refresh_configured_index()
+        return result
     except VaultSelectionError as exc:
         raise HTTPException(exc.status_code, str(exc)) from exc
 
@@ -180,6 +203,7 @@ async def collect_api(
     started = perf_counter()
     try:
         result = await collect(article)
+        await refresh_configured_index()
         result["total_seconds"] = perf_counter() - started
         if result.get("hermes_error"):
             logger.warning("Organizer failed: %s", result["hermes_error"])

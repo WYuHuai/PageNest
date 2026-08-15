@@ -23,7 +23,12 @@ Module._load = function (request, parent, isMain) {
   return originalLoad.call(this, request, parent, isMain);
 };
 const searchPath = path.resolve(__dirname, "../obsidian-plugin/pagenest-viewer/main.js");
-const { PageNestSearchModal, searchIndexDocuments } = require(searchPath);
+const {
+  PageNestSearchModal,
+  markdownLibrary,
+  searchIndexDocuments,
+  writeMarkdownLibrary,
+} = require(searchPath);
 Module._load = originalLoad;
 
 const documents = {
@@ -45,6 +50,13 @@ assert.equal(results[0].path, "研究/正文.pagenest");
 assert.match(results[0].snippet, /科研/);
 assert.deepEqual(searchIndexDocuments(documents, "   "), []);
 
+const library = markdownLibrary(documents);
+assert.match(library, /^<!-- pagenest-generated-library:v1 -->/);
+assert.match(library, /# PageNest Library/);
+assert.match(library, /## TimesFM 预测/);
+assert.match(library, /时间序列 Python 代码/);
+assert.doesNotMatch(library, /<html|data:image/);
+
 (async () => {
   let opened = null;
   const file = {path: "研究/正文.pagenest"};
@@ -59,6 +71,24 @@ assert.deepEqual(searchIndexDocuments(documents, "   "), []);
 
   await modal.openResult("missing.pagenest");
   assert.match(lastNotice, /移动或删除/);
+
+  const files = new Map();
+  const exportApp = {
+    vault: {
+      adapter: {
+        exists: async (path) => files.has(path),
+        read: async (path) => files.get(path),
+        write: async (path, value) => files.set(path, value),
+      },
+    },
+  };
+  assert.equal(await writeMarkdownLibrary(exportApp, documents), 2);
+  assert.match(files.get("PageNest Library.md"), /普通文章/);
+  files.set("PageNest Library.md", "# 用户自己的文件\n");
+  await assert.rejects(
+    () => writeMarkdownLibrary(exportApp, documents),
+    /不会覆盖已有的 PageNest Library\.md/,
+  );
   console.log("obsidian search index tests passed");
 })().catch((error) => {
   console.error(error);

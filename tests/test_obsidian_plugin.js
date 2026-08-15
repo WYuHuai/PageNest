@@ -88,6 +88,7 @@ assert.equal(typeof viewFactory, "function");
 assert.deepEqual(registeredExtensions, [["pagenest"], ["hermes"]]);
 assert.equal(typeof ribbonHandler, "function");
 assert.ok(commands.some((command) => command.id === "search-pages"));
+assert.ok(commands.some((command) => command.id === "export-markdown-library"));
 
 const refresh = {
   addEventListener(type, listener) {

@@ -113,6 +113,16 @@ Edge 扩展商店版本正式上线前：
 收藏本地 HTML 前，请先在扩展详情中开启**允许访问文件网址**。以后需要更换知识库时，
 使用 **PageNest → 设置 → 当前 Vault → 更换仓库**；旧知识库中的文件不会被移动。
 
+### 全文搜索与 AI 可读文本
+
+PageNest Viewer 可以直接搜索标题、正文、代码、已加载评论和收藏备注，不必逐个打开文件。
+在 Obsidian 中使用**搜索 PageNest 收藏**命令，或点击左侧功能区的搜索图标即可。
+
+对于不认识 `.pagenest` 的工具，可在 Obsidian 命令面板运行 **PageNest Viewer：生成 AI
+可读资料库**。它会生成一个 `PageNest Library.md`，汇总所有已索引收藏的干净文本，供
+ripgrep、Dataview 和普通 AI 插件读取。再次运行会刷新这个生成文件；PageNest 不会覆盖
+用户自己的同名文件，也不会为每篇收藏生成一份 Markdown sidecar。
+
 ## 支持网站
 
 | 网站或页面类型 | 当前支持 |

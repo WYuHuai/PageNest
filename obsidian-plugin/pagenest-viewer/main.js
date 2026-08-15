@@ -9,6 +9,54 @@ const PAGE_EXTENSION = "pagenest";
 const LEGACY_EXTENSION = "hermes";
 const INDEX_PATH = ".pagenest/search-index.json";
 const MAX_SEARCH_RESULTS = 50;
+const LIBRARY_PATH = "PageNest Library.md";
+const LIBRARY_MARKER = "<!-- pagenest-generated-library:v1 -->";
+
+async function readIndexDocuments(app) {
+  const payload = JSON.parse(await app.vault.adapter.read(INDEX_PATH));
+  return payload?.schema_version === 1 && payload.documents ? payload.documents : {};
+}
+
+function markdownLibrary(documents) {
+  const sections = Object.entries(documents || {})
+    .sort(([left], [right]) => left.localeCompare(right))
+    .map(([path, document]) => {
+      const title = String(document.title || path.replace(/\.(?:pagenest|hermes)$/iu, ""))
+        .replace(/\s+/gu, " ")
+        .trim();
+      const source = String(document.source || "").trim();
+      const text = String(document.text || "").trim();
+      const metadata = [`- PageNest 原文件：\`${path}\``];
+      if (source) metadata.push(`- 来源：${source}`);
+      return [`## ${title || "未命名收藏"}`, "", ...metadata, "", text].join("\n").trimEnd();
+    });
+  return [
+    LIBRARY_MARKER,
+    "---",
+    "pagenest_generated: true",
+    "pagenest_schema: 1",
+    "---",
+    "",
+    "# PageNest Library",
+    "",
+    "> 由 PageNest 生成，供全文搜索、Dataview 和 AI 工具读取。请勿在此文件中保存手工笔记。",
+    "",
+    ...sections,
+    "",
+  ].join("\n");
+}
+
+async function writeMarkdownLibrary(app, documents) {
+  const adapter = app.vault.adapter;
+  if (await adapter.exists(LIBRARY_PATH)) {
+    const existing = await adapter.read(LIBRARY_PATH);
+    if (!existing.startsWith(LIBRARY_MARKER)) {
+      throw new Error(`不会覆盖已有的 ${LIBRARY_PATH}，请先为该文件改名`);
+    }
+  }
+  await adapter.write(LIBRARY_PATH, markdownLibrary(documents));
+  return Object.keys(documents || {}).length;
+}
 
 function normalizedTerms(query) {
   return query.trim().toLocaleLowerCase().split(/\s+/u).filter(Boolean);
@@ -77,10 +125,7 @@ class PageNestSearchModal extends Modal {
 
   async loadIndex() {
     try {
-      const payload = JSON.parse(await this.app.vault.adapter.read(INDEX_PATH));
-      this.documents = payload?.schema_version === 1 && payload.documents
-        ? payload.documents
-        : {};
+      this.documents = await readIndexDocuments(this.app);
       this.renderResults();
     } catch (error) {
       this.documents = {};
@@ -261,6 +306,19 @@ class HermesPageViewerPlugin extends Plugin {
       name: "搜索 PageNest 收藏",
       callback: () => new PageNestSearchModal(this.app).open(),
     });
+    this.addCommand({
+      id: "export-markdown-library",
+      name: "生成 AI 可读资料库",
+      callback: async () => {
+        try {
+          const documents = await readIndexDocuments(this.app);
+          const count = await writeMarkdownLibrary(this.app, documents);
+          new Notice(`已生成 ${LIBRARY_PATH}，包含 ${count} 篇收藏。`);
+        } catch (error) {
+          new Notice(`PageNest：${error.message || error}`);
+        }
+      },
+    });
     this.addRibbonIcon("search", "搜索 PageNest 收藏", () => {
       new PageNestSearchModal(this.app).open();
     });
@@ -280,3 +338,5 @@ class HermesPageViewerPlugin extends Plugin {
 module.exports = HermesPageViewerPlugin;
 module.exports.PageNestSearchModal = PageNestSearchModal;
 module.exports.searchIndexDocuments = searchIndexDocuments;
+module.exports.markdownLibrary = markdownLibrary;
+module.exports.writeMarkdownLibrary = writeMarkdownLibrary;

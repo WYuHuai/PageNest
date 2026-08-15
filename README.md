@@ -127,6 +127,20 @@ To collect a local HTML file, enable **Allow access to file URLs** in the
 extension details first. To change vaults later, use **PageNest → Settings →
 Current Vault → Change Vault**. Existing files remain in the old vault.
 
+### Search and AI-readable text
+
+PageNest Viewer can search titles, body text, code, loaded comments, and
+collection notes without opening each file. Use the **Search PageNest
+collections** command or the search icon in Obsidian's ribbon.
+
+Tools that do not understand `.pagenest` can use one optional generated file.
+Run **PageNest Viewer: Generate AI-readable library** from Obsidian's command
+palette to create `PageNest Library.md`. It contains clean text for all indexed
+collections, so ripgrep, Dataview, and ordinary AI plugins can read it. Running
+the command again refreshes this generated file; PageNest will not overwrite an
+unrelated file with the same name and does not create one Markdown sidecar per
+saved page.
+
 ## Supported sites
 
 | Site or page type | Current support |

@@ -23,6 +23,18 @@ PageNest is a local-first web collector for Windows, Edge/Chrome, and Obsidian.
 Click the extension on a page and PageNest creates one portable `.pagenest`
 file in your vault—without a sidecar asset folder.
 
+## New in v1.9.0
+
+- **Search every saved page in Obsidian:** Find titles, body text, code, loaded
+  comments, and collection notes without opening files one by one.
+- **Make the library readable by AI and text tools:** Generate one optional
+  Markdown library for Codex, ripgrep, Dataview, and ordinary AI plugins—without
+  creating a sidecar note for every capture.
+- **Keep the web-style experience:** Offline pages still preserve supported
+  images, carousels, comments, layout, links, and one-click code copying.
+- **Open older collections:** Existing `.pagenest` and legacy `.hermes` files
+  remain supported. See the [v1.9.0 release notes](docs/release-notes-v1.9.0.md).
+
 ## Web clipping without flattening the web
 
 Most web clippers are designed to turn a page into a Markdown note. PageNest

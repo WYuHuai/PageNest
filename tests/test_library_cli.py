@@ -5,7 +5,8 @@ from pathlib import Path
 import pytest
 
 import pagenest_cli
-from collector.library import read_document_file, resolve_document_path, search_documents
+from collector.library import read_document_file, resolve_document_path
+from collector.search_index import INDEX_RELATIVE_PATH, refresh_search_index, search_documents
 
 
 def write_page(path: Path, *, title: str, text: str, comment: str = "") -> None:
@@ -74,6 +75,49 @@ def test_search_validates_query_and_limit(tmp_path: Path):
         search_documents(vault, "x" * 201)
     with pytest.raises(ValueError, match="1 到 100"):
         search_documents(vault, "正文", limit=0)
+
+
+def test_search_index_reuses_unchanged_documents_and_removes_deleted(tmp_path: Path, monkeypatch):
+    vault = tmp_path / "vault"
+    first = vault / "first.pagenest"
+    second = vault / "second.hermes"
+    write_page(first, title="第一篇", text="索引正文")
+    write_page(second, title="第二篇", text="旧格式正文")
+
+    initial = refresh_search_index(vault)
+    assert set(initial) == {"first.pagenest", "second.hermes"}
+    assert (vault / INDEX_RELATIVE_PATH).is_file()
+
+    def unexpected_read(*_args, **_kwargs):
+        raise AssertionError("unchanged documents should be reused from the index")
+
+    with monkeypatch.context() as context:
+        context.setattr("collector.search_index.read_document_file", unexpected_read)
+        assert refresh_search_index(vault) == initial
+
+    write_page(first, title="第一篇", text="已经更新的索引正文")
+    assert "已经更新" in refresh_search_index(vault)["first.pagenest"]["text"]
+
+    second.unlink()
+    refreshed = refresh_search_index(vault)
+    assert set(refreshed) == {"first.pagenest"}
+
+
+def test_search_index_rebuilds_corrupt_index_without_html_or_base64(tmp_path: Path):
+    vault = tmp_path / "vault"
+    page = vault / "article.pagenest"
+    write_page(page, title="干净索引", text="正文关键词")
+    index_path = vault / INDEX_RELATIVE_PATH
+    index_path.parent.mkdir(parents=True)
+    index_path.write_text("not-json", encoding="utf-8")
+
+    results = search_documents(vault, "正文关键词")
+    index_text = index_path.read_text("utf-8")
+
+    assert [result.path for result in results] == ["article.pagenest"]
+    assert "正文关键词" in index_text
+    assert "<html" not in index_text
+    assert "data:image" not in index_text
 
 
 def test_cli_read_outputs_ai_friendly_markdown(tmp_path: Path, capsys):

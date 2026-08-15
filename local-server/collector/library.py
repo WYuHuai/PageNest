@@ -1,6 +1,4 @@
 import os
-import re
-from dataclasses import dataclass
 from pathlib import Path
 
 from .document_text import PageNestDocument, extract_document
@@ -10,16 +8,6 @@ DOCUMENT_SUFFIXES = {".pagenest", ".hermes"}
 IGNORED_DIRECTORIES = {".git", ".obsidian", ".trash", "node_modules", "__pycache__"}
 MAX_DOCUMENT_BYTES = 256 * 1024 * 1024
 MAX_SEARCH_FILES = 10_000
-_SPACE_RE = re.compile(r"\s+")
-
-
-@dataclass(frozen=True)
-class SearchResult:
-    path: str
-    title: str
-    source: str
-    snippet: str
-    score: int
 
 
 def require_vault(vault: Path) -> Path:
@@ -81,51 +69,3 @@ def iter_document_paths(vault: Path):
             seen += 1
             if seen >= MAX_SEARCH_FILES:
                 return
-
-
-def _snippet(text: str, terms: tuple[str, ...], radius: int = 90) -> str:
-    compact = _SPACE_RE.sub(" ", text).strip()
-    folded = compact.casefold()
-    positions = [folded.find(term) for term in terms]
-    position = min((value for value in positions if value >= 0), default=0)
-    start = max(0, position - radius)
-    end = min(len(compact), position + max(map(len, terms), default=0) + radius)
-    prefix = "…" if start else ""
-    suffix = "…" if end < len(compact) else ""
-    return f"{prefix}{compact[start:end].strip()}{suffix}"
-
-
-def search_documents(vault: Path, query: str, *, limit: int = 20) -> list[SearchResult]:
-    query = _SPACE_RE.sub(" ", query).strip()
-    if not query:
-        raise ValueError("请输入搜索关键词")
-    if len(query) > 200:
-        raise ValueError("搜索关键词不能超过 200 个字符")
-    if not 1 <= limit <= 100:
-        raise ValueError("搜索结果数量必须在 1 到 100 之间")
-
-    terms = tuple(part.casefold() for part in query.split(" ") if part)
-    results: list[SearchResult] = []
-    root = require_vault(vault)
-    for path in iter_document_paths(root):
-        try:
-            document = read_document_file(root, path)
-        except (OSError, ValueError):
-            continue
-        searchable = document.searchable_text
-        folded = searchable.casefold()
-        if not all(term in folded for term in terms):
-            continue
-        title = document.title or path.stem
-        title_folded = title.casefold()
-        score = sum(folded.count(term) for term in terms) + 10 * sum(term in title_folded for term in terms)
-        results.append(
-            SearchResult(
-                path=path.relative_to(root).as_posix(),
-                title=title,
-                source=document.source,
-                snippet=_snippet(searchable, terms),
-                score=score,
-            )
-        )
-    return sorted(results, key=lambda item: (-item.score, item.title.casefold(), item.path))[:limit]

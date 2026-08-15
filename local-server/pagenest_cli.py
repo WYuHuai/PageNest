@@ -6,7 +6,8 @@ from pathlib import Path
 
 from collector.config import settings
 from collector.document_text import PageNestDocument
-from collector.library import read_document_file, require_vault, search_documents
+from collector.library import read_document_file, require_vault
+from collector.search_index import search_documents
 
 
 def document_markdown(document: PageNestDocument) -> str:

@@ -56,7 +56,7 @@ def test_meta_reports_explicit_service_capabilities(monkeypatch):
 
     assert response.status_code == 200
     assert response.json() == {
-        "service_version": "1.8.0",
+        "service_version": "1.9.0",
         "api_protocol_version": 1,
         "pagenest_format_version": 1,
         "supported_page_variants": [

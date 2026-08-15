@@ -4,6 +4,19 @@ All notable user-facing changes are recorded here.
 
 ## Unreleased
 
+## 1.9.0 - 2026-08-15
+
+- Extract clean, machine-readable text from current `.pagenest` files and
+  legacy `.hermes` files without exposing embedded image data or source HTML.
+- Maintain a compact incremental full-text index after service start, capture,
+  and Vault changes.
+- Search titles, body text, code, loaded comments, and collection notes inside
+  the real Obsidian Viewer, then open the matching offline page directly.
+- Add local read and search commands for automation and AI workflows.
+- Optionally generate one `PageNest Library.md` for ripgrep, Dataview, and AI
+  plugins that do not understand `.pagenest`, without creating per-page
+  Markdown sidecars or overwriting an unrelated user file.
+
 ## 1.8.0 - 2026-08-12
 
 - Development line 1.8.0 coordinates the extension and local service versions.

@@ -83,7 +83,7 @@ minimum operational information needed by the extension.
 
 ## A code-copy button does not work
 
-Confirm that PageNest Viewer 1.3.0 or newer is enabled, then reload the file.
+Confirm that PageNest Viewer 1.4.0 or newer is enabled, then reload the file.
 The viewer uses a random message channel and the Electron clipboard fallback;
 captured page scripts do not receive clipboard access.
 

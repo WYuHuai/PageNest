@@ -4,7 +4,7 @@
 <p align="center">Save a webpage as one self-contained <code>.pagenest</code> file, then reopen it inside Obsidian with a dedicated web-style Viewer.</p>
 
 <p align="center">
-  <a href="https://github.com/WYuHuai/PageNest/releases/tag/v1.8.0"><img alt="PageNest v1.8.0 Public Beta" src="https://img.shields.io/badge/release-v1.8.0%20Public%20Beta-1E45FB"></a>
+  <a href="https://github.com/WYuHuai/PageNest/releases/tag/v1.9.0"><img alt="PageNest v1.9.0" src="https://img.shields.io/badge/release-v1.9.0-1E45FB"></a>
   <a href="https://github.com/WYuHuai/PageNest/actions/workflows/ci.yml"><img alt="CI" src="https://github.com/WYuHuai/PageNest/actions/workflows/ci.yml/badge.svg"></a>
   <img alt="Windows validation" src="https://img.shields.io/badge/Windows-11%20RC%20%7C%2010%20not%20fully%20validated-0078D4?logo=windows">
   <img alt="Edge and Chrome" src="https://img.shields.io/badge/Browser-Edge%20%7C%20Chrome-4285F4">
@@ -13,7 +13,7 @@
 
 <p align="center">
   <a href="README.zh-CN.md">简体中文</a> ·
-  <a href="https://github.com/WYuHuai/PageNest/releases/download/v1.8.0/PageNest-Setup-1.8.0.exe">Download installer</a> ·
+  <a href="https://github.com/WYuHuai/PageNest/releases/download/v1.9.0/PageNest-Setup-1.9.0.exe">Download installer</a> ·
   <a href="#install-in-3-steps">Install</a> ·
   <a href="docs/supported-sites.md">Supported sites</a> ·
   <a href="docs/troubleshooting.md">Troubleshooting</a>
@@ -84,8 +84,8 @@ local, portable, and readable inside your vault.
 
 ### 1. Install PageNest
 
-Download [`PageNest-Setup-1.8.0.exe`](https://github.com/WYuHuai/PageNest/releases/download/v1.8.0/PageNest-Setup-1.8.0.exe)
-and its [SHA-256 checksum](https://github.com/WYuHuai/PageNest/releases/download/v1.8.0/PageNest-Setup-1.8.0.exe.sha256),
+Download [`PageNest-Setup-1.9.0.exe`](https://github.com/WYuHuai/PageNest/releases/download/v1.9.0/PageNest-Setup-1.9.0.exe)
+and its [SHA-256 checksum](https://github.com/WYuHuai/PageNest/releases/download/v1.9.0/PageNest-Setup-1.9.0.exe.sha256),
 verify the checksum, run the installer, and select an existing Obsidian vault.
 Windows users should use this installer rather than clone the source repository.
 

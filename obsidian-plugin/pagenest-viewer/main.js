@@ -1,4 +1,4 @@
-const { Plugin, TextFileView } = require("obsidian");
+const { Modal, Notice, Plugin, TextFileView } = require("obsidian");
 const { randomBytes } = require("node:crypto");
 
 const VIEW_TYPE = "pagenest-page-view";
@@ -7,6 +7,128 @@ const COPY_CHANNEL_BYTES = 32;
 const MAX_COPY_LENGTH = 5 * 1024 * 1024;
 const PAGE_EXTENSION = "pagenest";
 const LEGACY_EXTENSION = "hermes";
+const INDEX_PATH = ".pagenest/search-index.json";
+const MAX_SEARCH_RESULTS = 50;
+
+function normalizedTerms(query) {
+  return query.trim().toLocaleLowerCase().split(/\s+/u).filter(Boolean);
+}
+
+function resultSnippet(text, terms, radius = 70) {
+  const compact = String(text || "").replace(/\s+/gu, " ").trim();
+  const folded = compact.toLocaleLowerCase();
+  const positions = terms.map((term) => folded.indexOf(term)).filter((value) => value >= 0);
+  const position = positions.length ? Math.min(...positions) : 0;
+  const start = Math.max(0, position - radius);
+  const end = Math.min(compact.length, position + Math.max(...terms.map((term) => term.length)) + radius);
+  return `${start ? "…" : ""}${compact.slice(start, end).trim()}${end < compact.length ? "…" : ""}`;
+}
+
+function searchIndexDocuments(documents, query, limit = MAX_SEARCH_RESULTS) {
+  const terms = normalizedTerms(query);
+  if (!terms.length) return [];
+  return Object.entries(documents || {})
+    .map(([path, document]) => {
+      const title = String(document.title || path.replace(/\.(?:pagenest|hermes)$/iu, ""));
+      const text = String(document.text || "");
+      const foldedText = text.toLocaleLowerCase();
+      if (!terms.every((term) => foldedText.includes(term))) return null;
+      const foldedTitle = title.toLocaleLowerCase();
+      const score = terms.reduce(
+        (total, term) => total + foldedText.split(term).length - 1 + (foldedTitle.includes(term) ? 10 : 0),
+        0,
+      );
+      return {
+        path,
+        title,
+        snippet: resultSnippet(text, terms),
+        score,
+      };
+    })
+    .filter(Boolean)
+    .sort((left, right) => right.score - left.score || left.title.localeCompare(right.title))
+    .slice(0, Math.max(1, Math.min(limit, MAX_SEARCH_RESULTS)));
+}
+
+class PageNestSearchModal extends Modal {
+  constructor(app) {
+    super(app);
+    this.documents = {};
+  }
+
+  async onOpen() {
+    const { contentEl } = this;
+    contentEl.empty();
+    contentEl.addClass("pagenest-search-modal");
+    contentEl.createEl("h2", { text: "搜索 PageNest 收藏" });
+    contentEl.createEl("p", {
+      cls: "pagenest-search-hint",
+      text: "搜索正文、代码、已加载评论和收藏备注",
+    });
+    this.inputEl = contentEl.createEl("input", {
+      cls: "pagenest-search-input",
+      attr: { type: "search", placeholder: "输入关键词", "aria-label": "搜索 PageNest 收藏" },
+    });
+    this.resultsEl = contentEl.createDiv({ cls: "pagenest-search-results" });
+    this.inputEl.addEventListener("input", () => this.renderResults());
+    await this.loadIndex();
+    this.inputEl.focus();
+  }
+
+  async loadIndex() {
+    try {
+      const payload = JSON.parse(await this.app.vault.adapter.read(INDEX_PATH));
+      this.documents = payload?.schema_version === 1 && payload.documents
+        ? payload.documents
+        : {};
+      this.renderResults();
+    } catch (error) {
+      this.documents = {};
+      this.renderMessage("搜索索引尚未生成。请确认 PageNest 本地服务正在运行。", "warning");
+      console.warn("PageNest Viewer: could not load search index.", error);
+    }
+  }
+
+  renderMessage(text, kind = "muted") {
+    this.resultsEl.empty();
+    this.resultsEl.createDiv({ cls: `pagenest-search-message is-${kind}`, text });
+  }
+
+  renderResults() {
+    const query = this.inputEl.value.trim();
+    if (!query) {
+      this.renderMessage(`已索引 ${Object.keys(this.documents).length} 篇收藏`);
+      return;
+    }
+    const results = searchIndexDocuments(this.documents, query);
+    if (!results.length) {
+      this.renderMessage("没有找到匹配的 PageNest 收藏");
+      return;
+    }
+    this.resultsEl.empty();
+    for (const result of results) {
+      const item = this.resultsEl.createEl("button", { cls: "pagenest-search-result" });
+      item.createDiv({ cls: "pagenest-search-result-title", text: result.title });
+      item.createDiv({ cls: "pagenest-search-result-path", text: result.path });
+      item.createDiv({ cls: "pagenest-search-result-snippet", text: result.snippet });
+      item.addEventListener("click", () => this.openResult(result.path));
+    }
+  }
+
+  async openResult(path) {
+    const file = this.app.vault.getAbstractFileByPath(path);
+    if (!file) {
+      new Notice("收藏文件已移动或删除，请等待 PageNest 更新索引。");
+      return;
+    }
+    await this.app.workspace.getLeaf(false).openFile(file);
+    this.close();
+  }
+
+  onClose() {
+    this.contentEl.empty();
+  }
+}
 
 function copyBridgeScript(channel) {
   return `<script nonce="hermes-offline" data-hermes-copy-bridge>
@@ -110,7 +232,7 @@ class HermesPageView extends TextFileView {
   }
 }
 
-module.exports = class HermesPageViewerPlugin extends Plugin {
+class HermesPageViewerPlugin extends Plugin {
   hideFileTypeBadges() {
     document.querySelectorAll(".nav-file-tag").forEach((badge) => {
       if (["pagenest", "hermes"].includes(badge.textContent?.trim().toLowerCase())) {
@@ -135,6 +257,14 @@ module.exports = class HermesPageViewerPlugin extends Plugin {
       this.register(() => this.badgeObserver?.disconnect());
     });
     this.addCommand({
+      id: "search-pages",
+      name: "搜索 PageNest 收藏",
+      callback: () => new PageNestSearchModal(this.app).open(),
+    });
+    this.addRibbonIcon("search", "搜索 PageNest 收藏", () => {
+      new PageNestSearchModal(this.app).open();
+    });
+    this.addCommand({
       id: "reload-active-page",
       name: "刷新当前离线页面",
       checkCallback: (checking) => {
@@ -145,4 +275,8 @@ module.exports = class HermesPageViewerPlugin extends Plugin {
       },
     });
   }
-};
+}
+
+module.exports = HermesPageViewerPlugin;
+module.exports.PageNestSearchModal = PageNestSearchModal;
+module.exports.searchIndexDocuments = searchIndexDocuments;

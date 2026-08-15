@@ -8,6 +8,8 @@ let legacyExtensionConflict = false;
 let frame;
 let copiedText = "";
 let refreshHandler;
+let ribbonHandler;
+const commands = [];
 const listeners = new Map();
 
 Object.defineProperty(globalThis, "navigator", {
@@ -35,6 +37,9 @@ class TextFileView {
   }
 }
 
+class Modal {}
+class Notice {}
+
 class Plugin {
   constructor() {
     this.app = {
@@ -56,12 +61,17 @@ class Plugin {
     }
   }
   register() {}
-  addCommand() {}
+  addCommand(command) { commands.push(command); }
+  addRibbonIcon(icon, title, callback) {
+    assert.equal(icon, "search");
+    assert.equal(title, "搜索 PageNest 收藏");
+    ribbonHandler = callback;
+  }
 }
 
 const originalLoad = Module._load;
 Module._load = function (request, parent, isMain) {
-  if (request === "obsidian") return {Plugin, TextFileView};
+  if (request === "obsidian") return {Modal, Notice, Plugin, TextFileView};
   if (request === "electron") {
     return {clipboard: {writeText: (text) => { copiedText = text; }}};
   }
@@ -76,6 +86,8 @@ const plugin = new HermesPageViewerPlugin();
 plugin.onload();
 assert.equal(typeof viewFactory, "function");
 assert.deepEqual(registeredExtensions, [["pagenest"], ["hermes"]]);
+assert.equal(typeof ribbonHandler, "function");
+assert.ok(commands.some((command) => command.id === "search-pages"));
 
 const refresh = {
   addEventListener(type, listener) {

@@ -13,6 +13,7 @@ PLUGIN_DIR = PurePosixPath("obsidian-plugin/pagenest-viewer")
 PLUGIN_FILES = ("main.js", "manifest.json", "styles.css", "versions.json")
 SERVER_FILES = (
     "local-server/.env.example",
+    "local-server/pagenest_cli.py",
     "local-server/requirements.txt",
     "local-server/run.py",
     "安装依赖.bat",

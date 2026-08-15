@@ -6,7 +6,7 @@
 <p align="center">
   <a href="https://github.com/WYuHuai/PageNest/releases/tag/v1.9.0"><img alt="PageNest v1.9.0" src="https://img.shields.io/badge/release-v1.9.0-1E45FB"></a>
   <a href="https://github.com/WYuHuai/PageNest/actions/workflows/ci.yml"><img alt="CI" src="https://github.com/WYuHuai/PageNest/actions/workflows/ci.yml/badge.svg"></a>
-  <img alt="Windows 验证状态" src="https://img.shields.io/badge/Windows-11%20RC%20%7C%2010%20尚未完整验证-0078D4?logo=windows">
+  <img alt="Windows 验证状态" src="https://img.shields.io/badge/Windows-11%20干净安装已验证%20%7C%2010%20尚未完整验证-0078D4?logo=windows">
   <img alt="Edge 和 Chrome" src="https://img.shields.io/badge/浏览器-Edge%20%7C%20Chrome-4285F4">
   <a href="LICENSE"><img alt="MIT License" src="https://img.shields.io/badge/License-MIT-green.svg"></a>
 </p>

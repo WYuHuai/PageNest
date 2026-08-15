@@ -32,3 +32,17 @@ settings. Restart Obsidian and confirm PageNest Viewer 1.4.0 is enabled.
 
 The Windows installer still bundles the Python runtime. Users do not need to
 install Python, Node.js, a database, or a task queue.
+
+## Validation / 验证状态
+
+The v1.9.0 installer passed a clean Windows 11 Sandbox install with no system
+Python present. SHA-256 verification, standalone service startup, Unicode Vault
+support, Viewer installation, extension preconfiguration, authenticated store
+extension pairing, occupied-port fallback, upgrade token preservation, saving,
+uninstall cleanup, and user-page preservation passed. Windows 10 and a
+persistent virtual-machine restart/sign-in cycle have not been fully validated.
+
+v1.9.0 安装器已在没有系统 Python 的干净 Windows 11 Sandbox 中通过安装验收。
+SHA-256 校验、独立服务启动、中文 Vault、Viewer 安装、扩展预配置、商店扩展认证配对、
+端口冲突回退、升级保留令牌、真实保存、卸载清理和用户页面保护均通过。Windows 10
+以及持久虚拟机中的重启/重新登录流程尚未完整验证。

@@ -6,7 +6,7 @@
 <p align="center">
   <a href="https://github.com/WYuHuai/PageNest/releases/tag/v1.9.0"><img alt="PageNest v1.9.0" src="https://img.shields.io/badge/release-v1.9.0-1E45FB"></a>
   <a href="https://github.com/WYuHuai/PageNest/actions/workflows/ci.yml"><img alt="CI" src="https://github.com/WYuHuai/PageNest/actions/workflows/ci.yml/badge.svg"></a>
-  <img alt="Windows validation" src="https://img.shields.io/badge/Windows-11%20RC%20%7C%2010%20not%20fully%20validated-0078D4?logo=windows">
+  <img alt="Windows validation" src="https://img.shields.io/badge/Windows-11%20clean%20install%20validated%20%7C%2010%20not%20fully%20validated-0078D4?logo=windows">
   <img alt="Edge and Chrome" src="https://img.shields.io/badge/Browser-Edge%20%7C%20Chrome-4285F4">
   <a href="LICENSE"><img alt="MIT License" src="https://img.shields.io/badge/License-MIT-green.svg"></a>
 </p>

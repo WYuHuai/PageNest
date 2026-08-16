@@ -62,7 +62,7 @@ Type: files; Name: "{app}\连接设置.txt"
 
 [Run]
 Filename: "{app}\extension-install.html"; Description: "查看 Edge/Chrome 扩展安装步骤"; Flags: shellexec postinstall skipifsilent
-Filename: "{sys}\explorer.exe"; Parameters: """{app}\Extension"""; Description: "打开正确的浏览器扩展文件夹"; Flags: postinstall skipifsilent nowait
+Filename: "{app}\Extension"; Description: "打开正确的浏览器扩展文件夹"; Flags: shellexec postinstall skipifsilent nowait
 
 [Code]
 const

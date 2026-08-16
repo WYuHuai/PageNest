@@ -171,7 +171,13 @@ def test_installer_accepts_only_explicit_store_extension_ids():
 def test_installer_opens_the_preconfigured_extension_directory():
     definition = (ROOT / "installer" / "PageNest.iss").read_text("utf-8")
     guide = (ROOT / "installer" / "extension-install.html").read_text("utf-8")
-    assert 'Parameters: """{app}\\Extension"""' in definition
+    extension_run_entry = (
+        'Filename: "{app}\\Extension"; '
+        'Description: "打开正确的浏览器扩展文件夹"; '
+        "Flags: shellexec postinstall skipifsilent nowait"
+    )
+    assert extension_run_entry in definition
+    assert 'Filename: "{sys}\\explorer.exe"' not in definition
     assert "请勿加载下载的源码目录" in definition
     assert "%LOCALAPPDATA%\\Programs\\PageNest\\Extension" in guide
     assert "不要选择下载的源码目录" in guide

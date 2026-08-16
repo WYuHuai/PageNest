@@ -4,6 +4,12 @@ All notable user-facing changes are recorded here.
 
 ## Unreleased
 
+## 1.9.1 - 2026-08-16
+
+- Fix the installer completion action so Windows opens the installed browser
+  extension directory through the system Shell instead of looking for the
+  nonexistent `System32\\explorer.exe` path.
+
 ## 1.9.0 - 2026-08-15
 
 - Extract clean, machine-readable text from current `.pagenest` files and

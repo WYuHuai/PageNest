@@ -18,11 +18,11 @@ from scripts.package_release import (
 def test_release_versions_are_consistent():
     release = validate_version_metadata(ROOT)
     assert release["components"] == {
-        "browser_extension": "1.9.0",
-        "local_server": "1.9.0",
+        "browser_extension": "1.9.1",
+        "local_server": "1.9.1",
         "obsidian_viewer": "1.4.0",
     }
-    assert release["release"] == "1.9.0"
+    assert release["release"] == "1.9.1"
     assert release["protocol"] == {
         "api_protocol_version": 1,
         "pagenest_format_version": 1,
@@ -48,7 +48,7 @@ def test_release_validator_rejects_runtime_and_private_entries(entry):
 
 
 def test_release_packages_have_expected_roots(tmp_path):
-    installer = tmp_path / "PageNest-Setup-1.9.0.exe"
+    installer = tmp_path / "PageNest-Setup-1.9.1.exe"
     installer.write_bytes(b"test installer")
     packages = build_release(tmp_path)
     browser, viewer, server = packages

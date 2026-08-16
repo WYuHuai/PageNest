@@ -4,7 +4,7 @@
 <p align="center">把网页保存为一个自包含的 <code>.pagenest</code> 文件，再用专属网页模式 Viewer 直接在 Obsidian 里打开。</p>
 
 <p align="center">
-  <a href="https://github.com/WYuHuai/PageNest/releases/tag/v1.9.0"><img alt="PageNest v1.9.0" src="https://img.shields.io/badge/release-v1.9.0-1E45FB"></a>
+  <a href="https://github.com/WYuHuai/PageNest/releases/tag/v1.9.1"><img alt="PageNest v1.9.1" src="https://img.shields.io/badge/release-v1.9.1-1E45FB"></a>
   <a href="https://github.com/WYuHuai/PageNest/actions/workflows/ci.yml"><img alt="CI" src="https://github.com/WYuHuai/PageNest/actions/workflows/ci.yml/badge.svg"></a>
   <img alt="Windows 验证状态" src="https://img.shields.io/badge/Windows-11%20干净安装已验证%20%7C%2010%20尚未完整验证-0078D4?logo=windows">
   <img alt="Edge 和 Chrome" src="https://img.shields.io/badge/浏览器-Edge%20%7C%20Chrome-4285F4">
@@ -13,7 +13,7 @@
 
 <p align="center">
   <a href="README.md">English</a> ·
-  <a href="https://github.com/WYuHuai/PageNest/releases/download/v1.9.0/PageNest-Setup-1.9.0.exe">下载安装器</a> ·
+  <a href="https://github.com/WYuHuai/PageNest/releases/download/v1.9.1/PageNest-Setup-1.9.1.exe">下载安装器</a> ·
   <a href="#三步安装">安装</a> ·
   <a href="docs/supported-sites.md">支持网站</a> ·
   <a href="docs/troubleshooting.md">故障排查</a>
@@ -22,6 +22,8 @@
 PageNest 是面向 Windows、Edge/Chrome 和 Obsidian 的本地优先网页收藏工具。
 在浏览器中点击扩展，即可在知识库内生成一个可移动的 `.pagenest` 文件，不需要
 旁边再带一个附件文件夹。
+
+> **v1.9.1 修复：** 安装完成后，Windows 现在可以正确打开已经安装的扩展目录。
 
 ## v1.9.0 新增
 
@@ -85,8 +87,8 @@ PageNest 不承诺对所有网站逐像素复刻。它的目标是保留更多�
 
 ### 1. 安装 PageNest
 
-直接下载 [`PageNest-Setup-1.9.0.exe`](https://github.com/WYuHuai/PageNest/releases/download/v1.9.0/PageNest-Setup-1.9.0.exe)
-及其 [SHA-256 校验文件](https://github.com/WYuHuai/PageNest/releases/download/v1.9.0/PageNest-Setup-1.9.0.exe.sha256)，
+直接下载 [`PageNest-Setup-1.9.1.exe`](https://github.com/WYuHuai/PageNest/releases/download/v1.9.1/PageNest-Setup-1.9.1.exe)
+及其 [SHA-256 校验文件](https://github.com/WYuHuai/PageNest/releases/download/v1.9.1/PageNest-Setup-1.9.1.exe.sha256)，
 核对校验值后运行安装程序，并选择一个已有的 Obsidian 知识库。普通 Windows 用户
 不需要克隆源码，也不要按照 Python 项目的方式安装依赖。
 

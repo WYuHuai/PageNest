@@ -1,3 +1,5 @@
+import json
+
 import pytest
 from bs4 import BeautifulSoup
 
@@ -33,8 +35,25 @@ def test_every_renderer_emits_the_pagenest_contract(variant: str):
     for name in (
         "hermes-content-hash",
         "hermes-source",
+        "hermes-category",
+        "hermes-image-count",
         "hermes-save-complete",
         "hermes-capture-version",
         "hermes-pagenest-format-version",
     ):
         assert document.find("meta", attrs={"name": name}) is not None, f"missing {name} for {variant}"
+    metadata_node = document.select_one("script#hermes-metadata")
+    assert metadata_node is not None
+    metadata = json.loads(metadata_node.string)
+    assert {
+        "document_schema_version",
+        "title",
+        "source",
+        "canonical_url",
+        "source_kind",
+        "captured_at",
+        "category",
+        "content_hash",
+        "page_variant",
+    } <= metadata.keys()
+    assert metadata["page_variant"] == variant

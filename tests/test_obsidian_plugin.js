@@ -1,4 +1,5 @@
 const assert = require("node:assert/strict");
+const fs = require("node:fs");
 const Module = require("node:module");
 const path = require("node:path");
 
@@ -136,6 +137,13 @@ function channelFrom(page) {
   assert.match(legacyWarning, /legacy \.hermes/);
 
   const view = viewFactory({contentEl});
+  const legacyFixture = fs.readFileSync(path.resolve(__dirname, "fixtures/legacy-page.hermes"), "utf8");
+  await view.setViewData(legacyFixture);
+
+  assert.match(frame.srcdoc, /旧版文章标题/);
+  assert.match(frame.srcdoc, /旧版正文仍然可以阅读和搜索/);
+  assert.match(frame.srcdoc, /print\(&quot;legacy&quot;\)|print\("legacy"\)/);
+
   await view.setViewData("<!doctype html><body><pre>const answer = 42;</pre></body>");
 
   assert.equal(frame.attributes.sandbox, "allow-popups allow-scripts");

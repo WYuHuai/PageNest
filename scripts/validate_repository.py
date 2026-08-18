@@ -5,12 +5,16 @@ import yaml
 from PIL import Image
 
 from package_release import (
+    MACHINE_PATH_PATTERN,
     ROOT,
     SECRET_PATTERN,
     validate_archive_entries,
     validate_version_metadata,
     tracked_files,
 )
+
+
+SANITIZED_RUNTIME_FIXTURES = {"tests/fixtures/legacy-page.hermes"}
 
 
 ACTION_REFERENCE = re.compile(r"^\s*uses:\s*[^@\s]+@([^\s#]+)", re.MULTILINE)
@@ -73,14 +77,27 @@ def validate_icons() -> None:
 
 
 def validate_tracked_boundary(tracked) -> None:
-    validate_archive_entries([path.as_posix() for path in tracked])
+    validate_archive_entries([
+        path.as_posix()
+        for path in tracked
+        if path.as_posix() not in SANITIZED_RUNTIME_FIXTURES
+    ])
     for relative in sorted(tracked):
         path = ROOT / relative.as_posix()
-        if path.suffix.lower() not in TEXT_SUFFIXES and path.name != ".env.example":
+        if (
+            path.suffix.lower() not in TEXT_SUFFIXES
+            and path.name != ".env.example"
+            and relative.as_posix() not in SANITIZED_RUNTIME_FIXTURES
+        ):
             continue
         body = path.read_bytes()
         if SECRET_PATTERN.search(body):
             raise ValueError(f"Potential credential in tracked file: {relative}")
+        if (
+            relative.as_posix() in SANITIZED_RUNTIME_FIXTURES
+            and MACHINE_PATH_PATTERN.search(body)
+        ):
+            raise ValueError(f"Machine-specific path in tracked file: {relative}")
 
 
 def main() -> None:

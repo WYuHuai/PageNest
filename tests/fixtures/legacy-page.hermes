@@ -1,0 +1,12 @@
+<!doctype html>
+<html lang="zh-CN"><head>
+<meta charset="utf-8">
+<title>旧版离线收藏</title>
+<meta name="hermes-source" content="https://example.test/legacy-page">
+<meta name="hermes-content-hash" content="legacy-digest">
+</head><body><main>
+<h1>旧版文章标题</h1>
+<p>旧版正文仍然可以阅读和搜索。</p>
+<pre><code>print("legacy")</code></pre>
+<figure><img src="data:image/png;base64,AA==" alt="旧版结构图"><figcaption>旧版图注</figcaption></figure>
+</main></body></html>

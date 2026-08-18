@@ -89,6 +89,31 @@ async def test_xiaohongshu_page_preserves_metadata_and_duplicate_detection(tmp_p
 
 
 @pytest.mark.asyncio
+async def test_legacy_hermes_fixture_still_participates_in_duplicate_detection(tmp_path: Path, monkeypatch):
+    vault = tmp_path / "vault"
+    vault.mkdir()
+    monkeypatch.setattr(settings, "obsidian_vault_path", str(vault))
+    fixture = Path(__file__).parent / "fixtures" / "legacy-page.hermes"
+    legacy = vault / "legacy-page.hermes"
+    legacy.write_text(fixture.read_text("utf-8"), encoding="utf-8")
+
+    result = await collect(article(
+        title="旧版离线收藏",
+        url="https://example.test/legacy-page",
+        canonical_url="https://example.test/legacy-page",
+        article_html="<article><p>更新后的正文</p></article>",
+        article_text="更新后的正文",
+        capture_version=1,
+        mode="original",
+    ))
+
+    assert result["ok"] is True
+    assert result["duplicate"] is True
+    assert Path(result["page_path"]) == legacy
+    assert list(vault.glob("*.pagenest")) == []
+
+
+@pytest.mark.asyncio
 async def test_concurrent_duplicate_collects_write_one_page(tmp_path: Path, monkeypatch):
     vault = tmp_path / '知识库'
     destination = vault / '阅读记录' / '待整理'
@@ -436,6 +461,38 @@ async def test_quick_mode_runs_text_organizer_while_images_download(tmp_path: Pa
     result = await collect(article(mode="quick", category="auto"))
 
     assert result["hermes_success"] is True
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("mode", ["quick", "deep"])
+async def test_ai_failure_does_not_block_capture_save(mode, tmp_path: Path, monkeypatch):
+    vault = tmp_path / "vault"
+    vault.mkdir()
+    monkeypatch.setattr(settings, "obsidian_vault_path", str(vault))
+
+    async def failed_organizer(_article, _images):
+        return None, "provider raw response", 0.01, f"{mode} organizer unavailable"
+
+    monkeypatch.setattr(storage, "call_hermes", failed_organizer)
+    captured = article(
+        mode=mode,
+        category="auto",
+        images=[ImageInput(resolved_url=PNG, width=100, height=100, order=1)],
+    )
+
+    result = await collect(captured)
+    page = Path(result["page_path"])
+    rendered = page.read_text("utf-8")
+
+    assert result["ok"] is True
+    assert result["duplicate"] is False
+    assert result["hermes_success"] is False
+    assert result["hermes_error"] == f"{mode} organizer unavailable"
+    assert result["saved_images"] == 1
+    assert page.is_file()
+    assert "图片之前" in rendered
+    assert "图片之后" in rendered
+    assert "data:image/png;base64," in rendered
 
 
 

@@ -1,4 +1,5 @@
 import json
+from pathlib import Path
 
 import pytest
 from bs4 import BeautifulSoup
@@ -87,6 +88,19 @@ def test_legacy_html_fallback_ignores_controls_and_invalid_metadata():
     assert document.source == "https://example.com/legacy"
     assert document.text == "旧标题\n\n旧格式正文"
     assert document.headings == ("旧标题",)
+
+
+def test_historical_hermes_fixture_remains_readable_without_modern_metadata():
+    fixture = Path(__file__).parent / "fixtures" / "legacy-page.hermes"
+    document = extract_document(fixture.read_text("utf-8"))
+
+    assert document.title == "旧版离线收藏"
+    assert document.source == "https://example.test/legacy-page"
+    assert document.text == '旧版文章标题\n\n旧版正文仍然可以阅读和搜索。\n\nprint("legacy")\n\n旧版图注'
+    assert document.code_blocks[0].text == 'print("legacy")'
+    assert document.image_descriptions == ("旧版结构图", "旧版图注")
+    assert "旧版正文仍然可以阅读和搜索" in document.searchable_text
+    assert "base64" not in document.searchable_text
 
 
 def test_data_urls_do_not_enter_extracted_text():

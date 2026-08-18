@@ -1,6 +1,8 @@
 import hashlib
 import json
 import re
+import subprocess
+import sys
 import zipfile
 
 import pytest
@@ -28,6 +30,19 @@ def test_release_versions_are_consistent():
         "pagenest_format_version": 1,
         "capture_version": 12,
     }
+
+
+def test_repository_validator_accepts_only_the_sanitized_legacy_fixture():
+    result = subprocess.run(
+        [sys.executable, str(ROOT / "scripts" / "validate_repository.py")],
+        cwd=ROOT,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+
+    assert result.returncode == 0, result.stderr
+    assert "Repository validation OK" in result.stdout
 
 
 @pytest.mark.parametrize(

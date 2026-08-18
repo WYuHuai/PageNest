@@ -60,8 +60,11 @@ async function popupHelpers() {
 
 (async () => {
   const helpers = await popupHelpers();
+  assert.equal(helpers.captureKindForUrl("http://example.com/a"), "web");
   assert.equal(helpers.captureKindForUrl("https://example.com/a"), "web");
   assert.equal(helpers.captureKindForUrl("file:///D:/AI/report.html"), "local-html");
+  assert.equal(helpers.captureKindForUrl("file:///D:/AI/report.htm"), "local-html");
+  assert.equal(helpers.captureKindForUrl("file:///D:/AI/report.xhtml"), "local-html");
   assert.equal(helpers.captureKindForUrl("file:///D:/AI/report.txt"), "");
   for (const url of ["chrome://extensions", "edge://extensions", "about:blank", "data:text/html,hello", "javascript:void(0)"]) {
     assert.equal(helpers.captureKindForUrl(url), "", `${url} must remain unsupported`);

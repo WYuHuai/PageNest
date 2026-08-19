@@ -71,6 +71,8 @@ def test_release_packages_have_expected_roots(tmp_path):
     with zipfile.ZipFile(browser) as archive:
         names = set(archive.namelist())
         assert "manifest.json" in names
+        assert "background.js" in names
+        assert "core/runtime-protocol.js" in names
         assert "icons/icon128.png" in names
         assert "connection-config.js" in names
         validate_archive_entries(list(names))
@@ -144,6 +146,8 @@ def test_store_package_is_upload_ready(tmp_path):
         names = set(archive.namelist())
         manifest = json.loads(archive.read("manifest.json"))
         assert "manifest.json" in names
+        assert "background.js" in names
+        assert "core/runtime-protocol.js" in names
         assert "icons/icon128.png" in names
         assert "tabs" not in manifest["permissions"]
         assert not any(name.startswith("store/") for name in names)
@@ -181,6 +185,15 @@ def test_installer_accepts_only_explicit_store_extension_ids():
     assert "Store extension pairing: passed" in smoke
     assert "Upgrade token preservation: passed" in smoke
     assert "PAGENEST_EXTENSION_IDS=" in example
+
+
+def test_installer_recursively_includes_extension_runtime():
+    definition = (ROOT / "installer" / "PageNest.iss").read_text("utf-8")
+
+    assert (
+        'Source: "..\\extension\\*"; DestDir: "{app}\\Extension"; '
+        "Flags: ignoreversion recursesubdirs"
+    ) in definition
 
 
 def test_installer_opens_the_preconfigured_extension_directory():

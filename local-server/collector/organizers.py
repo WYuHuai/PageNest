@@ -3,6 +3,13 @@ import json
 from time import perf_counter
 from urllib.parse import urlsplit
 import httpx
+
+from .ai_client import (
+    AIClient,
+    AIResponseError,
+    build_chat_payload,
+    request_timeout as request_timeout,
+)
 from .config import settings
 from .models import ArticleInput, HermesResult
 from .vault import DEFAULT_CATEGORY, list_vault_folders
@@ -27,15 +34,6 @@ QUICK_RESULT_KEYS = [
 ]
 
 
-def request_timeout(total_timeout: int) -> httpx.Timeout:
-    """Keep the HTTP request alive until the outer model deadline expires."""
-    return httpx.Timeout(total_timeout + 5, connect=5, pool=5)
-
-
-def _endpoint() -> str:
-    return settings.hermes_api_url.rstrip("/") + "/chat/completions"
-
-
 def result_schema(mode: str) -> dict:
     schema = HermesResult.model_json_schema()
     if mode == "deep":
@@ -49,26 +47,25 @@ def result_schema(mode: str) -> dict:
     }
 
 
-def request_payload(messages: list[dict], mode: str, structured: bool = True) -> dict:
-    payload = {
-        "model": settings.hermes_model_name,
-        "messages": messages,
-        "temperature": 0.1,
+def _completion_options(mode: str) -> dict:
+    return {
         "max_tokens": 8192 if mode == "deep" else 1000,
+        "temperature": 0.1,
+        "response_schema": result_schema(mode),
+        "schema_name": "hermes_web_article",
+        "reasoning_effort": "none",
     }
-    if structured:
-        payload.update({
-            "reasoning_effort": "none",
-            "response_format": {
-                "type": "json_schema",
-                "json_schema": {
-                    "name": "hermes_web_article",
-                    "strict": True,
-                    "schema": result_schema(mode),
-                },
-            },
-        })
-    return payload
+
+
+def request_payload(messages: list[dict], mode: str, structured: bool = True) -> dict:
+    options = _completion_options(mode)
+    if not structured:
+        options.update(response_schema=None, reasoning_effort=None)
+    return build_chat_payload(
+        model_name=settings.hermes_model_name,
+        messages=messages,
+        **options,
+    )
 
 
 def prompt_for(article: ArticleInput, images: list[dict]) -> str:
@@ -108,9 +105,6 @@ def system_prompt() -> str:
 async def call_hermes(article: ArticleInput, images: list[dict]) -> tuple[HermesResult | None, str, float, str]:
     if not settings.hermes_api_url:
         return None, "", 0, "未配置 HERMES_API_URL"
-    headers = {"Content-Type": "application/json"}
-    if settings.hermes_api_key:
-        headers["Authorization"] = f"Bearer {settings.hermes_api_key}"
     messages = [
         {"role": "system", "content": system_prompt()},
         {"role": "user", "content": user_content(article, images)},
@@ -120,20 +114,26 @@ async def call_hermes(article: ArticleInput, images: list[dict]) -> tuple[Hermes
     total_timeout = MODEL_TIMEOUT_DEEP if article.mode == "deep" else MODEL_TIMEOUT_QUICK
     try:
         async with asyncio.timeout(total_timeout):
-            timeout = request_timeout(total_timeout)
-            async with httpx.AsyncClient(timeout=timeout) as client:
+            async with AIClient(
+                api_url=settings.hermes_api_url,
+                api_key=settings.hermes_api_key,
+                model_name=settings.hermes_model_name,
+                timeout_seconds=total_timeout,
+            ) as client:
                 structured = True
-                for attempt in range(3):
-                    payload = request_payload(messages, article.mode, structured)
-                    response = await client.post(_endpoint(), headers=headers, json=payload)
-                    try:
-                        response.raise_for_status()
-                    except httpx.HTTPStatusError as exc:
-                        if structured and exc.response.status_code in {400, 422}:
-                            structured = False
-                            continue
-                        raise
-                    raw = response.json()["choices"][0]["message"]["content"]
+                request_count = 0
+                while request_count < 3:
+                    completion = await client.chat_completion(
+                        messages=messages,
+                        **_completion_options(article.mode),
+                        structured=structured,
+                        max_requests=3 - request_count,
+                    )
+                    request_count += completion.request_count
+                    structured = completion.structured
+                    if completion.content is None:
+                        continue
+                    raw = completion.content
                     try:
                         data = json.loads(raw.strip().removeprefix("```json").removesuffix("```").strip())
                         result = HermesResult.model_validate(data)
@@ -142,12 +142,15 @@ async def call_hermes(article: ArticleInput, images: list[dict]) -> tuple[Hermes
                                 note.vision_verified = True
                         return result, raw, perf_counter() - started, ""
                     except Exception:
-                        if attempt < 2:
+                        if request_count < 3:
                             messages.append({"role": "assistant", "content": raw})
                             messages.append({"role": "user", "content": "上一个回复不是合法结构，请只返回修复后的合法 JSON。"})
             return None, raw, perf_counter() - started, "智能整理返回内容未通过结构校验"
     except TimeoutError:
         return None, raw, perf_counter() - started, f"PageNest 整理超过 {total_timeout} 秒，离线页面已保留"
+    except AIResponseError as exc:
+        original = exc.__cause__ or exc
+        return None, raw, perf_counter() - started, f"PageNest 调用失败：{type(original).__name__}: {original}"
     except Exception as exc:
         return None, raw, perf_counter() - started, f"PageNest 调用失败：{type(exc).__name__}: {exc}"
 

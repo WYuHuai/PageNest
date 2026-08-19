@@ -1,0 +1,205 @@
+import json
+
+import httpx
+import pytest
+
+from collector.ai_client import (
+    AIClient,
+    AIResponseError,
+    chat_endpoint,
+    request_timeout,
+)
+
+
+SCHEMA = {
+    "type": "object",
+    "properties": {"answer": {"type": "string"}},
+    "required": ["answer"],
+    "additionalProperties": False,
+}
+
+
+def mock_client(monkeypatch, handler, captured=None):
+    real_client = httpx.AsyncClient
+
+    def factory(**kwargs):
+        if captured is not None:
+            captured.update(kwargs)
+        return real_client(
+            transport=httpx.MockTransport(handler),
+            timeout=kwargs.get("timeout"),
+        )
+
+    monkeypatch.setattr(httpx, "AsyncClient", factory)
+
+
+async def complete(**changes):
+    client_options = {
+        "api_url": "https://api.example.test/v1",
+        "api_key": "test-key",
+        "model_name": "test-model",
+        "timeout_seconds": 60,
+    }
+    completion_options = {
+        "messages": [{"role": "user", "content": "test"}],
+        "max_tokens": 1000,
+        "response_schema": SCHEMA,
+        "schema_name": "test_schema",
+        "reasoning_effort": "none",
+    }
+    client_options.update(changes.pop("client_options", {}))
+    completion_options.update(changes)
+    async with AIClient(**client_options) as client:
+        return await client.chat_completion(**completion_options)
+
+
+@pytest.mark.asyncio
+async def test_structured_request_succeeds_on_first_attempt(monkeypatch):
+    requests = []
+
+    def handler(request):
+        requests.append(json.loads(request.content))
+        return httpx.Response(200, json={"choices": [{"message": {"content": "result"}}]})
+
+    mock_client(monkeypatch, handler)
+    result = await complete()
+
+    assert result.content == "result"
+    assert result.request_count == 1
+    assert result.structured is True
+    assert requests[0]["response_format"]["json_schema"]["schema"] == SCHEMA
+
+
+@pytest.mark.asyncio
+async def test_structured_request_falls_back_on_http_400(monkeypatch):
+    requests = []
+
+    def handler(request):
+        requests.append(json.loads(request.content))
+        if len(requests) == 1:
+            return httpx.Response(400, json={"error": "unsupported"})
+        return httpx.Response(200, json={"choices": [{"message": {"content": "fallback"}}]})
+
+    mock_client(monkeypatch, handler)
+    result = await complete()
+
+    assert result.content == "fallback"
+    assert result.request_count == 2
+    assert result.structured is False
+    assert "response_format" in requests[0]
+    assert "response_format" not in requests[1]
+
+
+@pytest.mark.asyncio
+async def test_structured_request_falls_back_on_http_422(monkeypatch):
+    requests = []
+
+    def handler(request):
+        requests.append(json.loads(request.content))
+        if len(requests) == 1:
+            return httpx.Response(422, json={"error": "unsupported"})
+        return httpx.Response(200, json={"choices": [{"message": {"content": "fallback"}}]})
+
+    mock_client(monkeypatch, handler)
+    result = await complete()
+
+    assert result.content == "fallback"
+    assert result.request_count == 2
+    assert result.structured is False
+    assert "response_format" not in requests[1]
+
+
+@pytest.mark.asyncio
+async def test_http_500_does_not_trigger_structured_fallback(monkeypatch):
+    requests = []
+
+    def handler(request):
+        requests.append(request)
+        return httpx.Response(500, json={"error": "server failure"})
+
+    mock_client(monkeypatch, handler)
+    with pytest.raises(httpx.HTTPStatusError):
+        await complete()
+
+    assert len(requests) == 1
+
+
+@pytest.mark.asyncio
+async def test_authorization_header_is_sent_when_key_is_configured(monkeypatch):
+    headers = []
+
+    def handler(request):
+        headers.append(request.headers)
+        return httpx.Response(200, json={"choices": [{"message": {"content": "ok"}}]})
+
+    mock_client(monkeypatch, handler)
+    await complete()
+
+    assert headers[0]["Authorization"] == "Bearer test-key"
+
+
+@pytest.mark.asyncio
+async def test_authorization_header_is_omitted_without_api_key(monkeypatch):
+    headers = []
+
+    def handler(request):
+        headers.append(request.headers)
+        return httpx.Response(200, json={"choices": [{"message": {"content": "ok"}}]})
+
+    mock_client(monkeypatch, handler)
+    await complete(client_options={"api_key": ""})
+
+    assert "Authorization" not in headers[0]
+
+
+def test_chat_endpoint_normalizes_trailing_slashes():
+    assert chat_endpoint("https://api.example.test/v1///") == (
+        "https://api.example.test/v1/chat/completions"
+    )
+
+
+@pytest.mark.asyncio
+async def test_timeout_is_passed_to_http_client(monkeypatch):
+    captured = {}
+    mock_client(
+        monkeypatch,
+        lambda _request: httpx.Response(
+            200,
+            json={"choices": [{"message": {"content": "ok"}}]},
+        ),
+        captured,
+    )
+
+    await complete(client_options={"timeout_seconds": 180})
+
+    timeout = captured["timeout"]
+    assert timeout == request_timeout(180)
+    assert timeout.read == 185
+    assert timeout.connect == 5
+
+
+@pytest.mark.asyncio
+async def test_raw_message_content_is_returned_unchanged(monkeypatch):
+    raw = "  provider content with whitespace  "
+    mock_client(
+        monkeypatch,
+        lambda _request: httpx.Response(
+            200,
+            json={"choices": [{"message": {"content": raw}}]},
+        ),
+    )
+
+    result = await complete()
+
+    assert result.content == raw
+
+
+@pytest.mark.asyncio
+async def test_malformed_response_structure_raises_controlled_error(monkeypatch):
+    mock_client(
+        monkeypatch,
+        lambda _request: httpx.Response(200, json={"choices": []}),
+    )
+
+    with pytest.raises(AIResponseError, match=r"choices\[0\]\.message\.content"):
+        await complete()

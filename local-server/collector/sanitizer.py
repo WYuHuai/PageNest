@@ -3,6 +3,8 @@ import re
 import unicodedata
 from bs4 import BeautifulSoup
 
+from .local_html_styles import safe_class_names, sanitize_inline_style
+
 
 BLOCKED_TAGS = {"script", "style", "iframe", "object", "embed", "form", "input", "button", "textarea", "select", "option", "link", "meta", "base", "svg", "canvas", "audio", "source", "track"}
 SAFE_ATTRIBUTES = {"href", "src", "alt", "title", "aria-label", "colspan", "rowspan", "width", "height", "controls", "preload", "poster", "playsinline", "download"}
@@ -163,7 +165,12 @@ def _code_language(classes: set[str]) -> str:
     return ""
 
 
-def sanitize_content(source_html: str, fallback_text: str = "") -> str:
+def sanitize_content(
+    source_html: str,
+    fallback_text: str = "",
+    *,
+    preserve_visual_styles: bool = False,
+) -> str:
     """Keep readable article structure while removing active or remote content."""
     soup = BeautifulSoup(source_html or "", "html.parser")
     for heading in soup.find_all(["h1", "h2", "h3", "h4", "h5", "h6"]):
@@ -215,6 +222,20 @@ def sanitize_content(source_html: str, fallback_text: str = "") -> str:
         elif "docx-bullet-block" in classes or "docx-ordered-block" in classes:
             tag["data-hermes-kind"] = "list-item"
         for attribute in list(tag.attrs):
+            if preserve_visual_styles and attribute == "class":
+                classes = safe_class_names(tag.get("class", []))
+                if classes:
+                    tag["class"] = classes
+                else:
+                    del tag.attrs[attribute]
+                continue
+            if preserve_visual_styles and attribute == "style":
+                style = sanitize_inline_style(str(tag.get("style", "")))
+                if style:
+                    tag["style"] = style
+                else:
+                    del tag.attrs[attribute]
+                continue
             if attribute not in SAFE_ATTRIBUTES and attribute not in SAFE_DATA_ATTRIBUTES:
                 del tag.attrs[attribute]
         if tag.name == "img":
@@ -229,17 +250,23 @@ def sanitize_content(source_html: str, fallback_text: str = "") -> str:
                 else:
                     tag.decompose()
                 continue
-            tag.attrs = {key: value for key, value in tag.attrs.items() if key in {"src", "alt", "title", "width", "height"}}
+            image_attributes = {"src", "alt", "title", "width", "height"}
+            if preserve_visual_styles:
+                image_attributes.update({"class", "style"})
+            tag.attrs = {key: value for key, value in tag.attrs.items() if key in image_attributes}
             tag["loading"] = "lazy"
         if tag.name == "video":
             src = tag.get("src", "")
             if not src.startswith("data:video/"):
                 tag.decompose()
                 continue
+            video_attributes = {"src", "controls", "preload", "poster", "playsinline"}
+            if preserve_visual_styles:
+                video_attributes.update({"class", "style"})
             tag.attrs = {
                 key: value
                 for key, value in tag.attrs.items()
-                if key in {"src", "controls", "preload", "poster", "playsinline"}
+                if key in video_attributes
             }
             tag["controls"] = ""
             tag["preload"] = "metadata"

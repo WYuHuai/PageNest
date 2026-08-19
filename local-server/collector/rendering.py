@@ -2,6 +2,7 @@ import html
 import json
 
 from .document_contract import WEB_CAPTURE_DOCUMENT_TYPE
+from .local_html_styles import sanitize_document_styles
 from .models import ArticleInput, CommentReplyInput, HermesResult
 from .sanitizer import CODE_BLOCK_CSS, COPY_SCRIPT, _clean_text
 
@@ -268,6 +269,11 @@ def render_page(article: ArticleInput, result: HermesResult | None, content: str
     metadata = _document_metadata(article, title, digest, category, embedded, result)
     metadata_json = json.dumps(metadata, ensure_ascii=False).replace("</", "<\\/")
     source_label = article.site_name or "原网页"
+    captured_styles = (
+        sanitize_document_styles(article.document_styles)
+        if article.source_kind == "local-html"
+        else ""
+    )
     if article.source_kind == "local-html":
         source_footer = f"来源：本地 HTML · {html.escape(article.source_name or article.title)}"
     else:
@@ -321,6 +327,7 @@ a{{color:var(--accent);text-decoration-thickness:.08em;text-underline-offset:.18
 .footer{{font:13px/1.6 ui-sans-serif,system-ui;color:var(--muted);text-align:center;padding:28px 12px}}.footer a{{color:inherit}}.tags{{display:flex;flex-wrap:wrap;gap:8px;margin-top:16px}}
 @media(max-width:700px){{.shell{{width:min(100% - 18px,980px);padding-top:12px}}.hero{{border-radius:20px 20px 14px 14px}}.summary-grid{{grid-template-columns:1fr}}.summary-card.wide{{grid-column:auto}}.article{{padding:24px 18px}}}}
 {CODE_BLOCK_CSS}
+{captured_styles}
 </style>
 </head>
 <body>

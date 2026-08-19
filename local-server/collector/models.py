@@ -5,6 +5,7 @@ from pydantic import AfterValidator, BaseModel, Field
 from .limits import (
     MAX_ARTICLE_HTML_CHARS,
     MAX_ARTICLE_TEXT_CHARS,
+    MAX_DOCUMENT_STYLES_CHARS,
     MAX_HEADINGS,
     MAX_IMAGES,
     MAX_MEDIA_ITEMS,
@@ -87,6 +88,7 @@ class ArticleInput(BaseModel):
     user_note: str = Field(default="", max_length=MAX_NOTE_CHARS)
     article_html: str = Field(default="", max_length=MAX_ARTICLE_HTML_CHARS)
     article_text: str = Field(default="", max_length=MAX_ARTICLE_TEXT_CHARS)
+    document_styles: str = Field(default="", max_length=MAX_DOCUMENT_STYLES_CHARS)
     headings: list[str] = Field(default_factory=list, max_length=MAX_HEADINGS)
     images: list[ImageInput] = Field(default_factory=list, max_length=MAX_IMAGES)
     media: list[MediaInput] = Field(default_factory=list, max_length=MAX_MEDIA_ITEMS)

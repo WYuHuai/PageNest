@@ -1,0 +1,89 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <title>脱敏的本地 HTML 视觉保真测试</title>
+  <style>
+    /* Original development path: file:///C:/Users/Example/private/report.css */
+    :root {
+      --accent: #2563eb;
+      --surface: #f8fafc;
+    }
+    .timeline {
+      position: relative;
+      display: grid;
+      gap: 16px;
+      margin: 24px 0;
+      padding: 8px 0 8px 28px;
+    }
+    .timeline::before {
+      content: "";
+      position: absolute;
+      top: 0;
+      bottom: 0;
+      left: 8px;
+      width: 2px;
+      background: var(--accent);
+    }
+    .timeline-item {
+      position: relative;
+    }
+    .timeline-item::before {
+      content: "";
+      position: absolute;
+      top: 8px;
+      left: -25px;
+      width: 10px;
+      height: 10px;
+      border: 2px solid var(--accent);
+      border-radius: 50%;
+      background: var(--surface);
+    }
+    .card {
+      border: 1px solid #cbd5e1;
+      border-radius: 14px;
+      padding: 20px;
+      background: var(--surface);
+    }
+    .badge {
+      display: inline-flex;
+      padding: 4px 10px;
+      border: 1px solid var(--accent);
+      border-radius: 999px;
+      background: #dbeafe;
+      color: #1e40af;
+    }
+    .badge::after {
+      content: "";
+      width: 6px;
+      height: 6px;
+      margin-left: 6px;
+      border-radius: 50%;
+      background: var(--accent);
+    }
+    .local-resource { mask-image: url("file:///D:/Private/mask.svg"); }
+    .remote-resource { background-image: url("https://example.invalid/tracker.png"); }
+    .unsafe-rule { width: expression(alert(1)); behavior: url(#default#time2); }
+    @import url("file:///D:/Private/imported.css");
+    @font-face { font-family: PrivateFont; src: url("file:///D:/Private/font.woff2"); }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>项目进展时间线</h1>
+    <p>这个脱敏页面用于验证 PageNest 能保留与阅读结构相关的安全样式，同时不会泄漏本地路径或主动访问外部资源。</p>
+    <section class="timeline">
+      <article class="timeline-item card" style="margin-top: 12px; padding-bottom: 18px; background-image: url('file:///D:/Private/paper.png')">
+        <span class="badge">重点</span>
+        <h2>第一阶段</h2>
+        <p>完成结构设计、风险评估和最小可行验证。</p>
+      </article>
+      <article class="timeline-item card">
+        <span class="badge">完成</span>
+        <h2>第二阶段</h2>
+        <p>完成自动测试，并保留文本搜索、选择和复制能力。</p>
+      </article>
+    </section>
+  </main>
+</body>
+</html>

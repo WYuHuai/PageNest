@@ -90,6 +90,7 @@ def test_release_packages_have_expected_roots(tmp_path):
         assert "local-server/.env.example" in names
         assert "local-server/pagenest_cli.py" in names
         assert "local-server/collector/library.py" in names
+        assert "local-server/collector/local_html_styles.py" in names
         assert "local-server/.env" not in names
         assert "启动网页收藏器.bat" in names
         assert not any(name.startswith("tests/") for name in names)

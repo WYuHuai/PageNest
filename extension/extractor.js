@@ -72,6 +72,7 @@ async function buildCapture(adapter, context) {
     user_note: "",
     article_html: clone.outerHTML,
     article_text: articleText,
+    document_styles: sourceInfo.source_kind === "local-html" ? String(found.document_styles || "") : "",
     headings: [...clone.querySelectorAll("h1,h2,h3,h4")].map(node => node.innerText.trim()).filter(Boolean),
     images,
     media,

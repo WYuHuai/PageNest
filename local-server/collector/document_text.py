@@ -4,6 +4,8 @@ from dataclasses import dataclass
 
 from bs4 import BeautifulSoup, Tag
 
+from .document_contract import read_document_type
+
 
 _SPACE_RE = re.compile(r"\s+")
 _STYLE_RE = re.compile(r"<style\b[^>]*>.*?</style\s*>", re.IGNORECASE | re.DOTALL)
@@ -57,6 +59,7 @@ class PageNestDocument:
     author: str
     captured_at: str
     category: str
+    document_type: str
     text: str
     headings: tuple[str, ...]
     code_blocks: tuple[CodeBlock, ...]
@@ -231,6 +234,7 @@ def extract_document(page: str) -> PageNestDocument:
         author=_clean(str(metadata.get("author", ""))),
         captured_at=_clean(str(metadata.get("captured_at", ""))),
         category=_clean(str(metadata.get("category", ""))) or _meta(soup, "hermes-category"),
+        document_type=read_document_type(metadata),
         text="\n\n".join(blocks),
         headings=headings,
         code_blocks=code_blocks,

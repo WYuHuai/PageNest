@@ -56,6 +56,7 @@ assert.match(library, /# PageNest Library/);
 assert.match(library, /## TimesFM 预测/);
 assert.match(library, /时间序列 Python 代码/);
 assert.doesNotMatch(library, /<html|data:image/);
+assert.doesNotMatch(library, /document_type|web-capture/);
 
 (async () => {
   let opened = null;

@@ -47,6 +47,7 @@ def test_every_renderer_emits_the_pagenest_contract(variant: str):
     metadata = json.loads(metadata_node.string)
     assert {
         "document_schema_version",
+        "document_type",
         "title",
         "source",
         "canonical_url",
@@ -56,4 +57,5 @@ def test_every_renderer_emits_the_pagenest_contract(variant: str):
         "content_hash",
         "page_variant",
     } <= metadata.keys()
+    assert metadata["document_type"] == "web-capture"
     assert metadata["page_variant"] == variant

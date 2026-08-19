@@ -1,6 +1,7 @@
 import html
 import json
 
+from .document_contract import WEB_CAPTURE_DOCUMENT_TYPE
 from .models import ArticleInput, CommentReplyInput, HermesResult
 from .sanitizer import CODE_BLOCK_CSS, COPY_SCRIPT, _clean_text
 
@@ -43,6 +44,7 @@ def _document_metadata(
 ) -> dict:
     return {
         "document_schema_version": PAGENEST_DOCUMENT_SCHEMA_VERSION,
+        "document_type": WEB_CAPTURE_DOCUMENT_TYPE,
         "title": title,
         "source": article.url,
         "canonical_url": article.canonical_url,

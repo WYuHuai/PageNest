@@ -95,6 +95,7 @@ def test_historical_hermes_fixture_remains_readable_without_modern_metadata():
     document = extract_document(fixture.read_text("utf-8"))
 
     assert document.title == "旧版离线收藏"
+    assert document.document_type == "web-capture"
     assert document.source == "https://example.test/legacy-page"
     assert document.text == '旧版文章标题\n\n旧版正文仍然可以阅读和搜索。\n\nprint("legacy")\n\n旧版图注'
     assert document.code_blocks[0].text == 'print("legacy")'
@@ -143,6 +144,37 @@ def test_extracts_every_current_renderer_variant(variant: str, content: str):
     assert document.author == "统一作者"
     assert document.source == "https://example.com/canonical"
     assert document.category == "测试分类"
+    assert document.document_type == "web-capture"
     assert "正文" in document.text
     metadata = json.loads(BeautifulSoup(rendered, "html.parser").select_one("#hermes-metadata").string)
     assert metadata["document_schema_version"] == PAGENEST_DOCUMENT_SCHEMA_VERSION
+    assert metadata["document_type"] == "web-capture"
+
+
+def test_old_pagenest_without_document_type_defaults_to_web_capture():
+    document = extract_document(
+        page(
+            "<main><p>旧版 PageNest 正文</p></main>",
+            {
+                "document_schema_version": 1,
+                "page_variant": "standard",
+                "title": "旧版 PageNest",
+            },
+        )
+    )
+
+    assert document.document_type == "web-capture"
+    assert document.title == "旧版 PageNest"
+    assert document.text == "旧版 PageNest 正文"
+
+
+def test_unknown_document_type_is_preserved_for_future_readers():
+    document = extract_document(
+        page(
+            "<main><p>未来文档正文</p></main>",
+            {"document_type": "future-document", "title": "未来文档"},
+        )
+    )
+
+    assert document.document_type == "future-document"
+    assert document.text == "未来文档正文"

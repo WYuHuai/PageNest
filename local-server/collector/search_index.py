@@ -43,6 +43,7 @@ def _indexed_document(root: Path, path: Path, stat: os.stat_result) -> dict:
         "mtime_ns": stat.st_mtime_ns,
         "title": document.title or path.stem,
         "source": document.source,
+        "document_type": document.document_type,
         "text": document.searchable_text,
     }
 
@@ -86,7 +87,12 @@ def refresh_search_index(vault: Path) -> dict[str, dict]:
         try:
             stat = path.stat()
             cached = previous.get(relative)
-            if cached and cached.get("size") == stat.st_size and cached.get("mtime_ns") == stat.st_mtime_ns:
+            if (
+                cached
+                and cached.get("size") == stat.st_size
+                and cached.get("mtime_ns") == stat.st_mtime_ns
+                and cached.get("document_type")
+            ):
                 current[relative] = cached
             else:
                 current[relative] = _indexed_document(root, path, stat)

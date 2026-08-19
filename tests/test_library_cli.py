@@ -86,6 +86,7 @@ def test_search_index_reuses_unchanged_documents_and_removes_deleted(tmp_path: P
 
     initial = refresh_search_index(vault)
     assert set(initial) == {"first.pagenest", "second.hermes"}
+    assert {item["document_type"] for item in initial.values()} == {"web-capture"}
     assert (vault / INDEX_RELATIVE_PATH).is_file()
 
     def unexpected_read(*_args, **_kwargs):
@@ -101,6 +102,40 @@ def test_search_index_reuses_unchanged_documents_and_removes_deleted(tmp_path: P
     second.unlink()
     refreshed = refresh_search_index(vault)
     assert set(refreshed) == {"first.pagenest"}
+
+
+def test_search_index_rebuilds_legacy_entry_without_document_type(tmp_path: Path):
+    vault = tmp_path / "vault"
+    page = vault / "legacy-index.pagenest"
+    write_page(page, title="旧索引文档", text="仍然可搜索")
+    stat = page.stat()
+    index_path = vault / INDEX_RELATIVE_PATH
+    index_path.parent.mkdir(parents=True)
+    index_path.write_text(
+        json.dumps(
+            {
+                "schema_version": 1,
+                "documents": {
+                    page.name: {
+                        "size": stat.st_size,
+                        "mtime_ns": stat.st_mtime_ns,
+                        "title": "旧索引文档",
+                        "source": "https://example.com/article",
+                        "text": "仍然可搜索",
+                    }
+                },
+            },
+            ensure_ascii=False,
+        ),
+        encoding="utf-8",
+    )
+
+    refreshed = refresh_search_index(vault)
+    payload = json.loads(index_path.read_text("utf-8"))
+
+    assert refreshed[page.name]["document_type"] == "web-capture"
+    assert payload["schema_version"] == 1
+    assert payload["documents"][page.name]["document_type"] == "web-capture"
 
 
 def test_search_index_rebuilds_corrupt_index_without_html_or_base64(tmp_path: Path):

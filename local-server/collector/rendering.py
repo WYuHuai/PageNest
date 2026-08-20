@@ -207,7 +207,7 @@ def _render_xhs_comments(comments: list[CommentReplyInput]) -> str:
             avatar_html = f'<img class="comment-avatar" src="{html.escape(avatar, quote=True)}" alt="">'
         else:
             avatar_html = '<span class="comment-avatar comment-avatar-placeholder" aria-hidden="true"></span>'
-        meta = " · ".join(filter(None, (comment.location, comment.time, f"{comment.like_count} 赞" if comment.like_count else "")))
+        meta = " · ".join(filter(None, (comment.location, comment.time)))
         replies = "" if reply or not comment.replies else '<div class="comment-replies">' + "".join(item(child, True) for child in comment.replies) + "</div>"
         author_tag = '<span class="comment-author-tag">作者</span>' if comment.is_author else ""
         classes = "comment-item comment-reply" if reply else "comment-item"

@@ -120,7 +120,6 @@
       content: value(".content"),
       time: location && rawTime.endsWith(location) ? rawTime.slice(0, -location.length).trim() : rawTime,
       location,
-      like_count: value(".like-wrapper .count"),
       is_author: /作者/.test(value(".author-wrapper .tag")),
       replies: [],
     };

@@ -124,7 +124,8 @@ def test_xiaohongshu_comments_render_as_escaped_semantic_items():
     assert "comment-replies" in rendered
     assert "&lt;script&gt;用户&lt;/script&gt;" in rendered
     assert "第一行\n😊第二行 &lt;b&gt;不执行&lt;/b&gt;" in rendered
-    assert "上海 · 08-08 · 12 赞" in rendered
+    assert "上海 · 08-08" in rendered
+    assert "12 赞" not in rendered
     assert "北京" in rendered
     assert '<script>用户</script>' not in rendered
     assert rendered.count('<section data-hermes-kind="xhs-comments" data-pagenest-role="comments">') == 1

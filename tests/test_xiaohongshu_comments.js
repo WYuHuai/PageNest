@@ -100,6 +100,11 @@ const context = vm.createContext({
     resolveImage: image => image.src || "",
     waitForContent: predicate => Promise.resolve(predicate() || predicate()),
   },
+  HermesMedia: {
+    MEDIA_ATTR: "data-hermes-media-id",
+    collect: async () => [],
+    collectVideos: async () => [],
+  },
   HermesAdapters: {register: value => { adapter = value; }},
 });
 vm.runInContext(fs.readFileSync(path.join(root, "extension", "adapters", "xiaohongshu.js"), "utf8"), context);
@@ -114,7 +119,6 @@ vm.runInContext(fs.readFileSync(path.join(root, "extension", "adapters", "xiaoho
     content: "普通单条评论。",
     time: "08-08",
     location: "上海",
-    like_count: "12",
     is_author: false,
     replies: [{
       author: "回复者",
@@ -123,7 +127,6 @@ vm.runInContext(fs.readFileSync(path.join(root, "extension", "adapters", "xiaoho
       content: "这是一级回复。",
       time: "08-09",
       location: "北京",
-      like_count: "",
       is_author: true,
       replies: [],
     }],

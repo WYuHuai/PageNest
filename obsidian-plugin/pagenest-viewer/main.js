@@ -11,6 +11,10 @@ const INDEX_PATH = ".pagenest/search-index.json";
 const MAX_SEARCH_RESULTS = 50;
 const LIBRARY_PATH = "PageNest Library.md";
 const LIBRARY_MARKER = "<!-- pagenest-generated-library:v1 -->";
+const RESPONSIVE_MEDIA_STYLE = `<style data-pagenest-viewer-media>
+[data-hermes-kind="xhs-video"] { width: 100%; max-width: 100%; overflow: hidden; }
+[data-hermes-kind="xhs-video"] video { display: block; width: 100%; max-width: 100%; height: auto; object-fit: contain; margin: 0 auto; }
+</style>`;
 
 async function readIndexDocuments(app) {
   const payload = JSON.parse(await app.vault.adapter.read(INDEX_PATH));
@@ -177,6 +181,10 @@ class PageNestSearchModal extends Modal {
 
 function copyBridgeScript(channel) {
   return `<script nonce="hermes-offline" data-hermes-copy-bridge>
+document.querySelectorAll('[data-hermes-kind="xhs-comments"] .comment-meta').forEach(function (meta) {
+  meta.textContent = meta.textContent.replace(/(?:^|\\s·\\s)(?:\\d+\\s*)?赞(?:\\s+赞)?\\s*$/u, '').trim();
+  if (!meta.textContent) meta.remove();
+});
 window.hermesCopyText = function (text) {
   window.parent.postMessage({type: "${COPY_MESSAGE}", channel: "${channel}", text: text}, "*");
 };
@@ -184,7 +192,7 @@ window.hermesCopyText = function (text) {
 }
 
 function withCopyBridge(page, channel) {
-  const bridge = copyBridgeScript(channel);
+  const bridge = `${RESPONSIVE_MEDIA_STYLE}${copyBridgeScript(channel)}`;
   const bodyEnd = page.toLowerCase().lastIndexOf("</body>");
   return bodyEnd < 0
     ? `${page}${bridge}`

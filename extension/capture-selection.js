@@ -7,10 +7,10 @@ globalThis.selectBestCapture = (captures, tab) => {
     const localHtml = item.result.source_kind === "local-html"
       && text.replace(/\s+/g, "").length >= 10
       && !PageNestContentQuality.looksLikeScriptBundle(text);
-    const shortImageNote = /^xiaohongshu:/.test(item.result.extraction_method || "")
-      && text.replace(/\s+/g, "").length >= 40
-      && (item.result.images?.length || 0) > 0;
-    return PageNestContentQuality.isReadableArticle(text) || localHtml || shortImageNote;
+    const shortXiaohongshuNote = /^xiaohongshu:/.test(item.result.extraction_method || "")
+      && text.replace(/\s+/g, "").length >= 4
+      && (item.result.images?.length || 0) + (item.result.media?.length || 0) > 0;
+    return PageNestContentQuality.isReadableArticle(text) || localHtml || shortXiaohongshuNote;
   });
   if (!readable.length) {
     throw new Error("当前页面及其嵌入内容均未能识别");
@@ -27,6 +27,7 @@ globalThis.selectBestCapture = (captures, tab) => {
   const score = ({result}) => (
     (result.article_text?.length || 0)
     + (result.images?.length || 0) * 1200
+    + (result.media?.length || 0) * 2000
     + (result.headings?.length || 0) * 80
     + (result.marker_diagnostics?.markers || 0) * 1500
   );

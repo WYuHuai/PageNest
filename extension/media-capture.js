@@ -100,15 +100,14 @@ globalThis.HermesMedia = (() => {
     }
   }
 
-  async function collect(root, prefix = "hermes-media") {
+  async function collectVideos(videos, prefix = "hermes-media", resolveSource = sourceOf) {
     const media = [];
-    const videos = [...root.querySelectorAll("video")];
-    for (const [index, video] of videos.entries()) {
+    for (const [index, video] of [...videos].entries()) {
       const rect = video.getBoundingClientRect();
       if (rect.width < 120 && rect.height < 80 && video.videoWidth < 120) continue;
       const position_id = `${prefix}-${index}`;
       video.setAttribute(MEDIA_ATTR, position_id);
-      const source_url = sourceOf(video);
+      const source_url = resolveSource(video);
       media.push({
         position_id,
         kind: "video",
@@ -124,6 +123,10 @@ globalThis.HermesMedia = (() => {
       });
     }
     return media;
+  }
+
+  async function collect(root, prefix = "hermes-media") {
+    return collectVideos(root.querySelectorAll("video"), prefix);
   }
 
   function cleanClone(root) {
@@ -163,6 +166,7 @@ globalThis.HermesMedia = (() => {
     bilibiliVideoPage,
     cleanClone,
     collect,
+    collectVideos,
     frameKind,
     isPlayerControlText: value => CONTROL_ONLY.test(String(value || "").replace(/\s+/g, " ").trim()),
     pageVideo,

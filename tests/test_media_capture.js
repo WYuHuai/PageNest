@@ -28,3 +28,28 @@ global.performance = {
 };
 const resourceMedia = globalThis.HermesMedia.pageVideo("resource-video-slot");
 assert.equal(resourceMedia.page_url, "https://www.bilibili.com/video/BV1Q5411c7mD/");
+
+(async () => {
+  global.location = {
+    hostname: "www.xiaohongshu.com",
+    pathname: "/explore/video-note",
+    href: "https://www.xiaohongshu.com/explore/video-note",
+  };
+  const video = {
+    currentSrc: "https://sns-video-hw.xhscdn.com/note.mp4",
+    poster: "https://sns-img-hw.xhscdn.com/poster.jpg",
+    duration: 12,
+    videoWidth: 1080,
+    videoHeight: 1440,
+    getAttribute: () => "",
+    querySelector: () => null,
+    getBoundingClientRect: () => ({width: 540, height: 720}),
+    setAttribute(name, value) { this[name] = value; },
+  };
+  const collected = await globalThis.HermesMedia.collectVideos([video], "xhs-video");
+  assert.equal(collected.length, 1);
+  assert.equal(collected[0].position_id, "xhs-video-0");
+  assert.equal(collected[0].source_url, video.currentSrc);
+  assert.equal(video[globalThis.HermesMedia.MEDIA_ATTR], "xhs-video-0");
+  console.log("media capture tests passed");
+})().catch(error => { console.error(error); process.exitCode = 1; });

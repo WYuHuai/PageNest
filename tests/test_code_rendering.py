@@ -78,6 +78,7 @@ def test_xiaohongshu_gallery_controls_are_sanitized_and_rendered():
         '<figure data-hermes-kind="xhs-slide"><img src="data:image/png;base64,AAAA"></figure>'
         '<p><a href="#" aria-label="上一张" data-hermes-gallery-prev="">‹</a>'
         '<a href="#" aria-label="下一张" data-hermes-gallery-next="">›</a></p></section>'
+        '<section data-hermes-kind="xhs-video"><video src="data:video/mp4;base64,AAAA" controls></video></section>'
         '<section data-hermes-kind="xhs-comments"><p data-hermes-kind="xhs-comment">评论内容</p></section>'
         '</article>'
     )
@@ -92,6 +93,7 @@ def test_xiaohongshu_gallery_controls_are_sanitized_and_rendered():
     assert ':hover [data-hermes-kind="xhs-gallery-controls"] a' in rendered
     assert 'position:absolute;inset:0' in rendered
     assert '[data-hermes-kind="xhs-comments"]' in rendered
+    assert '[data-hermes-kind="xhs-video"] video{display:block;width:100%;max-width:100%;height:auto;object-fit:contain;margin:0 auto' in rendered
 
 
 def test_xiaohongshu_comments_render_as_escaped_semantic_items():

@@ -2,6 +2,7 @@ const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const Module = require("node:module");
 const path = require("node:path");
+const vm = require("node:vm");
 
 let viewFactory;
 const registeredExtensions = [];
@@ -149,7 +150,21 @@ function channelFrom(page) {
   assert.equal(frame.attributes.sandbox, "allow-popups allow-scripts");
   assert.equal(frame.attributes.allow, undefined);
   assert.match(frame.srcdoc, /data-hermes-copy-bridge/);
+  assert.match(frame.srcdoc, /data-pagenest-viewer-media/);
+  assert.match(frame.srcdoc, /\[data-hermes-kind="xhs-video"\] video \{[^}]*width: 100%;[^}]*height: auto;/);
+  assert.match(frame.srcdoc, /xhs-comments.*comment-meta/);
+  assert.match(frame.srcdoc, /meta\.textContent\.replace/);
   assert.match(frame.srcdoc, /<pre>const answer = 42;<\/pre>/);
+  const commentMeta = [
+    {textContent: "河南 · 4天前 · 赞 赞", remove() { this.removed = true; }},
+    {textContent: "上海 · 08-08 · 12 赞", remove() { this.removed = true; }},
+  ];
+  const viewerScript = frame.srcdoc.match(/<script[^>]*data-hermes-copy-bridge[^>]*>([\s\S]*?)<\/script>/)[1];
+  vm.runInNewContext(viewerScript, {
+    document: {querySelectorAll: () => commentMeta},
+    window: {parent: {postMessage() {}}},
+  });
+  assert.deepEqual(commentMeta.map(meta => meta.textContent), ["河南 · 4天前", "上海 · 08-08"]);
   assert.ok(frame.srcdoc.indexOf("data-hermes-copy-bridge") < frame.srcdoc.indexOf("</body>"));
   const firstChannel = channelFrom(frame.srcdoc);
   assert.equal(firstChannel.length, 64);

@@ -225,6 +225,7 @@ async function identify() {
   const captureKind=await ensureCaptureAccess(tab.url||"");
   const target=captureKind==="web"?{tabId:tab.id,allFrames:true}:{tabId:tab.id};
   await chrome.scripting.executeScript({target,files:[
+    "adapters/xiaohongshu-video-observer.js",
     "media-capture.js",
     "core/content-quality.js",
     "core/extractor-core.js",
@@ -249,9 +250,7 @@ async function identify() {
     }
   });
   article=selectBestCapture(captures,tab);
-  await inlineBrowserReadableImages(article);
-  await inlineCommentAvatars(article);
-  redactLocalCapture(article);
+  await PageNestXhsVideoBridge.apply(article,tab.id,chrome.scripting,false);
   $("title").textContent=article.title;
   $("detailTitle").textContent=article.title;
   $("domain").textContent=article.source_kind==="local-html"
@@ -273,6 +272,14 @@ async function identify() {
   $("saveStatus").className=`status-pill ${article.extraction_warning?"is-warning":"is-ready"}`;
   $("status").className="";
   $("progress").classList.add("hidden");
+}
+
+async function prepareCaptureForSave(capture,activeTab=tab) {
+  await PageNestXhsVideoBridge.apply(capture,activeTab.id);
+  await inlineBrowserReadableImages(capture);
+  await inlineCommentAvatars(capture);
+  redactLocalCapture(capture);
+  return capture;
 }
 
 function escapeHtml(value) {
@@ -417,11 +424,10 @@ $("save").onclick=async()=>{
     article.user_note=$("note").value;
     article.mode=$("mode").value;
     article.category=$("category").value;
+    await prepareCaptureForSave(article);
     const data=await collectWithServiceCapabilities(article);
-    $("progress").textContent=data.media_complete===false
-      ?`页面已保存，但有 ${Number(data.failed_images||0)+Number(data.image_placement?.unplaced||0)} 张图片和 ${Number(data.failed_videos||0)} 个视频未嵌入。`
-      :data.hermes_error?`页面已保存，但智能整理未完成：${data.hermes_error}`:"单文件页面保存完成。";
     showResult(data);
+    $("progress").classList.add("hidden");
   } catch(error) {
     $("progress").textContent=error.message;
     $("progress").classList.add("error");

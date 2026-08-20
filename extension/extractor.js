@@ -51,7 +51,7 @@ async function buildCapture(adapter, context) {
   );
   const missingMarkers = images.filter(image => image.position_id && !markerIds.has(image.position_id));
   const articleText = clone.innerText || clone.textContent || "";
-  if (!PageNestContentQuality.isReadableArticle(articleText) && !adapter.isContentAcceptable(articleText, {images, clone})) {
+  if (!PageNestContentQuality.isReadableArticle(articleText) && !adapter.isContentAcceptable(articleText, {images, media, clone})) {
     throw new Error("未找到可靠的网页正文：页面返回了脚本内容或正文尚未加载，请刷新网页后重试");
   }
   return {

@@ -11,6 +11,42 @@
   const NOTE_ROOT_SELECTORS = ["#detail-container", "#noteContainer", ".note-container", "[class*='note-detail']"];
   const NOTE_MEDIA_SELECTORS = [".note-slider", "[class*='note-slider']", "[class*='image-list']", "[class*='carousel']"];
 
+  function videoSource(video) {
+    const source = video?.currentSrc
+      || video?.getAttribute?.("src")
+      || video?.querySelector?.("source")?.getAttribute?.("src")
+      || "";
+    if (source && !source.startsWith("blob:")) return source;
+    return globalThis.PageNestXhsVideoObserver?.recent?.()[0] || source;
+  }
+
+  function videoNodes(root) {
+    return [...(root?.querySelectorAll?.("video") || [])].filter(video => {
+      const rect = video.getBoundingClientRect?.() || {width: 0, height: 0};
+      const hasPlayerSize = (video.videoWidth || rect.width) >= 120 && (video.videoHeight || rect.height) >= 80;
+      return hasPlayerSize && Boolean(videoSource(video) || video.readyState >= 2);
+    });
+  }
+
+  function noteRoot() {
+    const candidates = NOTE_ROOT_SELECTORS.map(selector => document.querySelector(selector)).filter(Boolean);
+    const main = document.querySelector("main");
+    if (main) candidates.push(main);
+    return [...new Set(candidates)].sort((left, right) => {
+      const score = root => {
+        const bodyLength = Math.min(text(root).length, 1000);
+        const title = first(root, ["#detail-title", ".note-title", "[data-testid='note-title']"]);
+        const description = first(root, ["#detail-desc", ".note-content", ".note-desc", "[data-testid='note-content']"]);
+        return bodyLength
+          + (title ? 2000 : 0)
+          + (description ? 2000 : 0)
+          + (root.querySelectorAll?.("video").length || 0) * 4000
+          + (root.querySelectorAll?.("img").length || 0) * 100;
+      };
+      return score(right) - score(left);
+    })[0] || null;
+  }
+
   function carouselIndex(image, fallback) {
     const slide = image.closest?.("[data-swiper-slide-index],[data-slide-index],[data-index],[aria-label]");
     if (!slide) return fallback;
@@ -96,6 +132,20 @@
     return images;
   }
 
+  function appendMediaSlots(article, media) {
+    if (!media.length) return;
+    const section = document.createElement("section");
+    section.setAttribute("data-hermes-kind", "xhs-video");
+    for (const item of media) {
+      if (!item.position_id) continue;
+      const slot = document.createElement("div");
+      slot.setAttribute(HermesMedia.MEDIA_ATTR, item.position_id);
+      slot.setAttribute("data-hermes-kind", "offline-video");
+      section.appendChild(slot);
+    }
+    if (section.children?.length) article.appendChild(section);
+  }
+
   function commentText(node) {
     const clone = node?.cloneNode?.(true) || node;
     if (clone?.querySelectorAll && document.createTextNode) {
@@ -148,15 +198,17 @@
 
   function readinessSignature() {
     if (!isDetailPage()) return false;
-    const root = first(document, NOTE_ROOT_SELECTORS);
+    const root = noteRoot();
     const body = text(root);
     if (!root || body.length < 20) return "";
     const images = imageNodes(root);
-    if (!images.length) return "";
+    const videos = videoNodes(root);
+    if (!images.length && !videos.length) return "";
     const title = text(first(root, ["#detail-title", ".note-title", "[data-testid='note-title']"]));
     const description = text(first(root, ["#detail-desc", ".note-content", ".note-desc", "[data-testid='note-content']"]));
     const coreText = description || title || body.slice(0, 240);
-    return `${title}\n${coreText}\n${images.map(image => resolveImage(image, location.href)).join("\n")}`;
+    const videoState = videos.map(video => `${videoSource(video)}|${video.poster || ""}|${video.videoWidth || 0}x${video.videoHeight || 0}`);
+    return `${title}\n${coreText}\n${images.map(image => resolveImage(image, location.href)).join("\n")}\n${videoState.join("\n")}`;
   }
 
   async function preparePage() {
@@ -169,9 +221,9 @@
     });
   }
 
-  function extractNote() {
+  async function extractNote() {
     if (!isDetailPage()) return null;
-    const root = first(document, NOTE_ROOT_SELECTORS) || document.querySelector("main");
+    const root = noteRoot();
     const title = text(first(root || document, ["#detail-title", ".note-title", "[data-testid='note-title']"])) || metadata(["og:title", "twitter:title"]) || document.title;
     const description = text(first(root || document, ["#detail-desc", ".note-content", ".note-desc", "[data-testid='note-content']"])) || metadata(["og:description", "description"]);
     if (!title) return null;
@@ -181,10 +233,12 @@
     const author = text(first(root || document, [".author-wrapper .username", ".author-container .name", ".user-info .name", ".author-name"]));
     if (author) addTextElement(article, "p", author, "xhs-author");
     const images = appendGallery(article, root, title);
-    if (!images.length) return null;
+    const media = root ? await HermesMedia.collectVideos(videoNodes(root), "hermes-xhs-video", videoSource) : [];
+    if (!images.length && !media.length) return null;
+    appendMediaSlots(article, media);
     if (description) addTextElement(article, "p", description, "xhs-description");
     const comments = collectComments();
-    return {element: article, images, media: [], comments, title, author, page_variant: "xiaohongshu-note", method: `xiaohongshu:note:${images.length}-images`};
+    return {element: article, images, media, comments, title, author, page_variant: "xiaohongshu-note", method: `xiaohongshu:note:${images.length}-images:${media.length}-videos`};
   }
 
   HermesAdapters.register({
@@ -195,7 +249,7 @@
     detect: ({location}) => /(^|\.)xiaohongshu\.com$/i.test(location.hostname),
     preparePage,
     extract: async () => extractNote(),
-    validate: result => Boolean(result?.element && result.images?.length),
-    isContentAcceptable: (value, {images}) => value.replace(/\s+/g, "").length >= 4 && images.length > 0,
+    validate: result => Boolean(result?.element && (result.images?.length || result.media?.length)),
+    isContentAcceptable: (value, {images, media = []}) => value.replace(/\s+/g, "").length >= 4 && images.length + media.length > 0,
   });
 })();

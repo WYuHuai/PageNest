@@ -123,6 +123,25 @@ const xiaohongshuCapture = globalThis.selectBestCapture([
 assert.equal(xiaohongshuCapture.extraction_method, "xiaohongshu:#detail-container");
 assert.equal(xiaohongshuCapture.images.length, 1);
 
+const xiaohongshuVideo = globalThis.selectBestCapture([
+  {
+    frameId: 0,
+    result: {
+      title: "视频笔记",
+      url: "https://www.xiaohongshu.com/explore/video-example",
+      article_html: '<article><h1>视频笔记</h1><div data-hermes-media-id="xhs-video-0"></div><p>一只见过世面的小鸡。</p></article>',
+      article_text: "视频笔记 一只见过世面的小鸡。",
+      images: [],
+      media: [{position_id: "xhs-video-0", kind: "video", source_url: "https://sns-video.xhscdn.com/note.mp4"}],
+      headings: ["视频笔记"],
+      extraction_method: "xiaohongshu:note:0-images:1-videos",
+      frame_kind: "media",
+    },
+  },
+], {title: "视频笔记", url: "https://www.xiaohongshu.com/explore/video-example"});
+assert.equal(xiaohongshuVideo.media.length, 1);
+assert.match(xiaohongshuVideo.article_html, /data-hermes-media-id="xhs-video-0"/);
+
 const localHtmlCapture = globalThis.selectBestCapture([
   {
     frameId: 0,

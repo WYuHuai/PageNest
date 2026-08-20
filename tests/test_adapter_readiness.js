@@ -18,6 +18,11 @@ function loadAdapter(file, state) {
   };
   const context = vm.createContext({
     HermesExtractorCore: core,
+    HermesMedia: {
+      MEDIA_ATTR: "data-hermes-media-id",
+      collect: async () => state.media || [],
+      collectVideos: async () => state.media || [],
+    },
     HermesAdapters: {register: adapter => { registered = adapter; }},
     document: state.document,
     location: {hostname: state.hostname, pathname: state.pathname},
@@ -116,7 +121,7 @@ function guyueDocument(root, selector = "main") {
   });
   const extraction = await extractingXhs.extract();
   assert.equal(extraction.images.length, 1, "duplicate carousel nodes must produce one saved image");
-  assert.equal(extraction.method, "xiaohongshu:note:1-images");
+  assert.equal(extraction.method, "xiaohongshu:note:1-images:0-videos");
   assert.equal(extraction.comments.length, 0, "comments stay separate from the article body");
 
   const third = image("https://sns-img-qc.xhscdn.com/third.jpg", 2);

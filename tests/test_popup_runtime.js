@@ -74,18 +74,25 @@ async function serviceStateContract(connectionResult, diagnostic = "service-unre
     },
     ensureCaptureAccess: async () => { events.push("capture-access"); return "web"; },
     selectBestCapture: captures => { events.push("select-capture"); return captures[0].result; },
+    PageNestXhsVideoBridge: {
+      apply: async (_capture, _tabId, _scripting, inline = true) => {
+        events.push(inline ? "embed-xhs-video" : "resolve-xhs-metadata");
+      },
+    },
     inlineBrowserReadableImages: async () => { events.push("inline-images"); },
     inlineCommentAvatars: async () => { events.push("inline-comments"); },
     redactLocalCapture: () => { events.push("redact-local-data"); },
   });
   vm.runInContext(
     `${source.slice(identifyStart, identifyEnd)}\n${source.slice(collectStart, collectEnd)}\n`
-      + "this.identify=identify;this.collectWithServiceCapabilities=collectWithServiceCapabilities;"
+      + "this.identify=identify;this.prepareCaptureForSave=prepareCaptureForSave;"
+      + "this.collectWithServiceCapabilities=collectWithServiceCapabilities;"
       + "this.currentArticle=()=>article;",
     context,
   );
 
   await context.identify();
+  await context.prepareCaptureForSave(context.currentArticle());
   const saved = await context.collectWithServiceCapabilities(context.currentArticle(), async url => {
     events.push(url);
     return url === "/api/meta"
@@ -99,6 +106,8 @@ async function serviceStateContract(connectionResult, diagnostic = "service-unre
     "inject-capture-runtime",
     "collect-page",
     "select-capture",
+    "resolve-xhs-metadata",
+    "embed-xhs-video",
     "inline-images",
     "inline-comments",
     "redact-local-data",

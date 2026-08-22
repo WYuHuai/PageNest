@@ -8,6 +8,14 @@
   "background": {
     "service_worker": "background.js"
   },
+  "commands": {
+    "capture-video-notebook-frame": {
+      "suggested_key": {
+        "default": "Ctrl+Shift+Y"
+      },
+      "description": "Capture the visible video frame to the active Video Notebook"
+    }
+  },
   "content_scripts": [{
     "matches": ["https://*.xiaohongshu.com/*"],
     "js": ["adapters/xiaohongshu-video-observer.js"],

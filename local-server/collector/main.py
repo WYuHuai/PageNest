@@ -60,7 +60,7 @@ SUPPORTED_PAGE_VARIANTS = (
     "feishu-document",
     "xiaohongshu-note",
 )
-SERVICE_CAPABILITIES = ("vault-selection", "search-index-v1")
+SERVICE_CAPABILITIES = ("vault-selection", "search-index-v1", "video-notebook-v1")
 
 
 def auth(authorization: str = Header(default="")):

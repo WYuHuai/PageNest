@@ -17,7 +17,12 @@ assert.deepStrictEqual(manifest.permissions, [
   "storage",
   "clipboardWrite",
 ]);
-assert.ok(!Object.hasOwn(manifest, "commands"));
+assert.deepStrictEqual(manifest.commands, {
+  "capture-video-notebook-frame": {
+    suggested_key: { default: "Ctrl+Shift+Y" },
+    description: "Capture the visible video frame to the active Video Notebook",
+  },
+});
 
 const calls = { network: 0, privileged: 0, keepalive: 0 };
 const forbidden = (group) => () => {
@@ -25,8 +30,19 @@ const forbidden = (group) => () => {
   throw new Error(`background used forbidden ${group} capability`);
 };
 let listener = null;
+let commandListener = null;
+const sessionValues = {};
+const storage = {
+  async get(key) {
+    if (typeof key === "string") return { [key]: sessionValues[key] };
+    return { ...key, ...sessionValues };
+  },
+  async set(values) { Object.assign(sessionValues, values); },
+  async remove(key) { delete sessionValues[key]; },
+};
 const context = {
   console,
+  URL,
   fetch: forbidden("network"),
   XMLHttpRequest: forbidden("network"),
   WebSocket: forbidden("network"),
@@ -38,6 +54,12 @@ const context = {
         addListener(candidate) {
           listener = candidate;
         },
+      },
+    },
+    storage: { session: storage, local: storage },
+    commands: {
+      onCommand: {
+        addListener(candidate) { commandListener = candidate; },
       },
     },
     tabs: new Proxy({}, { get: forbidden("privileged") }),
@@ -59,6 +81,7 @@ vm.runInContext(
   { filename: "background.js" }
 );
 assert.strictEqual(typeof listener, "function");
+assert.strictEqual(typeof commandListener, "function");
 
 const protocol = context.PageNestRuntimeProtocol;
 const validMessage = {
@@ -109,4 +132,30 @@ assert.strictEqual(
 assert.strictEqual(send(validMessage, validSender).response.ok, true);
 assert.deepStrictEqual(calls, { network: 0, privileged: 0, keepalive: 0 });
 
-console.log("background runtime protocol tests passed");
+function sendAsync(message, sender = validSender) {
+  return new Promise((resolve) => {
+    const handledAsync = listener(message, sender, (response) => resolve({ handledAsync, response }));
+    assert.strictEqual(handledAsync, true);
+  });
+}
+
+(async () => {
+  const session = {
+    notebook_id: "background-session",
+    relative_path: "Video Notebooks/Background.pagenest",
+    source_url: "https://example.test/video",
+    source_title: "Background",
+  };
+  const set = await sendAsync({
+    ...validMessage,
+    type: protocol.SET_NOTEBOOK_SESSION,
+    session,
+  });
+  assert.strictEqual(set.response.session.notebook_id, session.notebook_id);
+  const get = await sendAsync({ ...validMessage, type: protocol.GET_NOTEBOOK_SESSION });
+  assert.strictEqual(get.response.session.relative_path, session.relative_path);
+  const cleared = await sendAsync({ ...validMessage, type: protocol.CLEAR_NOTEBOOK_SESSION });
+  assert.strictEqual(cleared.response.session, null);
+  assert.deepStrictEqual(calls, { network: 0, privileged: 0, keepalive: 0 });
+  console.log("background runtime protocol tests passed");
+})().catch((error) => { console.error(error); process.exitCode = 1; });

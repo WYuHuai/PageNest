@@ -17,6 +17,7 @@ from .config import (
 from .organizers import probe, probe_connection
 from .limits import MAX_CONCURRENT_COLLECTIONS, MAX_REQUEST_BYTES
 from .models import ArticleInput, OrganizerSettingsInput
+from .notebooks.api import router as notebook_router
 from .request_limits import RequestSizeLimitMiddleware
 from .rendering import PAGENEST_FORMAT_VERSION
 from .search_index import refresh_search_index
@@ -66,6 +67,9 @@ def auth(authorization: str = Header(default="")):
     expected = settings.local_collector_token
     if not expected or authorization != f"Bearer {expected}":
         raise HTTPException(401, "收藏器令牌不正确，请检查插件设置与 .env")
+
+
+app.include_router(notebook_router, dependencies=[Depends(auth)])
 
 
 async def collection_slot():

@@ -92,6 +92,122 @@ async def test_create_with_initial_entry_writes_notebook_and_first_frame_atomica
 
 
 @pytest.mark.asyncio
+async def test_analysis_updates_exact_entry_once_without_changing_frame(tmp_path):
+    store, vault = make_store(tmp_path)
+    created = await store.create(
+        "视觉笔记",
+        "https://example.test/video",
+        initial_entry={
+            "video_timestamp_seconds": 49,
+            "image_data_url": PNG_DATA,
+            "request_analysis": True,
+        },
+    )
+    entry_id = created["entry_id"]
+    before = read_notebook(page(vault, created).read_text("utf-8")).entries[0]
+
+    snapshot = await store.analysis_input(
+        created["notebook_id"], created["relative_path"], entry_id
+    )
+    updated = await store.update_analysis(
+        created["notebook_id"],
+        created["relative_path"],
+        entry_id,
+        status="complete",
+        title="<script>alert(1)</script>",
+        summary="画面包含明确的视觉结构。",
+    )
+    restored = read_notebook(page(vault, created).read_text("utf-8"))
+
+    assert snapshot["image_data_url"] == PNG_DATA
+    assert updated["revision"] == 2
+    assert updated["entry_id"] == entry_id
+    assert len(restored.entries) == 1
+    assert restored.entries[0].id == entry_id
+    assert restored.entries[0].image_data == before.image_data
+    assert restored.entries[0].captured_at == before.captured_at
+    assert restored.entries[0].video_timestamp_seconds == before.video_timestamp_seconds
+    assert restored.entries[0].analysis_status == "complete"
+    assert "<script>" not in page(vault, created).read_text("utf-8")
+
+
+@pytest.mark.asyncio
+async def test_analysis_does_not_hold_lock_while_another_frame_appends(tmp_path):
+    store, vault = make_store(tmp_path)
+    created = await store.create(
+        "并发视觉笔记",
+        "https://example.test/video",
+        initial_entry={
+            "video_timestamp_seconds": 49,
+            "image_data_url": PNG_DATA,
+            "request_analysis": True,
+        },
+    )
+    entry_id = created["entry_id"]
+    snapshot = await store.analysis_input(
+        created["notebook_id"], created["relative_path"], entry_id
+    )
+
+    appended = await asyncio.wait_for(
+        store.append(
+            created["notebook_id"],
+            created["relative_path"],
+            20,
+            PNG_DATA,
+            request_analysis=True,
+        ),
+        timeout=1,
+    )
+    updated = await store.update_analysis(
+        created["notebook_id"],
+        created["relative_path"],
+        snapshot["entry_id"],
+        status="complete",
+        title="A",
+        summary="A summary",
+    )
+    restored = read_notebook(page(vault, created).read_text("utf-8"))
+
+    assert appended["revision"] == 2
+    assert updated["revision"] == 3
+    assert [entry.video_timestamp_seconds for entry in restored.entries] == [20, 49]
+    assert len({entry.id for entry in restored.entries}) == 2
+    assert next(entry for entry in restored.entries if entry.id == entry_id).title == "A"
+
+
+@pytest.mark.asyncio
+async def test_out_of_order_analyses_keep_timeline_and_do_not_duplicate(tmp_path):
+    store, vault = make_store(tmp_path)
+    created = await store.create("乱序分析", "https://example.test/video")
+    later = await store.append(
+        created["notebook_id"], created["relative_path"], 90, PNG_DATA, request_analysis=True
+    )
+    later_id = later["entry_id"]
+    earlier = await store.append(
+        created["notebook_id"], created["relative_path"], 10, PNG_DATA, request_analysis=True
+    )
+    earlier_id = earlier["entry_id"]
+
+    await store.update_analysis(
+        created["notebook_id"], created["relative_path"], later_id,
+        status="complete", title="后", summary="后",
+    )
+    await store.update_analysis(
+        created["notebook_id"], created["relative_path"], earlier_id,
+        status="failed",
+    )
+    await store.update_analysis(
+        created["notebook_id"], created["relative_path"], earlier_id,
+        status="complete", title="前", summary="前",
+    )
+    restored = read_notebook(page(vault, created).read_text("utf-8"))
+
+    assert [entry.video_timestamp_seconds for entry in restored.entries] == [10, 90]
+    assert [entry.title for entry in restored.entries] == ["前", "后"]
+    assert len(restored.entries) == 2
+
+
+@pytest.mark.asyncio
 async def test_invalid_initial_entry_leaves_no_empty_notebook(tmp_path):
     store, vault = make_store(tmp_path)
 

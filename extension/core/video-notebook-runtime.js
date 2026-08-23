@@ -70,6 +70,17 @@
     };
   }
 
+  async function analyzeSavedFrame(clientApi, connected, session, entryId) {
+    if (!entryId || typeof clientApi?.analyzeEntry !== "function") {
+      return { status: "failed" };
+    }
+    try {
+      return await clientApi.analyzeEntry(connected, session, entryId);
+    } catch {
+      return { status: "failed" };
+    }
+  }
+
   async function captureNotebookFrame(options = {}) {
     const chromeApi = options.chromeApi || root.chrome;
     const sessionApi = options.sessionApi || root.PageNestVideoNotebookSession;
@@ -147,6 +158,7 @@
       const frame = {
         video_timestamp_seconds: probe.current_time,
         image_data_url: cropped.image_data_url,
+        request_analysis: true,
       };
       const sameNotebook = previousSession &&
         sessionApi.sourcesMatch(previousSession.source_url, probe.page_url);
@@ -164,7 +176,17 @@
           tab.id,
           feedbackPayload("saved", { timestamp: timestampLabel(probe.current_time) })
         );
-        return { ok: true, created: false, result, probe, crop: cropped.crop };
+        const analysis = await analyzeSavedFrame(
+          clientApi, connected, previousSession, result.entry_id
+        );
+        return {
+          ok: true,
+          created: false,
+          result,
+          analysis,
+          probe,
+          crop: cropped.crop,
+        };
       }
 
       const title = String(probe.page_title || "视频笔记").trim().slice(0, 2000) || "视频笔记";
@@ -198,7 +220,18 @@
           notebook_id: session.notebook_id,
         })
       );
-      return { ok: true, created: true, result, session, probe, crop: cropped.crop };
+      const analysis = await analyzeSavedFrame(
+        clientApi, connected, session, result.entry_id
+      );
+      return {
+        ok: true,
+        created: true,
+        result,
+        analysis,
+        session,
+        probe,
+        crop: cropped.crop,
+      };
     } catch (error) {
       const controlledError = controlled(error, "capture-failed", "Video capture failed");
       if (tab?.id) {

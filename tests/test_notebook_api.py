@@ -1,4 +1,5 @@
 import base64
+import asyncio
 
 import pytest
 from fastapi.testclient import TestClient
@@ -7,6 +8,8 @@ from collector.config import settings
 from collector.limits import MAX_REQUEST_BYTES
 from collector.main import app
 from collector.notebooks import api
+from collector.notebooks.analyzer import AnalysisResult
+from collector.notebooks.models import AnalyzeNotebookEntryRequest
 from collector.notebooks.store import NotebookStore
 
 
@@ -44,6 +47,10 @@ def test_notebook_api_requires_existing_auth_for_all_mutations(notebook_client):
         (
             "/api/notebooks/id/rename",
             {"relative_path": "Video Notebooks/N.pagenest", "title": "New"},
+        ),
+        (
+            "/api/notebooks/id/entries/entry/analyze",
+            {"relative_path": "Video Notebooks/N.pagenest"},
         ),
     )
 
@@ -140,6 +147,140 @@ def test_create_api_accepts_an_atomic_initial_entry(notebook_client):
     files = list(vault.rglob("*.pagenest"))
     assert len(files) == 1
     assert files[0].read_text("utf-8").count(PNG_DATA) == 1
+
+
+def test_analyze_api_updates_existing_entry_and_preserves_capture(notebook_client, monkeypatch):
+    client, vault = notebook_client
+
+    async def success(image_data_url, source_title, video_timestamp_seconds, source_url):
+        assert image_data_url == PNG_DATA
+        assert source_title == "视频原题"
+        assert video_timestamp_seconds == 12
+        assert source_url == "https://example.test/video"
+        return AnalysisResult(
+            status="complete",
+            title="视觉标题",
+            summary="画面展示了主要对象之间的关系。",
+        )
+
+    monkeypatch.setattr(api, "analyze_frame", success)
+    created = client.post(
+        "/api/notebooks",
+        json={
+            "title": "视觉 API",
+            "source_url": "https://example.test/video",
+            "source_title": "视频原题",
+            "initial_entry": {
+                "video_timestamp_seconds": 12,
+                "image_data_url": PNG_DATA,
+                "request_analysis": True,
+            },
+        },
+        headers=auth_headers(),
+    ).json()
+    entry_id = created["entry_id"]
+    before = next(vault.rglob("*.pagenest")).read_text("utf-8")
+
+    response = client.post(
+        f"/api/notebooks/{created['notebook_id']}/entries/{entry_id}/analyze",
+        json={"relative_path": created["relative_path"]},
+        headers=auth_headers(),
+    )
+
+    assert response.status_code == 200
+    result = response.json()
+    assert result["revision"] == 2
+    assert result["entry_id"] == entry_id
+    assert result["analysis_status"] == "complete"
+    assert result["title"] == "视觉标题"
+    assert result["summary"] == "画面展示了主要对象之间的关系。"
+    after = next(vault.rglob("*.pagenest")).read_text("utf-8")
+    assert before.count(PNG_DATA) == after.count(PNG_DATA) == 1
+
+
+def test_analyze_api_failure_is_saved_and_never_returns_500(notebook_client, monkeypatch):
+    client, _vault = notebook_client
+
+    async def failed(*_args):
+        return AnalysisResult(status="failed")
+
+    monkeypatch.setattr(api, "analyze_frame", failed)
+    created = client.post(
+        "/api/notebooks",
+        json={
+            "title": "失败仍保存",
+            "source_url": "https://example.test/video",
+            "initial_entry": {
+                "video_timestamp_seconds": 5,
+                "image_data_url": PNG_DATA,
+                "request_analysis": True,
+            },
+        },
+        headers=auth_headers(),
+    ).json()
+
+    response = client.post(
+        f"/api/notebooks/{created['notebook_id']}/entries/{created['entry_id']}/analyze",
+        json={"relative_path": created["relative_path"]},
+        headers=auth_headers(),
+    )
+
+    assert response.status_code == 200
+    assert response.json()["entry_id"] == created["entry_id"]
+    assert response.json()["analysis_status"] == "failed"
+
+
+@pytest.mark.asyncio
+async def test_running_analysis_releases_lock_for_new_append(tmp_path, monkeypatch):
+    vault = tmp_path / "vault"
+    vault.mkdir()
+    store = NotebookStore(lambda: vault)
+    monkeypatch.setattr(api, "notebook_store", store)
+    started = asyncio.Event()
+    release = asyncio.Event()
+
+    async def delayed(*_args):
+        started.set()
+        await release.wait()
+        return AnalysisResult(status="complete", title="A", summary="A summary")
+
+    monkeypatch.setattr(api, "analyze_frame", delayed)
+    created = await store.create(
+        "并发 API",
+        "https://example.test/video",
+        initial_entry={
+            "video_timestamp_seconds": 49,
+            "image_data_url": PNG_DATA,
+            "request_analysis": True,
+        },
+    )
+    task = asyncio.create_task(
+        api.analyze_notebook_entry(
+            created["notebook_id"],
+            created["entry_id"],
+            AnalyzeNotebookEntryRequest(relative_path=created["relative_path"]),
+        )
+    )
+    await asyncio.wait_for(started.wait(), timeout=1)
+
+    appended = await asyncio.wait_for(
+        store.append(
+            created["notebook_id"],
+            created["relative_path"],
+            20,
+            PNG_DATA,
+            request_analysis=True,
+        ),
+        timeout=1,
+    )
+    release.set()
+    analyzed = await asyncio.wait_for(task, timeout=1)
+    restored = await store.get(created["notebook_id"], created["relative_path"])
+
+    assert appended["revision"] == 2
+    assert analyzed["revision"] == 3
+    assert [entry["video_timestamp_seconds"] for entry in restored["entries"]] == [20, 49]
+    assert len(restored["entries"]) == 2
 
 
 def test_get_api_returns_video_timeline_order(notebook_client):

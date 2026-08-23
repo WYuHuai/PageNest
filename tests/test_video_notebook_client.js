@@ -73,6 +73,22 @@ const client = require("../extension/core/notebook-client.js");
   });
   assert.ok(!requests[2].options.body.includes("private-token"));
 
+  const analyzed = await client.analyzeEntry(
+    connected,
+    { notebook_id: "id/with space", relative_path: "Video Notebooks/N.pagenest" },
+    "entry/with space"
+  );
+  assert.equal(analyzed.entry_count, 1);
+  assert.match(
+    requests[3].url,
+    /\/api\/notebooks\/id%2Fwith%20space\/entries\/entry%2Fwith%20space\/analyze$/
+  );
+  assert.deepEqual(JSON.parse(requests[3].options.body), {
+    relative_path: "Video Notebooks/N.pagenest",
+  });
+  assert.equal(requests[3].options.headers.Authorization, "Bearer private-token");
+  assert.ok(!requests[3].options.body.includes("private-token"));
+
   await assert.rejects(
     () => client.connect({ connectionApi: { connect: async () => null }, request, storage }),
     (error) => error.code === "service-unavailable"
@@ -107,6 +123,14 @@ const client = require("../extension/core/notebook-client.js");
       "New"
     ),
     (error) => error.code === "rename-failed" && error.status === 409
+  );
+  await assert.rejects(
+    () => client.analyzeEntry(
+      { ...connected, request: async () => ({ ok: false, status: 503, json: async () => ({ detail: "offline" }) }) },
+      { notebook_id: "id", relative_path: "Video Notebooks/N.pagenest" },
+      "entry"
+    ),
+    (error) => error.code === "analyze-failed" && error.status === 503
   );
   console.log("video notebook client tests passed");
 })().catch((error) => { console.error(error); process.exitCode = 1; });

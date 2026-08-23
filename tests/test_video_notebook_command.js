@@ -31,7 +31,7 @@ const cropOptions = {
 
 function harness(overrides = {}) {
   const events = [];
-  const calls = { appends: 0, creates: 0, sets: 0 };
+  const calls = { appends: 0, creates: 0, analyzes: 0, sets: 0 };
   let storedSession = Object.hasOwn(overrides, "session") ? overrides.session : existingSession;
   const feedbackApi = { hideTransientUi() {}, renderFeedback() {} };
   const probeApi = { probeVisibleVideo: () => probe };
@@ -42,7 +42,8 @@ function harness(overrides = {}) {
       events.push("save:append");
       assert.deepEqual(actualSession, existingSession);
       assert.equal(frame.video_timestamp_seconds, 42.25);
-      return { ...actualSession, entry_count: 2 };
+      assert.equal(frame.request_analysis, true);
+      return { ...actualSession, entry_id: "appended-entry", entry_count: 2 };
     },
     createNotebook: async (_connected, request) => {
       calls.creates += 1;
@@ -51,13 +52,21 @@ function harness(overrides = {}) {
       assert.equal(request.source_title, overrides.expectedTitle || "<Synthetic lecture>");
       assert.equal(request.initial_entry.video_timestamp_seconds, 42.25);
       assert.ok(request.initial_entry.image_data_url.startsWith("data:image/png;base64,"));
+      assert.equal(request.initial_entry.request_analysis, true);
       return {
         notebook_id: "created-notebook",
         relative_path: "Video Notebooks/Synthetic lecture.pagenest",
         source_url: request.source_url,
         source_title: request.source_title,
         entry_count: 1,
+        entry_id: "created-entry",
       };
+    },
+    analyzeEntry: async (_connected, session, entryId) => {
+      calls.analyzes += 1;
+      events.push(`analyze:${entryId}`);
+      assert.ok(session.notebook_id);
+      return { status: "complete" };
     },
   };
   const sessionApi = overrides.sessionApi || {
@@ -121,19 +130,21 @@ async function expectCode(run, code) {
   const appended = await runtime.handleCommand(runtime.CAPTURE_COMMAND, sameVideo.options);
   assert.equal(appended.ok, true);
   assert.equal(appended.created, false);
-  assert.deepEqual(sameVideo.calls, { appends: 1, creates: 0, sets: 0 });
+  assert.deepEqual(sameVideo.calls, { appends: 1, creates: 0, analyzes: 1, sets: 0 });
   assert.ok(sameVideo.events.indexOf("ui:hide") < sameVideo.events.indexOf("capture"));
   assert.ok(sameVideo.events.indexOf("save:append") < sameVideo.events.indexOf("ui:saved"));
+  assert.ok(sameVideo.events.indexOf("ui:saved") < sameVideo.events.indexOf("analyze:appended-entry"));
 
   const firstCapture = harness({ session: null });
   const created = await runtime.handleCommand(runtime.CAPTURE_COMMAND, firstCapture.options);
   assert.equal(created.created, true);
-  assert.deepEqual(firstCapture.calls, { appends: 0, creates: 1, sets: 1 });
+  assert.deepEqual(firstCapture.calls, { appends: 0, creates: 1, analyzes: 1, sets: 1 });
   assert.equal(firstCapture.session().notebook_id, "created-notebook");
   assert.equal(firstCapture.session().source_title, "<Synthetic lecture>");
   assert.ok(firstCapture.events.indexOf("capture") < firstCapture.events.indexOf("save:create"));
   assert.ok(firstCapture.events.indexOf("save:create") < firstCapture.events.indexOf("session:set"));
   assert.ok(firstCapture.events.indexOf("session:set") < firstCapture.events.indexOf("ui:started"));
+  assert.ok(firstCapture.events.indexOf("ui:started") < firstCapture.events.indexOf("analyze:created-entry"));
 
   const newVideo = harness({
     tabUrl: "https://example.test/watch?v=2",
@@ -145,9 +156,37 @@ async function expectCode(run, code) {
   assert.equal(newVideo.calls.creates, 1);
   assert.equal(newVideo.calls.appends, 0);
 
+  let resolveAnalysis;
+  const delayed = harness({
+    clientApi: {
+      connect: async () => ({}),
+      appendEntry: async () => ({ ...existingSession, entry_id: "delayed-entry" }),
+      createNotebook: async () => { throw new Error("unexpected create"); },
+      analyzeEntry: async () => new Promise((resolve) => { resolveAnalysis = resolve; }),
+    },
+  });
+  const delayedRun = runtime.handleCommand(runtime.CAPTURE_COMMAND, delayed.options);
+  while (!resolveAnalysis) await new Promise((resolve) => setImmediate(resolve));
+  assert.ok(delayed.events.includes("ui:saved"));
+  resolveAnalysis({ status: "complete" });
+  await delayedRun;
+
+  const aiFailure = harness({
+    clientApi: {
+      connect: async () => ({}),
+      appendEntry: async () => ({ ...existingSession, entry_id: "saved-entry" }),
+      createNotebook: async () => { throw new Error("unexpected create"); },
+      analyzeEntry: async () => { const error = new Error("AI down"); error.code = "analyze-failed"; throw error; },
+    },
+  });
+  const stillSaved = await runtime.handleCommand(runtime.CAPTURE_COMMAND, aiFailure.options);
+  assert.equal(stillSaved.ok, true);
+  assert.equal(stillSaved.analysis.status, "failed");
+
   const noVideo = harness({ session: null, probe: { ok: false, error: "no-visible-video" } });
   await expectCode(() => runtime.handleCommand(runtime.CAPTURE_COMMAND, noVideo.options), "no-visible-video");
   assert.equal(noVideo.calls.creates, 0);
+  assert.equal(noVideo.calls.analyzes, 0);
   assert.equal(noVideo.calls.sets, 0);
   assert.equal(noVideo.events.at(-1), "ui:error");
 
@@ -155,6 +194,7 @@ async function expectCode(run, code) {
   captureFailure.options.chromeApi.tabs.captureVisibleTab = async () => { throw new Error("denied"); };
   await expectCode(() => runtime.handleCommand(runtime.CAPTURE_COMMAND, captureFailure.options), "capture-failed");
   assert.equal(captureFailure.calls.creates, 0);
+  assert.equal(captureFailure.calls.analyzes, 0);
   assert.equal(captureFailure.calls.sets, 0);
 
   const hideFailure = harness({ session: null });
@@ -192,6 +232,21 @@ async function expectCode(run, code) {
   await expectCode(() => runtime.handleCommand(runtime.CAPTURE_COMMAND, createFailure.options), "create-failed");
   assert.deepEqual(createFailure.session(), oldSession);
   assert.equal(createFailure.calls.sets, 0);
+
+  let analyzeAfterSaveFailure = 0;
+  const appendFailure = harness({
+    clientApi: {
+      connect: async () => ({}),
+      appendEntry: async () => { const error = new Error("write failed"); error.code = "append-failed"; throw error; },
+      createNotebook: async () => { throw new Error("unexpected create"); },
+      analyzeEntry: async () => { analyzeAfterSaveFailure += 1; },
+    },
+  });
+  await expectCode(
+    () => runtime.handleCommand(runtime.CAPTURE_COMMAND, appendFailure.options),
+    "append-failed"
+  );
+  assert.equal(analyzeAfterSaveFailure, 0);
 
   const navigated = harness({ probe: { ...probe, page_url: "https://example.test/watch?v=2" } });
   await expectCode(() => runtime.handleCommand(runtime.CAPTURE_COMMAND, navigated.options), "video-page-changed");

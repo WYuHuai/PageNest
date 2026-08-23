@@ -28,6 +28,7 @@ def test_create_contract_is_generic_and_requires_http_source():
             "image_data_url": "data:image/png;base64,AAAA",
             "title": "",
             "summary": "",
+            "request_analysis": False,
         },
     }
     assert not any(

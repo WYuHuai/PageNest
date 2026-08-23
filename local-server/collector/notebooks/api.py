@@ -1,6 +1,8 @@
 from fastapi import APIRouter, HTTPException
 
+from .analyzer import AnalysisResult, analyze_frame
 from .models import (
+    AnalyzeNotebookEntryRequest,
     AppendNotebookEntryRequest,
     CreateNotebookRequest,
     RenameNotebookRequest,
@@ -48,7 +50,45 @@ async def append_notebook_entry(
             payload.image_data_url,
             payload.title,
             payload.summary,
+            payload.request_analysis,
         )
+    except NotebookStoreError as exc:
+        raise _http_error(exc) from exc
+
+
+@router.post("/{notebook_id}/entries/{entry_id}/analyze")
+async def analyze_notebook_entry(
+    notebook_id: str, entry_id: str, payload: AnalyzeNotebookEntryRequest
+):
+    try:
+        snapshot = await notebook_store.analysis_input(
+            notebook_id, payload.relative_path, entry_id
+        )
+        try:
+            result = await analyze_frame(
+                snapshot["image_data_url"],
+                snapshot["source_title"],
+                snapshot["video_timestamp_seconds"],
+                snapshot["source_url"],
+            )
+        except Exception:
+            result = AnalysisResult(status="failed")
+        updated = await notebook_store.update_analysis(
+            notebook_id,
+            payload.relative_path,
+            entry_id,
+            status=result.status,
+            title=result.title,
+            summary=result.summary,
+        )
+        entry = next(item for item in updated["entries"] if item["id"] == entry_id)
+        return {
+            "entry_id": entry_id,
+            "title": entry["title"],
+            "summary": entry["summary"],
+            "analysis_status": entry["analysis_status"],
+            "revision": updated["revision"],
+        }
     except NotebookStoreError as exc:
         raise _http_error(exc) from exc
 

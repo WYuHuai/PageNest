@@ -12,6 +12,7 @@ from uuid import uuid4
 from ..config import settings
 from ..security import inside_vault, safe_title
 from .models import (
+    AnalysisStatus,
     DEFAULT_NOTEBOOK_DIRECTORY,
     MAX_NOTEBOOK_SCREENSHOT_BYTES,
     Notebook,
@@ -242,15 +243,20 @@ class NotebookStore:
             updated_at=timestamp,
             revision=1,
         )
+        entry_id = None
         if initial_entry is not None:
+            entry_id = uuid4().hex
             notebook.entries.append(
                 NotebookEntry(
-                    id=uuid4().hex,
+                    id=entry_id,
                     captured_at=timestamp,
                     video_timestamp_seconds=initial_entry["video_timestamp_seconds"],
                     image_data=initial_entry["image_data_url"],
                     title=initial_entry["title"].strip(),
                     summary=initial_entry["summary"].strip(),
+                    analysis_status=(
+                        "pending" if initial_entry["request_analysis"] else None
+                    ),
                 )
             )
         try:
@@ -260,7 +266,7 @@ class NotebookStore:
             raise
         except Exception as exc:
             raise NotebookWriteError("无法写入 Video Notebook") from exc
-        return self._summary(vault, path, notebook)
+        return self._summary(vault, path, notebook, entry_id=entry_id)
 
     async def get(self, notebook_id: str, relative_path: str) -> dict:
         vault = self._vault()
@@ -276,6 +282,7 @@ class NotebookStore:
         image_data_url: str,
         title: str = "",
         summary: str = "",
+        request_analysis: bool = False,
     ) -> dict:
         image_data = await asyncio.to_thread(_validate_image_data_url, image_data_url)
         async with self._lock_for(notebook_id):
@@ -287,6 +294,7 @@ class NotebookStore:
                 image_data,
                 title.strip(),
                 summary.strip(),
+                request_analysis,
             )
 
     def _append_sync(
@@ -297,19 +305,22 @@ class NotebookStore:
         image_data: str,
         title: str,
         summary: str,
+        request_analysis: bool,
     ) -> dict:
         vault = self._vault()
         path = self._resolve(vault, relative_path)
         notebook = self._load(path, notebook_id)
         timestamp = _now()
+        entry_id = uuid4().hex
         notebook.entries.append(
             NotebookEntry(
-                id=uuid4().hex,
+                id=entry_id,
                 captured_at=timestamp,
                 video_timestamp_seconds=video_timestamp_seconds,
                 image_data=image_data,
                 title=title,
                 summary=summary,
+                analysis_status="pending" if request_analysis else None,
             )
         )
         _sort_entries(notebook)
@@ -322,7 +333,84 @@ class NotebookStore:
             raise
         except Exception as exc:
             raise NotebookWriteError("无法更新 Video Notebook") from exc
-        return self._summary(vault, path, notebook)
+        return self._summary(vault, path, notebook, entry_id=entry_id)
+
+    async def analysis_input(
+        self, notebook_id: str, relative_path: str, entry_id: str
+    ) -> dict:
+        async with self._lock_for(notebook_id):
+            return await asyncio.to_thread(
+                self._analysis_input_sync, notebook_id, relative_path, entry_id
+            )
+
+    def _analysis_input_sync(
+        self, notebook_id: str, relative_path: str, entry_id: str
+    ) -> dict:
+        vault = self._vault()
+        path = self._resolve(vault, relative_path)
+        notebook = self._load(path, notebook_id)
+        entry = next((item for item in notebook.entries if item.id == entry_id), None)
+        if entry is None:
+            raise NotebookNotFoundError("Video Notebook 条目不存在")
+        return {
+            "entry_id": entry.id,
+            "image_data_url": entry.image_data,
+            "video_timestamp_seconds": entry.video_timestamp_seconds,
+            "source_title": notebook.source_title,
+            "source_url": notebook.source_url,
+        }
+
+    async def update_analysis(
+        self,
+        notebook_id: str,
+        relative_path: str,
+        entry_id: str,
+        *,
+        status: AnalysisStatus,
+        title: str = "",
+        summary: str = "",
+    ) -> dict:
+        async with self._lock_for(notebook_id):
+            return await asyncio.to_thread(
+                self._update_analysis_sync,
+                notebook_id,
+                relative_path,
+                entry_id,
+                status,
+                title,
+                summary,
+            )
+
+    def _update_analysis_sync(
+        self,
+        notebook_id: str,
+        relative_path: str,
+        entry_id: str,
+        status: AnalysisStatus,
+        title: str,
+        summary: str,
+    ) -> dict:
+        vault = self._vault()
+        path = self._resolve(vault, relative_path)
+        notebook = self._load(path, notebook_id)
+        entry = next((item for item in notebook.entries if item.id == entry_id), None)
+        if entry is None:
+            raise NotebookNotFoundError("Video Notebook 条目不存在")
+        entry.analysis_status = status
+        if status == "complete":
+            entry.title = title.strip()
+            entry.summary = summary.strip()
+        _sort_entries(notebook)
+        notebook.revision += 1
+        notebook.updated_at = _now()
+        try:
+            rendered = render_notebook(notebook)
+            self._write_atomic(path, rendered, replace_existing=True)
+        except NotebookStoreError:
+            raise
+        except Exception as exc:
+            raise NotebookWriteError("无法更新 Video Notebook 分析结果") from exc
+        return self._summary(vault, path, notebook, entry_id=entry_id)
 
     async def rename(self, notebook_id: str, relative_path: str, title: str) -> dict:
         title = _validate_title(title)
@@ -357,8 +445,10 @@ class NotebookStore:
         return self._summary(vault, new_path, notebook)
 
     @staticmethod
-    def _summary(vault: Path, path: Path, notebook: Notebook) -> dict:
-        return {
+    def _summary(
+        vault: Path, path: Path, notebook: Notebook, *, entry_id: str | None = None
+    ) -> dict:
+        result = {
             "notebook_id": notebook.id,
             "document_type": notebook.document_type,
             "title": notebook.title,
@@ -371,6 +461,9 @@ class NotebookStore:
             "relative_path": NotebookStore._relative_path(vault, path),
             "entries": [entry.model_dump(exclude={"image_data"}) for entry in notebook.entries],
         }
+        if entry_id is not None:
+            result["entry_id"] = entry_id
+        return result
 
 
 notebook_store = NotebookStore()

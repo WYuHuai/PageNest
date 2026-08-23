@@ -11,6 +11,9 @@ NOTEBOOK_SCHEMA_VERSION = 1
 DEFAULT_NOTEBOOK_DIRECTORY = "Video Notebooks"
 MAX_NOTEBOOK_SCREENSHOT_BYTES = 10 * MEBIBYTE
 MAX_RELATIVE_PATH_CHARS = 4096
+AnalysisStatus = Literal[
+    "pending", "complete", "failed", "unsupported", "unavailable"
+]
 
 
 def _nonempty(value: str) -> str:
@@ -35,7 +38,7 @@ class NotebookEntry(BaseModel):
     image_data: str = Field(min_length=1)
     title: str = Field(default="", max_length=MAX_TITLE_CHARS)
     summary: str = Field(default="", max_length=MAX_NOTE_CHARS)
-    analysis_status: Literal["pending", "complete", "failed"] | None = None
+    analysis_status: AnalysisStatus | None = None
 
 
 class Notebook(BaseModel):
@@ -72,6 +75,7 @@ class NotebookEntryRequest(BaseModel):
     image_data_url: str = Field(min_length=1)
     title: str = Field(default="", max_length=MAX_TITLE_CHARS)
     summary: str = Field(default="", max_length=MAX_NOTE_CHARS)
+    request_analysis: bool = False
 
 
 class AppendNotebookEntryRequest(NotebookReference, NotebookEntryRequest):
@@ -82,3 +86,7 @@ class RenameNotebookRequest(NotebookReference):
     title: str = Field(max_length=MAX_TITLE_CHARS)
 
     _validate_title = field_validator("title")(_nonempty)
+
+
+class AnalyzeNotebookEntryRequest(NotebookReference):
+    pass

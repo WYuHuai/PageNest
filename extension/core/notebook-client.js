@@ -78,6 +78,7 @@
       video_timestamp_seconds: frame.video_timestamp_seconds,
       image_data_url: frame.image_data_url,
     };
+    if (frame.request_analysis === true) body.request_analysis = true;
     return postJson(
       connected,
       `/api/notebooks/${encodeURIComponent(session.notebook_id)}/entries`,
@@ -97,12 +98,23 @@
     );
   }
 
+  async function analyzeEntry(connected, session, entryId) {
+    return postJson(
+      connected,
+      `/api/notebooks/${encodeURIComponent(session.notebook_id)}/entries/${encodeURIComponent(entryId)}/analyze`,
+      { relative_path: session.relative_path },
+      "analyze-failed",
+      "Notebook frame analysis failed"
+    );
+  }
+
   return Object.freeze({
     CAPABILITY,
     NotebookClientError,
     connect,
     createNotebook,
     appendEntry,
+    analyzeEntry,
     renameNotebook,
   });
 });

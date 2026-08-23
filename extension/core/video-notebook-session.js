@@ -6,7 +6,7 @@
   "use strict";
 
   const STORAGE_KEY = "activeVideoNotebookSession";
-  const TRACKING_QUERY = /^(?:utm_.+|spm|from|xsec_.+)$/i;
+  const TRACKING_QUERY = /^(?:utm_.+|spm|from|xsec_.+|vd_source|spm_id_from|from_spmid)$/i;
 
   class SessionError extends Error {
     constructor(code, message) {

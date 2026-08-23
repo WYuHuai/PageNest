@@ -38,6 +38,41 @@ function storageArea() {
     recreated.sourcesMatch(saved.source_url, "https://example.test/watch?utm_medium=x&v=1#other"),
     true
   );
+  assert.equal(
+    recreated.sourcesMatch(
+      "https://www.bilibili.com/video/BV1xkNoeuEFv/",
+      "https://www.bilibili.com/video/BV1xkNoeuEFv/?vd_source=smoke"
+    ),
+    true
+  );
+  const bilibili = "https://www.bilibili.com/video/BV1xkNoeuEFv";
+  const matchingSources = [
+    [`${bilibili}/?vd_source=first`, `${bilibili}?vd_source=second`],
+    [`${bilibili}/`, bilibili],
+    [
+      `${bilibili}?episode=2&vd_source=abc&utm_campaign=smoke`,
+      `${bilibili}/?utm_campaign=other&episode=2&vd_source=def`,
+    ],
+    [`${bilibili}?episode=2&vd_source=abc`, `${bilibili}?episode=2`],
+    [
+      `${bilibili}?spm_id_from=333.1007&from_spmid=main`,
+      `${bilibili}?from_spmid=other&spm_id_from=333.999`,
+    ],
+  ];
+  for (const [left, right] of matchingSources) {
+    assert.equal(recreated.sourcesMatch(left, right), true, `${left} should match ${right}`);
+  }
+  const differentSources = [
+    [
+      "https://www.bilibili.com/video/BV1AAAA/",
+      "https://www.bilibili.com/video/BV1BBBB/?vd_source=abc",
+    ],
+    [`${bilibili}?episode=2`, `${bilibili}?episode=3`],
+    [`${bilibili}?episode=2&vd_source=abc`, `${bilibili}?episode=3`],
+  ];
+  for (const [left, right] of differentSources) {
+    assert.equal(recreated.sourcesMatch(left, right), false, `${left} must not match ${right}`);
+  }
   assert.equal(recreated.sourcesMatch(saved.source_url, "https://example.test/watch?v=2"), false);
   await recreated.clearSession({ storage });
   assert.equal(await recreated.getSession({ storage }), null);

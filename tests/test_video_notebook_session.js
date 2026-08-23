@@ -88,6 +88,7 @@ function storageArea() {
     setNotebookSession: (session) => recreated.setSession(session, { storage }),
     getNotebookSession: () => recreated.getSession({ storage }),
     clearNotebookSession: () => recreated.clearSession({ storage }),
+    renameNotebook: async (notebookId, title) => ({ notebook_id: notebookId, title }),
   };
   const sender = { id: "abcdefghijklmnopabcdefghijklmnop" };
   const message = (type, extra = {}) => ({
@@ -105,5 +106,21 @@ function storageArea() {
   assert.equal((await protocol.dispatch(
     message(protocol.CLEAR_NOTEBOOK_SESSION), sender, sender.id, handlers
   )).session, null);
+  const renamed = await protocol.dispatch(
+    message(protocol.RENAME_VIDEO_NOTEBOOK, { notebook_id: "notebook-1", title: "新标题" }),
+    sender,
+    sender.id,
+    handlers
+  );
+  assert.equal(renamed.ok, true);
+  assert.equal(renamed.type, "NOTEBOOK_RENAMED");
+  assert.equal(renamed.session.title, "新标题");
+  const rejectedRename = await protocol.dispatch(
+    message(protocol.RENAME_VIDEO_NOTEBOOK, { notebook_id: "notebook-1", title: "" }),
+    sender,
+    sender.id,
+    handlers
+  );
+  assert.equal(rejectedRename.ok, false);
   console.log("video notebook session tests passed");
 })().catch((error) => { console.error(error); process.exitCode = 1; });

@@ -16,6 +16,7 @@ from .models import (
     MAX_NOTEBOOK_SCREENSHOT_BYTES,
     Notebook,
     NotebookEntry,
+    NotebookEntryRequest,
 )
 from .rendering import read_notebook, render_notebook
 
@@ -195,14 +196,38 @@ class NotebookStore:
         _sort_entries(notebook)
         return notebook
 
-    async def create(self, title: str, source_url: str, source_title: str = "") -> dict:
+    async def create(
+        self,
+        title: str,
+        source_url: str,
+        source_title: str = "",
+        initial_entry: NotebookEntryRequest | dict | None = None,
+    ) -> dict:
         title = _validate_title(title)
+        entry = None
+        if initial_entry is not None:
+            if not isinstance(initial_entry, NotebookEntryRequest):
+                initial_entry = NotebookEntryRequest.model_validate(initial_entry)
+            entry = initial_entry.model_dump()
+            entry["image_data_url"] = await asyncio.to_thread(
+                _validate_image_data_url, entry["image_data_url"]
+            )
         async with self._create_lock:
             return await asyncio.to_thread(
-                self._create_sync, title, source_url.strip(), source_title.strip()
+                self._create_sync,
+                title,
+                source_url.strip(),
+                source_title.strip(),
+                entry,
             )
 
-    def _create_sync(self, title: str, source_url: str, source_title: str) -> dict:
+    def _create_sync(
+        self,
+        title: str,
+        source_url: str,
+        source_title: str,
+        initial_entry: dict | None,
+    ) -> dict:
         vault = self._vault()
         destination = inside_vault(vault, vault / DEFAULT_NOTEBOOK_DIRECTORY)
         destination.mkdir(parents=True, exist_ok=True)
@@ -217,6 +242,17 @@ class NotebookStore:
             updated_at=timestamp,
             revision=1,
         )
+        if initial_entry is not None:
+            notebook.entries.append(
+                NotebookEntry(
+                    id=uuid4().hex,
+                    captured_at=timestamp,
+                    video_timestamp_seconds=initial_entry["video_timestamp_seconds"],
+                    image_data=initial_entry["image_data_url"],
+                    title=initial_entry["title"].strip(),
+                    summary=initial_entry["summary"].strip(),
+                )
+            )
         try:
             rendered = render_notebook(notebook)
             self._write_atomic(path, rendered, replace_existing=False)

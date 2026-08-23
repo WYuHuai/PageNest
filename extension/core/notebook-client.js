@@ -41,16 +41,11 @@
     return Object.freeze({ connection: result.connection, meta: result.meta, request });
   }
 
-  async function appendEntry(connected, session, frame) {
-    const body = {
-      relative_path: session.relative_path,
-      video_timestamp_seconds: frame.video_timestamp_seconds,
-      image_data_url: frame.image_data_url,
-    };
+  async function postJson(connected, path, body, errorCode, fallbackMessage) {
     let response;
     try {
       response = await connected.request(
-        `${connected.connection.server}/api/notebooks/${encodeURIComponent(session.notebook_id)}/entries`,
+        `${connected.connection.server}${path}`,
         {
           method: "POST",
           headers: {
@@ -64,14 +59,50 @@
       throw new NotebookClientError("service-unavailable", "PageNest Service became unavailable");
     }
     if (!response.ok) {
-      let detail = "Notebook append failed";
+      let detail = fallbackMessage;
       try {
         detail = (await response.json())?.detail || detail;
       } catch {}
-      throw new NotebookClientError("append-failed", detail, response.status);
+      throw new NotebookClientError(errorCode, detail, response.status);
     }
     return response.json();
   }
 
-  return Object.freeze({ CAPABILITY, NotebookClientError, connect, appendEntry });
+  async function createNotebook(connected, notebook) {
+    return postJson(connected, "/api/notebooks", notebook, "create-failed", "Notebook create failed");
+  }
+
+  async function appendEntry(connected, session, frame) {
+    const body = {
+      relative_path: session.relative_path,
+      video_timestamp_seconds: frame.video_timestamp_seconds,
+      image_data_url: frame.image_data_url,
+    };
+    return postJson(
+      connected,
+      `/api/notebooks/${encodeURIComponent(session.notebook_id)}/entries`,
+      body,
+      "append-failed",
+      "Notebook append failed"
+    );
+  }
+
+  async function renameNotebook(connected, session, title) {
+    return postJson(
+      connected,
+      `/api/notebooks/${encodeURIComponent(session.notebook_id)}/rename`,
+      { relative_path: session.relative_path, title },
+      "rename-failed",
+      "Notebook rename failed"
+    );
+  }
+
+  return Object.freeze({
+    CAPABILITY,
+    NotebookClientError,
+    connect,
+    createNotebook,
+    appendEntry,
+    renameNotebook,
+  });
 });

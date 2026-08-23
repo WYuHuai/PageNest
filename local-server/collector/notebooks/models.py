@@ -57,6 +57,7 @@ class CreateNotebookRequest(BaseModel):
     title: str = Field(max_length=MAX_TITLE_CHARS)
     source_url: str = Field(max_length=MAX_URL_CHARS)
     source_title: str = Field(default="", max_length=MAX_TITLE_CHARS)
+    initial_entry: "NotebookEntryRequest | None" = None
 
     _validate_title = field_validator("title")(_nonempty)
     _validate_source_url = field_validator("source_url")(_source_url)
@@ -66,11 +67,15 @@ class NotebookReference(BaseModel):
     relative_path: str = Field(min_length=1, max_length=MAX_RELATIVE_PATH_CHARS)
 
 
-class AppendNotebookEntryRequest(NotebookReference):
+class NotebookEntryRequest(BaseModel):
     video_timestamp_seconds: float = Field(ge=0)
     image_data_url: str = Field(min_length=1)
     title: str = Field(default="", max_length=MAX_TITLE_CHARS)
     summary: str = Field(default="", max_length=MAX_NOTE_CHARS)
+
+
+class AppendNotebookEntryRequest(NotebookReference, NotebookEntryRequest):
+    pass
 
 
 class RenameNotebookRequest(NotebookReference):

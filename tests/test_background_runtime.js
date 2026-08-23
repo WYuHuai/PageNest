@@ -156,6 +156,14 @@ function sendAsync(message, sender = validSender) {
   assert.strictEqual(get.response.session.relative_path, session.relative_path);
   const cleared = await sendAsync({ ...validMessage, type: protocol.CLEAR_NOTEBOOK_SESSION });
   assert.strictEqual(cleared.response.session, null);
+  const renameWithoutSession = await sendAsync({
+    ...validMessage,
+    type: protocol.RENAME_VIDEO_NOTEBOOK,
+    notebook_id: "background-session",
+    title: "Renamed",
+  });
+  assert.strictEqual(renameWithoutSession.response.ok, false);
+  assert.strictEqual(renameWithoutSession.response.error, "NOTEBOOK_SESSION_ERROR");
   assert.deepStrictEqual(calls, { network: 0, privileged: 0, keepalive: 0 });
   console.log("background runtime protocol tests passed");
 })().catch((error) => { console.error(error); process.exitCode = 1; });

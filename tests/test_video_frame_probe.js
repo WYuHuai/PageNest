@@ -1,4 +1,5 @@
 const assert = require("node:assert/strict");
+const vm = require("node:vm");
 const { probeVisibleVideo } = require("../extension/core/video-frame-probe.js");
 
 function video(rect, options = {}) {
@@ -19,10 +20,12 @@ function video(rect, options = {}) {
 }
 
 function probe(videos, options = {}) {
+  const metadata = options.metadata || {};
   const document = {
     title: "Synthetic video",
     documentElement: { clientWidth: 1000, clientHeight: 800 },
     querySelectorAll: () => videos,
+    querySelector: (selector) => metadata[selector] || null,
   };
   const window = {
     innerWidth: 1000,
@@ -31,7 +34,7 @@ function probe(videos, options = {}) {
     location: { href: "https://example.test/watch?id=1" },
     getComputedStyle: (element) => element.style,
   };
-  return probeVisibleVideo({ document, window, ...options });
+  return probeVisibleVideo({ document, window, ...options, metadata: undefined });
 }
 
 const single = probe([video({ left: 100, top: 80, width: 640, height: 360 }, { currentTime: 12.5 })]);
@@ -41,6 +44,52 @@ assert.deepEqual(single.rect, { left: 100, top: 80, right: 740, bottom: 440, wid
 assert.equal(single.viewport_width, 1000);
 assert.equal(single.viewport_height, 800);
 assert.equal(single.device_pixel_ratio, 1.25);
+assert.equal(single.page_title, "Synthetic video");
+
+const titled = probe(
+  [video({ left: 0, top: 0, width: 800, height: 450 })],
+  {
+    metadata: {
+      'meta[property="og:title"]': { content: "  Open Graph 标题  " },
+      'meta[name="twitter:title"]': { content: "Twitter 标题" },
+      "main h1": { textContent: "页面主标题" },
+    },
+  }
+);
+assert.equal(titled.page_title, "Open Graph 标题");
+
+const twitterTitle = probe(
+  [video({ left: 0, top: 0, width: 800, height: 450 })],
+  { metadata: { 'meta[name="twitter:title"]': { content: "Twitter 标题" } } }
+);
+assert.equal(twitterTitle.page_title, "Twitter 标题");
+
+const mainTitle = probe(
+  [video({ left: 0, top: 0, width: 800, height: 450 })],
+  { metadata: { "main h1": { textContent: "可靠主标题" } } }
+);
+assert.equal(mainTitle.page_title, "可靠主标题");
+
+const serializedProbe = vm.runInNewContext(`(${probeVisibleVideo.toString()})`);
+assert.equal(
+  serializedProbe({
+    document: {
+      title: "Serialized fallback",
+      documentElement: { clientWidth: 1000, clientHeight: 800 },
+      querySelectorAll: () => [video({ left: 0, top: 0, width: 800, height: 450 })],
+      querySelector: (selector) => selector === 'meta[property="og:title"]'
+        ? { content: "Serialized OG title" }
+        : null,
+    },
+    window: {
+      innerWidth: 1000,
+      innerHeight: 800,
+      location: { href: "https://example.test/serialized" },
+      getComputedStyle: (element) => element.style,
+    },
+  }).page_title,
+  "Serialized OG title"
+);
 
 for (const hidden of [
   video({ left: 0, top: 0, width: 600, height: 400 }, { style: { display: "none" } }),

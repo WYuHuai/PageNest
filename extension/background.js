@@ -8,6 +8,7 @@ importScripts(
   "core/video-frame-probe.js",
   "core/video-frame-capture.js",
   "core/notebook-client.js",
+  "core/video-notebook-feedback.js",
   "core/video-notebook-runtime.js"
 );
 
@@ -15,6 +16,9 @@ const sessionHandlers = Object.freeze({
   setNotebookSession: (session) => globalThis.PageNestVideoNotebookSession.setSession(session),
   getNotebookSession: () => globalThis.PageNestVideoNotebookSession.getSession(),
   clearNotebookSession: () => globalThis.PageNestVideoNotebookSession.clearSession(),
+  renameNotebook: (notebookId, title) => (
+    globalThis.PageNestVideoNotebookRuntime.renameNotebook(notebookId, title)
+  ),
 });
 
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {

@@ -115,6 +115,33 @@ def test_authorized_create_get_append_and_rename(notebook_client):
     assert renamed["relative_path"].endswith("重命名笔记.pagenest")
 
 
+def test_create_api_accepts_an_atomic_initial_entry(notebook_client):
+    client, vault = notebook_client
+
+    response = client.post(
+        "/api/notebooks",
+        json={
+            "title": "视频原题",
+            "source_url": "https://example.test/video",
+            "source_title": "视频原题",
+            "initial_entry": {
+                "video_timestamp_seconds": 20,
+                "image_data_url": PNG_DATA,
+            },
+        },
+        headers=auth_headers(),
+    )
+
+    assert response.status_code == 200
+    created = response.json()
+    assert created["revision"] == 1
+    assert created["entry_count"] == 1
+    assert PNG_DATA not in response.text
+    files = list(vault.rglob("*.pagenest"))
+    assert len(files) == 1
+    assert files[0].read_text("utf-8").count(PNG_DATA) == 1
+
+
 def test_get_api_returns_video_timeline_order(notebook_client):
     client, _vault = notebook_client
     created = client.post(

@@ -13,12 +13,22 @@ def test_create_contract_is_generic_and_requires_http_source():
         title="模型讲解",
         source_url="https://video.example/watch/42",
         source_title="课程视频",
+        initial_entry={
+            "video_timestamp_seconds": 12.5,
+            "image_data_url": "data:image/png;base64,AAAA",
+        },
     )
 
     assert request.model_dump() == {
         "title": "模型讲解",
         "source_url": "https://video.example/watch/42",
         "source_title": "课程视频",
+        "initial_entry": {
+            "video_timestamp_seconds": 12.5,
+            "image_data_url": "data:image/png;base64,AAAA",
+            "title": "",
+            "summary": "",
+        },
     }
     assert not any(
         "bilibili" in name.lower() for name in CreateNotebookRequest.model_fields
@@ -27,6 +37,12 @@ def test_create_contract_is_generic_and_requires_http_source():
         CreateNotebookRequest(title=" ", source_url="https://example.test")
     with pytest.raises(ValidationError):
         CreateNotebookRequest(title="Notebook", source_url="file:///private/video.mp4")
+
+    compatible = CreateNotebookRequest(
+        title="旧客户端",
+        source_url="https://example.test/video",
+    )
+    assert compatible.initial_entry is None
 
 
 def test_append_and_rename_contracts_are_narrow():

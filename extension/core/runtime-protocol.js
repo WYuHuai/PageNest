@@ -11,6 +11,7 @@
   const SET_NOTEBOOK_SESSION = "SET_NOTEBOOK_SESSION";
   const GET_NOTEBOOK_SESSION = "GET_NOTEBOOK_SESSION";
   const CLEAR_NOTEBOOK_SESSION = "CLEAR_NOTEBOOK_SESSION";
+  const RENAME_VIDEO_NOTEBOOK = "RENAME_VIDEO_NOTEBOOK";
 
   function reply(type, details = {}) {
     return Object.freeze({
@@ -31,18 +32,27 @@
     }
     if (message.type === PING) return reply("PONG", { ok: true });
     let operation;
+    let responseType = "NOTEBOOK_SESSION";
     if (message.type === SET_NOTEBOOK_SESSION && handlers.setNotebookSession) {
       operation = () => handlers.setNotebookSession(message.session);
     } else if (message.type === GET_NOTEBOOK_SESSION && handlers.getNotebookSession) {
       operation = () => handlers.getNotebookSession();
     } else if (message.type === CLEAR_NOTEBOOK_SESSION && handlers.clearNotebookSession) {
       operation = () => handlers.clearNotebookSession();
+    } else if (
+      message.type === RENAME_VIDEO_NOTEBOOK &&
+      handlers.renameNotebook &&
+      String(message.notebook_id || "").trim() &&
+      String(message.title || "").trim()
+    ) {
+      responseType = "NOTEBOOK_RENAMED";
+      operation = () => handlers.renameNotebook(message.notebook_id, message.title);
     } else {
       return reply("ERROR", { ok: false, error: "UNSUPPORTED_MESSAGE" });
     }
     return Promise.resolve()
       .then(operation)
-      .then((session) => reply("NOTEBOOK_SESSION", { ok: true, session: session || null }))
+      .then((session) => reply(responseType, { ok: true, session: session || null }))
       .catch(() => reply("ERROR", { ok: false, error: "NOTEBOOK_SESSION_ERROR" }));
   }
 
@@ -53,6 +63,7 @@
     SET_NOTEBOOK_SESSION,
     GET_NOTEBOOK_SESSION,
     CLEAR_NOTEBOOK_SESSION,
+    RENAME_VIDEO_NOTEBOOK,
     dispatch,
   });
 });

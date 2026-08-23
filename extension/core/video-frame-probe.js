@@ -8,6 +8,16 @@
   function probeVisibleVideo(options = {}) {
     const doc = options.document || document;
     const view = options.window || window;
+    const text = (value) => String(value || "").trim();
+    const titleCandidates = [
+      text(doc.querySelector?.('meta[property="og:title"]')?.content),
+      text(doc.querySelector?.('meta[name="twitter:title"]')?.content),
+      text(doc.querySelector?.("main h1")?.textContent),
+      text(doc.querySelector?.('h1[role="heading"]')?.textContent),
+      text(doc.querySelector?.("h1")?.textContent),
+      text(doc.title),
+    ];
+    const videoTitle = titleCandidates.find(Boolean) || "视频笔记";
     const viewportWidth = Number(options.viewport_width || view.innerWidth || doc.documentElement?.clientWidth || 0);
     const viewportHeight = Number(options.viewport_height || view.innerHeight || doc.documentElement?.clientHeight || 0);
     const minimumVisibleRatio = Number(options.minimum_visible_ratio ?? 0.5);
@@ -86,7 +96,7 @@
       viewport_height: viewportHeight,
       device_pixel_ratio: Number(view.devicePixelRatio || 1),
       page_url: String(options.page_url || view.location?.href || ""),
-      page_title: String(options.page_title ?? doc.title ?? ""),
+      page_title: text(options.page_title) || videoTitle,
     };
   }
 

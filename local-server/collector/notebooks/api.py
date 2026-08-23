@@ -19,7 +19,10 @@ def _http_error(error: NotebookStoreError) -> HTTPException:
 async def create_notebook(payload: CreateNotebookRequest):
     try:
         return await notebook_store.create(
-            payload.title, payload.source_url, payload.source_title
+            payload.title,
+            payload.source_url,
+            payload.source_title,
+            payload.initial_entry,
         )
     except NotebookStoreError as exc:
         raise _http_error(exc) from exc

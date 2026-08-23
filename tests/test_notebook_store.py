@@ -66,6 +66,49 @@ async def test_create_append_order_revision_and_restart(tmp_path):
 
 
 @pytest.mark.asyncio
+async def test_create_with_initial_entry_writes_notebook_and_first_frame_atomically(tmp_path):
+    store, vault = make_store(tmp_path)
+
+    created = await store.create(
+        "首帧笔记",
+        "https://example.test/video",
+        "原始视频标题",
+        initial_entry={
+            "video_timestamp_seconds": 49,
+            "image_data_url": PNG_DATA,
+            "title": "第一帧",
+            "summary": "",
+        },
+    )
+
+    restored = read_notebook(page(vault, created).read_text("utf-8"))
+    assert created["revision"] == 1
+    assert created["entry_count"] == 1
+    assert len(restored.entries) == 1
+    assert restored.entries[0].video_timestamp_seconds == 49
+    assert restored.entries[0].title == "第一帧"
+    assert restored.source_title == "原始视频标题"
+    assert page(vault, created).read_text("utf-8").count(PNG_DATA) == 1
+
+
+@pytest.mark.asyncio
+async def test_invalid_initial_entry_leaves_no_empty_notebook(tmp_path):
+    store, vault = make_store(tmp_path)
+
+    with pytest.raises(NotebookStoreError, match="PNG、JPEG 或 WEBP"):
+        await store.create(
+            "不应创建",
+            "https://example.test/video",
+            initial_entry={
+                "video_timestamp_seconds": 1,
+                "image_data_url": "https://remote.invalid/frame.png",
+            },
+        )
+
+    assert not list(vault.rglob("*.pagenest"))
+
+
+@pytest.mark.asyncio
 async def test_append_orders_entries_by_video_timeline(tmp_path):
     store, vault = make_store(tmp_path)
     created = await store.create("时间线", "https://example.test/video")

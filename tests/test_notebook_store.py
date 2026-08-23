@@ -1,5 +1,6 @@
 import asyncio
 import base64
+import json
 import os
 import socket
 import subprocess
@@ -8,9 +9,10 @@ import time
 from pathlib import Path
 
 import pytest
+from bs4 import BeautifulSoup
 
-from collector.notebooks.models import MAX_NOTEBOOK_SCREENSHOT_BYTES
-from collector.notebooks.rendering import read_notebook
+from collector.notebooks.models import MAX_NOTEBOOK_SCREENSHOT_BYTES, Notebook, NotebookEntry
+from collector.notebooks.rendering import read_notebook, render_notebook
 from collector.notebooks.store import (
     DEFAULT_NOTEBOOK_DIRECTORY,
     NotebookNotFoundError,
@@ -61,6 +63,169 @@ async def test_create_append_order_revision_and_restart(tmp_path):
     assert [entry.video_timestamp_seconds for entry in restored.entries] == [3.5, 9]
     assert [entry.title for entry in restored.entries] == ["第一帧", "第二帧"]
     assert notebook_path.read_text("utf-8").count(PNG_DATA) == 2
+
+
+@pytest.mark.asyncio
+async def test_append_orders_entries_by_video_timeline(tmp_path):
+    store, vault = make_store(tmp_path)
+    created = await store.create("时间线", "https://example.test/video")
+
+    await store.append(
+        created["notebook_id"], created["relative_path"], 49, PNG_DATA, "后截的时间点"
+    )
+    result = await store.append(
+        created["notebook_id"], created["relative_path"], 20, PNG_DATA, "先出现的时间点"
+    )
+    restored = read_notebook(page(vault, created).read_text("utf-8"))
+
+    assert [entry.video_timestamp_seconds for entry in restored.entries] == [20, 49]
+    assert [entry["video_timestamp_seconds"] for entry in result["entries"]] == [20, 49]
+
+
+@pytest.mark.asyncio
+async def test_three_out_of_order_appends_are_canonical(tmp_path):
+    store, vault = make_store(tmp_path)
+    created = await store.create("三帧时间线", "https://example.test/video")
+
+    for timestamp in (60, 10, 30):
+        await store.append(
+            created["notebook_id"], created["relative_path"], timestamp, PNG_DATA
+        )
+
+    restored = read_notebook(page(vault, created).read_text("utf-8"))
+    assert [entry.video_timestamp_seconds for entry in restored.entries] == [10, 30, 60]
+
+
+@pytest.mark.asyncio
+async def test_equal_timestamps_use_capture_time_without_deduplication(tmp_path, monkeypatch):
+    store, vault = make_store(tmp_path)
+    created = await store.create("同时间点", "https://example.test/video")
+    captured = iter(("2026-08-23T01:00:00Z", "2026-08-23T01:00:01Z"))
+    monkeypatch.setattr("collector.notebooks.store._now", lambda: next(captured))
+
+    await store.append(
+        created["notebook_id"], created["relative_path"], 20, PNG_DATA, "Frame A"
+    )
+    await store.append(
+        created["notebook_id"], created["relative_path"], 20, PNG_DATA, "Frame B"
+    )
+
+    restored = read_notebook(page(vault, created).read_text("utf-8"))
+    assert [entry.title for entry in restored.entries] == ["Frame A", "Frame B"]
+    assert [entry.captured_at for entry in restored.entries] == [
+        "2026-08-23T01:00:00Z",
+        "2026-08-23T01:00:01Z",
+    ]
+
+
+@pytest.mark.asyncio
+async def test_equal_timestamp_concurrent_appends_have_deterministic_final_order(
+    tmp_path, monkeypatch
+):
+    store, vault = make_store(tmp_path)
+    created = await store.create("并发同时间点", "https://example.test/video")
+    identifiers = iter(("entry-c", "entry-a", "entry-b"))
+
+    class FakeUuid:
+        def __init__(self, value):
+            self.hex = value
+
+    monkeypatch.setattr("collector.notebooks.store._now", lambda: "2026-08-23T02:00:00Z")
+    monkeypatch.setattr(
+        "collector.notebooks.store.uuid4", lambda: FakeUuid(next(identifiers))
+    )
+    await asyncio.gather(
+        *(
+            store.append(
+                created["notebook_id"], created["relative_path"], 20, PNG_DATA
+            )
+            for _ in range(3)
+        )
+    )
+
+    restored = read_notebook(page(vault, created).read_text("utf-8"))
+    assert len(restored.entries) == 3
+    assert [entry.id for entry in restored.entries] == ["entry-a", "entry-b", "entry-c"]
+
+
+@pytest.mark.asyncio
+async def test_rendered_html_json_and_store_summary_share_timeline_order(tmp_path):
+    store, vault = make_store(tmp_path)
+    created = await store.create("三种顺序", "https://example.test/video")
+    await store.append(
+        created["notebook_id"], created["relative_path"], 49, PNG_DATA
+    )
+    summary = await store.append(
+        created["notebook_id"], created["relative_path"], 20, PNG_DATA
+    )
+
+    rendered = page(vault, created).read_text("utf-8")
+    model = read_notebook(rendered)
+    soup = BeautifulSoup(rendered, "html.parser")
+    state = json.loads(soup.select_one("#pagenest-notebook-data").string)
+    model_ids = [entry.id for entry in model.entries]
+
+    assert [entry.video_timestamp_seconds for entry in model.entries] == [20, 49]
+    assert [entry["id"] for entry in summary["entries"]] == model_ids
+    assert [entry["id"] for entry in state["entries"]] == model_ids
+    assert [node["data-entry-id"] for node in soup.select("article[data-entry-id]")] == model_ids
+
+
+@pytest.mark.asyncio
+async def test_timeline_order_persists_across_store_restart(tmp_path):
+    store, vault = make_store(tmp_path)
+    created = await store.create("重启顺序", "https://example.test/video")
+    for timestamp in (60, 10, 30):
+        await store.append(
+            created["notebook_id"], created["relative_path"], timestamp, PNG_DATA
+        )
+
+    restarted = NotebookStore(lambda: vault)
+    restored = await restarted.get(created["notebook_id"], created["relative_path"])
+    assert [entry["video_timestamp_seconds"] for entry in restored["entries"]] == [
+        10,
+        30,
+        60,
+    ]
+
+
+@pytest.mark.asyncio
+async def test_legacy_capture_order_is_lazily_normalized_on_append(tmp_path):
+    store, vault = make_store(tmp_path)
+    created = await store.create("旧顺序", "https://example.test/video")
+    legacy = Notebook(
+        id=created["notebook_id"],
+        title="旧顺序",
+        source_url="https://example.test/video",
+        created_at="2026-08-23T00:00:00Z",
+        updated_at="2026-08-23T00:02:00Z",
+        revision=3,
+        entries=[
+            NotebookEntry(
+                id="later",
+                captured_at="2026-08-23T00:01:00Z",
+                video_timestamp_seconds=49,
+                image_data=PNG_DATA,
+            ),
+            NotebookEntry(
+                id="earlier",
+                captured_at="2026-08-23T00:02:00Z",
+                video_timestamp_seconds=20,
+                image_data=PNG_DATA,
+            ),
+        ],
+    )
+    notebook_path = page(vault, created)
+    notebook_path.write_text(render_notebook(legacy), encoding="utf-8")
+
+    loaded = await store.get(created["notebook_id"], created["relative_path"])
+    assert [entry["video_timestamp_seconds"] for entry in loaded["entries"]] == [20, 49]
+    await store.append(
+        created["notebook_id"], created["relative_path"], 30, PNG_DATA
+    )
+    restored = read_notebook(notebook_path.read_text("utf-8"))
+    assert [entry.video_timestamp_seconds for entry in restored.entries] == [20, 30, 49]
+    assert len(restored.entries) == 3
 
 
 @pytest.mark.asyncio

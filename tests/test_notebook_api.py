@@ -115,6 +115,37 @@ def test_authorized_create_get_append_and_rename(notebook_client):
     assert renamed["relative_path"].endswith("重命名笔记.pagenest")
 
 
+def test_get_api_returns_video_timeline_order(notebook_client):
+    client, _vault = notebook_client
+    created = client.post(
+        "/api/notebooks",
+        json={"title": "API 时间线", "source_url": "https://example.test/video"},
+        headers=auth_headers(),
+    ).json()
+    for timestamp in (49, 20):
+        response = client.post(
+            f"/api/notebooks/{created['notebook_id']}/entries",
+            json={
+                "relative_path": created["relative_path"],
+                "video_timestamp_seconds": timestamp,
+                "image_data_url": PNG_DATA,
+            },
+            headers=auth_headers(),
+        )
+        assert response.status_code == 200
+
+    fetched = client.get(
+        f"/api/notebooks/{created['notebook_id']}",
+        params={"relative_path": created["relative_path"]},
+        headers=auth_headers(),
+    )
+    assert fetched.status_code == 200
+    assert [entry["video_timestamp_seconds"] for entry in fetched.json()["entries"]] == [
+        20,
+        49,
+    ]
+
+
 def test_malformed_missing_and_mismatched_notebook_errors_are_controlled(notebook_client):
     client, _vault = notebook_client
     malformed = client.post(

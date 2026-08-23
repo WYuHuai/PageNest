@@ -94,6 +94,16 @@ def _filename_stem(title: str) -> str:
     return stem
 
 
+def _sort_entries(notebook: Notebook) -> None:
+    notebook.entries.sort(
+        key=lambda entry: (
+            entry.video_timestamp_seconds,
+            entry.captured_at,
+            entry.id,
+        )
+    )
+
+
 class NotebookStore:
     def __init__(self, vault_provider: Callable[[], Path | None] | None = None):
         self._vault_provider = vault_provider or (lambda: settings.vault)
@@ -182,6 +192,7 @@ class NotebookStore:
             raise NotebookStoreError(str(exc)) from exc
         if notebook.id != notebook_id:
             raise NotebookStoreError("Notebook ID 与文件不匹配")
+        _sort_entries(notebook)
         return notebook
 
     async def create(self, title: str, source_url: str, source_title: str = "") -> dict:
@@ -265,6 +276,7 @@ class NotebookStore:
                 summary=summary,
             )
         )
+        _sort_entries(notebook)
         notebook.revision += 1
         notebook.updated_at = timestamp
         try:

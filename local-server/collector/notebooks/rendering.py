@@ -11,7 +11,7 @@ from .models import (
 )
 
 
-def _json_script(value: dict) -> str:
+def serialize_json_script(value: dict) -> str:
     return (
         json.dumps(value, ensure_ascii=False, separators=(",", ":"))
         .replace("&", "\\u0026")
@@ -22,6 +22,14 @@ def _json_script(value: dict) -> str:
 
 def _entry_state(entry: NotebookEntry) -> dict:
     return entry.model_dump(exclude={"image_data"})
+
+
+def notebook_state(notebook: Notebook) -> dict:
+    return {
+        "schema_version": NOTEBOOK_SCHEMA_VERSION,
+        **notebook.model_dump(exclude={"entries"}),
+        "entries": [_entry_state(entry) for entry in notebook.entries],
+    }
 
 
 def _entry_html(entry: NotebookEntry) -> str:
@@ -47,11 +55,7 @@ def render_notebook(notebook: Notebook) -> str:
         "captured_at": notebook.created_at,
         "category": DEFAULT_NOTEBOOK_DIRECTORY,
     }
-    state = {
-        "schema_version": NOTEBOOK_SCHEMA_VERSION,
-        **notebook.model_dump(exclude={"entries"}),
-        "entries": [_entry_state(entry) for entry in notebook.entries],
-    }
+    state = notebook_state(notebook)
     entries = "".join(_entry_html(entry) for entry in notebook.entries)
     source_label = notebook.source_title or notebook.source_url
     empty = '<p class="empty">尚未添加视频画面。</p>' if not notebook.entries else ""
@@ -75,8 +79,8 @@ article{{padding:20px;background:#fff;border:1px solid #e5e9f2;border-radius:18p
 time{{font-weight:700;color:#1e45fb}}img{{display:block;width:100%;height:auto;border-radius:12px;background:#eef1f7}}
 h3{{margin:18px 0 8px;font-size:1.1rem}}p{{margin:8px 0;line-height:1.7;white-space:pre-wrap}}.empty{{text-align:center;color:#697386}}
 </style>
-<script id="hermes-metadata" type="application/json">{_json_script(metadata)}</script>
-<script id="pagenest-notebook-data" type="application/json">{_json_script(state)}</script>
+<script id="hermes-metadata" type="application/json">{serialize_json_script(metadata)}</script>
+<script id="pagenest-notebook-data" type="application/json">{serialize_json_script(state)}</script>
 </head>
 <body><main>
 <header><h1>{escape(notebook.title)}</h1><div class="meta">来源：<a href="{escape(notebook.source_url, quote=True)}" target="_blank" rel="noopener noreferrer">{escape(source_label)}</a> · {len(notebook.entries)} 个画面 · revision {notebook.revision}</div></header>

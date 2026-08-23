@@ -135,6 +135,35 @@ async def test_text_only_provider_is_controlled_unsupported(monkeypatch):
 
 
 @pytest.mark.asyncio
+async def test_structured_and_fallback_http_400_produce_one_unsupported_result(
+    monkeypatch,
+):
+    requests = []
+    real_client = httpx.AsyncClient
+
+    def handler(request):
+        requests.append(json.loads(request.content))
+        return httpx.Response(400, json={"error": {"type": "unsupported_input"}})
+
+    def client_factory(**options):
+        return real_client(
+            transport=httpx.MockTransport(handler),
+            timeout=options.get("timeout"),
+        )
+
+    monkeypatch.setattr(httpx, "AsyncClient", client_factory)
+
+    result = await analyzer.analyze_frame("data:image/png;base64,AAAA", "")
+
+    assert result.status == "unsupported"
+    assert result.title == ""
+    assert result.summary == ""
+    assert len(requests) == 2
+    assert "response_format" in requests[0]
+    assert "response_format" not in requests[1]
+
+
+@pytest.mark.asyncio
 async def test_timeout_is_controlled_failure(monkeypatch):
     fake_client(monkeypatch, wait=True)
     monkeypatch.setattr(analyzer, "ANALYSIS_TIMEOUT_SECONDS", 0.001)

@@ -27,6 +27,11 @@ PNG_BYTES = b"\x89PNG\r\n\x1a\nnotebook-frame"
 PNG_DATA = "data:image/png;base64," + base64.b64encode(PNG_BYTES).decode("ascii")
 
 
+def large_png_data(size: int, marker: int) -> str:
+    content = b"\x89PNG\r\n\x1a\n" + bytes([marker]) * size
+    return "data:image/png;base64," + base64.b64encode(content).decode("ascii")
+
+
 def make_store(tmp_path: Path) -> tuple[NotebookStore, Path]:
     vault = tmp_path / "vault"
     vault.mkdir()
@@ -205,6 +210,190 @@ async def test_out_of_order_analyses_keep_timeline_and_do_not_duplicate(tmp_path
     assert [entry.video_timestamp_seconds for entry in restored.entries] == [10, 90]
     assert [entry.title for entry in restored.entries] == ["前", "后"]
     assert len(restored.entries) == 2
+
+
+@pytest.mark.asyncio
+async def test_failure_analysis_update_does_not_full_read_screenshot_html(
+    tmp_path, monkeypatch
+):
+    store, vault = make_store(tmp_path)
+    created = await store.create(
+        "受控失败低内存写回",
+        "https://example.test/video",
+        initial_entry={
+            "video_timestamp_seconds": 10,
+            "image_data_url": PNG_DATA,
+            "request_analysis": True,
+        },
+    )
+    await store.append(
+        created["notebook_id"],
+        created["relative_path"],
+        20,
+        PNG_DATA,
+        request_analysis=True,
+    )
+    latest = await store.append(
+        created["notebook_id"],
+        created["relative_path"],
+        30,
+        PNG_DATA,
+        request_analysis=True,
+    )
+    notebook_path = page(vault, created)
+    real_read_text = Path.read_text
+
+    def reject_full_notebook_read(path, *args, **kwargs):
+        if path == notebook_path:
+            raise MemoryError("simulated full Notebook allocation failure")
+        return real_read_text(path, *args, **kwargs)
+
+    with monkeypatch.context() as scoped:
+        scoped.setattr(Path, "read_text", reject_full_notebook_read)
+        updated = await store.update_analysis(
+            created["notebook_id"],
+            created["relative_path"],
+            latest["entry_id"],
+            status="unsupported",
+        )
+
+    restored = read_notebook(notebook_path.read_text("utf-8"))
+    target = next(entry for entry in restored.entries if entry.id == latest["entry_id"])
+    assert updated["revision"] == 4
+    assert target.analysis_status == "unsupported"
+    assert target.title == ""
+    assert target.summary == ""
+    assert len(restored.entries) == 3
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("status", ["unsupported", "failed", "unavailable"])
+async def test_large_notebook_failure_status_preserves_every_screenshot(
+    tmp_path, status
+):
+    store, vault = make_store(tmp_path)
+    images = [large_png_data(512 * 1024, marker) for marker in (1, 2, 3)]
+    created = await store.create(
+        "三张大截图",
+        "https://example.test/video",
+        initial_entry={
+            "video_timestamp_seconds": 30,
+            "image_data_url": images[0],
+            "request_analysis": True,
+        },
+    )
+    second = await store.append(
+        created["notebook_id"], created["relative_path"], 10, images[1],
+        request_analysis=True,
+    )
+    await store.append(
+        created["notebook_id"], created["relative_path"], 20, images[2],
+        request_analysis=True,
+    )
+    notebook_path = page(vault, created)
+    before = notebook_path.read_bytes()
+
+    updated = await store.update_analysis(
+        created["notebook_id"],
+        created["relative_path"],
+        second["entry_id"],
+        status=status,
+    )
+    after = notebook_path.read_bytes()
+    restored = read_notebook(after.decode("utf-8"))
+    target = next(entry for entry in restored.entries if entry.id == second["entry_id"])
+
+    assert updated["revision"] == 4
+    assert target.analysis_status == status
+    assert target.title == ""
+    assert target.summary == ""
+    assert [entry.image_data for entry in restored.entries] == [
+        images[1], images[2], images[0]
+    ]
+    assert abs(len(after) - len(before)) < 2048
+    assert all(after.count(image.encode()) == 1 for image in images)
+
+
+@pytest.mark.asyncio
+async def test_ten_bounded_screenshots_have_single_persisted_copy_after_status_update(
+    tmp_path,
+):
+    store, vault = make_store(tmp_path)
+    images = [large_png_data(64 * 1024, marker) for marker in range(1, 11)]
+    created = await store.create(
+        "十张有界截图",
+        "https://example.test/video",
+        initial_entry={
+            "video_timestamp_seconds": 9,
+            "image_data_url": images[9],
+            "request_analysis": True,
+        },
+    )
+    entry_ids = {}
+    for timestamp in range(9):
+        result = await store.append(
+            created["notebook_id"],
+            created["relative_path"],
+            timestamp,
+            images[timestamp],
+            request_analysis=True,
+        )
+        entry_ids[timestamp] = result["entry_id"]
+    notebook_path = page(vault, created)
+    before_size = notebook_path.stat().st_size
+
+    await store.update_analysis(
+        created["notebook_id"],
+        created["relative_path"],
+        entry_ids[4],
+        status="unsupported",
+    )
+    page_bytes = notebook_path.read_bytes()
+    restored = read_notebook(page_bytes.decode("utf-8"))
+    state = BeautifulSoup(page_bytes, "html.parser").select_one(
+        "script#pagenest-notebook-data"
+    ).get_text()
+
+    assert len(restored.entries) == 10
+    assert [entry.video_timestamp_seconds for entry in restored.entries] == list(range(10))
+    assert next(entry for entry in restored.entries if entry.id == entry_ids[4]).analysis_status == "unsupported"
+    assert all(page_bytes.count(image.encode()) == 1 for image in images)
+    assert "data:image/" not in state
+    assert abs(len(page_bytes) - before_size) < 2048
+
+
+@pytest.mark.asyncio
+async def test_failure_status_atomic_replace_error_preserves_previous_notebook(
+    tmp_path, monkeypatch
+):
+    store, vault = make_store(tmp_path)
+    image = large_png_data(256 * 1024, 7)
+    created = await store.create(
+        "失败状态原子写",
+        "https://example.test/video",
+        initial_entry={
+            "video_timestamp_seconds": 1,
+            "image_data_url": image,
+            "request_analysis": True,
+        },
+    )
+    notebook_path = page(vault, created)
+    before = notebook_path.read_bytes()
+
+    def fail_replace(_source, destination):
+        assert Path(destination) == notebook_path
+        raise OSError("simulated analysis state replace failure")
+
+    monkeypatch.setattr(os, "replace", fail_replace)
+    with pytest.raises(NotebookWriteError, match="分析结果"):
+        await store.update_analysis(
+            created["notebook_id"],
+            created["relative_path"],
+            created["entry_id"],
+            status="unsupported",
+        )
+
+    assert notebook_path.read_bytes() == before
 
 
 @pytest.mark.asyncio

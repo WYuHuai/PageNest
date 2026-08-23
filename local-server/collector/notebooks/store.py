@@ -1,8 +1,10 @@
 import asyncio
 import base64
 import binascii
+import json
 import os
 import re
+import shutil
 import tempfile
 from collections.abc import Callable
 from datetime import datetime, timezone
@@ -19,7 +21,12 @@ from .models import (
     NotebookEntry,
     NotebookEntryRequest,
 )
-from .rendering import read_notebook, render_notebook
+from .rendering import (
+    notebook_state,
+    read_notebook,
+    render_notebook,
+    serialize_json_script,
+)
 
 
 _DATA_URL_RE = re.compile(
@@ -27,6 +34,12 @@ _DATA_URL_RE = re.compile(
     re.IGNORECASE,
 )
 _WINDOWS_DRIVE_RE = re.compile(r"^[A-Za-z]:")
+_NOTEBOOK_STATE_PREFIX = (
+    b'<script id="pagenest-notebook-data" type="application/json">'
+)
+_NOTEBOOK_STATE_SUFFIX = b"</script>"
+_STREAM_COPY_BYTES = 1024 * 1024
+_PRESERVED_IMAGE_SENTINEL = "preserved-outside-machine-state"
 _WINDOWS_RESERVED_NAMES = {
     "CON",
     "PRN",
@@ -196,6 +209,133 @@ class NotebookStore:
             raise NotebookStoreError("Notebook ID 与文件不匹配")
         _sort_entries(notebook)
         return notebook
+
+    @staticmethod
+    def _load_metadata(path: Path, notebook_id: str) -> Notebook:
+        """Load machine state before screenshot payloads without reading full HTML."""
+        try:
+            payload = None
+            with path.open("rb") as handle:
+                for line in handle:
+                    if line.startswith(_NOTEBOOK_STATE_PREFIX):
+                        end = line.find(
+                            _NOTEBOOK_STATE_SUFFIX, len(_NOTEBOOK_STATE_PREFIX)
+                        )
+                        if end < 0 or line[end + len(_NOTEBOOK_STATE_SUFFIX) :].strip():
+                            raise ValueError("Video Notebook 状态数据损坏")
+                        payload = line[len(_NOTEBOOK_STATE_PREFIX) : end]
+                        break
+                    if line.startswith(b"<article") or b"data:image/" in line:
+                        break
+            if payload is None:
+                raise ValueError("文件不是有效的 Video Notebook")
+            state = json.loads(payload.decode("utf-8"))
+            entries = state.get("entries") if isinstance(state, dict) else None
+            if not isinstance(entries, list):
+                raise ValueError("Video Notebook 条目数据损坏")
+            state["entries"] = [
+                {**entry, "image_data": _PRESERVED_IMAGE_SENTINEL}
+                for entry in entries
+                if isinstance(entry, dict)
+            ]
+            if len(state["entries"]) != len(entries):
+                raise ValueError("Video Notebook 条目数据损坏")
+            notebook = Notebook.model_validate(state)
+        except (OSError, UnicodeError, ValueError, TypeError) as exc:
+            raise NotebookStoreError(str(exc)) from exc
+        if notebook.id != notebook_id:
+            raise NotebookStoreError("Notebook ID 与文件不匹配")
+        _sort_entries(notebook)
+        return notebook
+
+    @staticmethod
+    def _write_metadata_atomic(
+        path: Path, notebook: Notebook, *, previous_revision: int
+    ) -> None:
+        """Rewrite small machine state, then stream-copy screenshot HTML unchanged."""
+        temporary: Path | None = None
+        replacement = (
+            _NOTEBOOK_STATE_PREFIX
+            + serialize_json_script(notebook_state(notebook)).encode("utf-8")
+            + _NOTEBOOK_STATE_SUFFIX
+        )
+        old_revision = f" · revision {previous_revision}</div></header>".encode(
+            "utf-8"
+        )
+        new_revision = f" · revision {notebook.revision}</div></header>".encode(
+            "utf-8"
+        )
+        try:
+            with path.open("rb") as source:
+                with tempfile.NamedTemporaryFile(
+                    mode="w+b",
+                    dir=path.parent,
+                    prefix=f".{path.name}.",
+                    suffix=".tmp",
+                    delete=False,
+                ) as target:
+                    temporary = Path(target.name)
+                    state_written = False
+                    for line in source:
+                        if line.startswith(_NOTEBOOK_STATE_PREFIX):
+                            end = line.find(
+                                _NOTEBOOK_STATE_SUFFIX,
+                                len(_NOTEBOOK_STATE_PREFIX),
+                            )
+                            if end < 0 or line[
+                                end + len(_NOTEBOOK_STATE_SUFFIX) :
+                            ].strip():
+                                raise NotebookStoreError(
+                                    "Video Notebook 状态数据损坏"
+                                )
+                            newline = b"\r\n" if line.endswith(b"\r\n") else b"\n"
+                            target.write(replacement + newline)
+                            state_written = True
+                            break
+                        if line.startswith(b"<article") or b"data:image/" in line:
+                            raise NotebookStoreError(
+                                "文件不是有效的 Video Notebook"
+                            )
+                        target.write(line)
+                    if not state_written:
+                        raise NotebookStoreError("文件不是有效的 Video Notebook")
+
+                    header_written = False
+                    for _index in range(32):
+                        line = source.readline()
+                        if not line:
+                            break
+                        if line.startswith(b"<article") or b"data:image/" in line:
+                            raise NotebookStoreError(
+                                "Video Notebook 页头数据损坏"
+                            )
+                        if line.startswith(b"<header><h1>"):
+                            if line.count(old_revision) != 1:
+                                raise NotebookStoreError(
+                                    "Video Notebook revision 数据损坏"
+                                )
+                            line = line.replace(old_revision, new_revision, 1)
+                            header_written = True
+                            target.write(line)
+                            shutil.copyfileobj(
+                                source, target, length=_STREAM_COPY_BYTES
+                            )
+                            break
+                        target.write(line)
+                    if not header_written:
+                        raise NotebookStoreError(
+                            "Video Notebook 页头数据损坏"
+                        )
+                    target.flush()
+                    os.fsync(target.fileno())
+            os.replace(temporary, path)
+        except NotebookStoreError:
+            raise
+        except Exception as exc:
+            raise NotebookWriteError("无法更新 Video Notebook 分析结果") from exc
+        finally:
+            if temporary is not None:
+                temporary.unlink(missing_ok=True)
 
     async def create(
         self,
@@ -390,6 +530,13 @@ class NotebookStore:
         title: str,
         summary: str,
     ) -> dict:
+        if status != "complete":
+            return self._update_analysis_metadata_sync(
+                notebook_id,
+                relative_path,
+                entry_id,
+                status,
+            )
         vault = self._vault()
         path = self._resolve(vault, relative_path)
         notebook = self._load(path, notebook_id)
@@ -410,6 +557,29 @@ class NotebookStore:
             raise
         except Exception as exc:
             raise NotebookWriteError("无法更新 Video Notebook 分析结果") from exc
+        return self._summary(vault, path, notebook, entry_id=entry_id)
+
+    def _update_analysis_metadata_sync(
+        self,
+        notebook_id: str,
+        relative_path: str,
+        entry_id: str,
+        status: AnalysisStatus,
+    ) -> dict:
+        vault = self._vault()
+        path = self._resolve(vault, relative_path)
+        notebook = self._load_metadata(path, notebook_id)
+        entry = next((item for item in notebook.entries if item.id == entry_id), None)
+        if entry is None:
+            raise NotebookNotFoundError("Video Notebook 条目不存在")
+        previous_revision = notebook.revision
+        entry.analysis_status = status
+        _sort_entries(notebook)
+        notebook.revision += 1
+        notebook.updated_at = _now()
+        self._write_metadata_atomic(
+            path, notebook, previous_revision=previous_revision
+        )
         return self._summary(vault, path, notebook, entry_id=entry_id)
 
     async def rename(self, notebook_id: str, relative_path: str, title: str) -> dict:

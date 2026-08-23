@@ -1,6 +1,9 @@
-import base64
 import asyncio
+import base64
+import json
+from pathlib import Path
 
+import httpx
 import pytest
 from fastapi.testclient import TestClient
 
@@ -15,6 +18,9 @@ from collector.notebooks.store import NotebookStore
 
 PNG_DATA = "data:image/png;base64," + base64.b64encode(
     b"\x89PNG\r\n\x1a\napi-frame"
+).decode("ascii")
+LARGE_PNG_DATA = "data:image/png;base64," + base64.b64encode(
+    b"\x89PNG\r\n\x1a\n" + b"x" * (256 * 1024)
 ).decode("ascii")
 
 
@@ -228,6 +234,78 @@ def test_analyze_api_failure_is_saved_and_never_returns_500(notebook_client, mon
     assert response.status_code == 200
     assert response.json()["entry_id"] == created["entry_id"]
     assert response.json()["analysis_status"] == "failed"
+
+
+def test_unsupported_large_notebook_returns_controlled_success_without_full_read(
+    notebook_client, monkeypatch
+):
+    client, vault = notebook_client
+
+    created = client.post(
+        "/api/notebooks",
+        json={
+            "title": "三帧视觉失败",
+            "source_url": "https://example.test/video",
+            "initial_entry": {
+                "video_timestamp_seconds": 30,
+                "image_data_url": LARGE_PNG_DATA,
+                "request_analysis": True,
+            },
+        },
+        headers=auth_headers(),
+    ).json()
+    for timestamp in (10, 20):
+        appended = client.post(
+            f"/api/notebooks/{created['notebook_id']}/entries",
+            json={
+                "relative_path": created["relative_path"],
+                "video_timestamp_seconds": timestamp,
+                "image_data_url": LARGE_PNG_DATA,
+                "request_analysis": True,
+            },
+            headers=auth_headers(),
+        ).json()
+    notebook_path = next(vault.rglob("*.pagenest"))
+    real_read_text = Path.read_text
+
+    def reject_full_notebook_read(path, *args, **kwargs):
+        if path == notebook_path:
+            raise MemoryError("simulated deployed failure site")
+        return real_read_text(path, *args, **kwargs)
+
+    requests = []
+    real_client = httpx.AsyncClient
+
+    def handler(request):
+        requests.append(json.loads(request.content))
+        if len(requests) == 2:
+            monkeypatch.setattr(Path, "read_text", reject_full_notebook_read)
+        return httpx.Response(400, json={"error": {"type": "unsupported_input"}})
+
+    def client_factory(**options):
+        return real_client(
+            transport=httpx.MockTransport(handler),
+            timeout=options.get("timeout"),
+        )
+
+    monkeypatch.setattr(settings, "hermes_api_url", "https://ai.example.test/v1")
+    monkeypatch.setattr(settings, "hermes_api_key", "test-key")
+    monkeypatch.setattr(settings, "hermes_model_name", "vision-model")
+    monkeypatch.setattr(httpx, "AsyncClient", client_factory)
+    response = client.post(
+        f"/api/notebooks/{created['notebook_id']}/entries/{appended['entry_id']}/analyze",
+        json={"relative_path": created["relative_path"]},
+        headers=auth_headers(),
+    )
+
+    assert response.status_code == 200
+    assert response.json()["analysis_status"] == "unsupported"
+    assert response.json()["title"] == ""
+    assert response.json()["summary"] == ""
+    assert response.json()["revision"] == 4
+    assert len(requests) == 2
+    assert "response_format" in requests[0]
+    assert "response_format" not in requests[1]
 
 
 @pytest.mark.asyncio

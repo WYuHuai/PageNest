@@ -39,6 +39,7 @@ function probe(videos, options = {}) {
 
 const single = probe([video({ left: 100, top: 80, width: 640, height: 360 }, { currentTime: 12.5 })]);
 assert.equal(single.ok, true);
+assert.equal(single.video_index, 0);
 assert.equal(single.current_time, 12.5);
 assert.deepEqual(single.rect, { left: 100, top: 80, right: 740, bottom: 440, width: 640, height: 360 });
 assert.equal(single.viewport_width, 1000);
@@ -109,6 +110,7 @@ assert.equal(
 const advertisement = video({ left: 10, top: 10, width: 220, height: 120 }, { paused: false });
 const main = video({ left: 100, top: 100, width: 720, height: 405 }, { currentTime: 55 });
 assert.equal(probe([advertisement, main]).current_time, 55);
+assert.equal(probe([advertisement, main]).video_index, 1);
 
 const comparablePaused = video({ left: 0, top: 0, width: 650, height: 360 }, { currentTime: 1 });
 const comparablePlaying = video(

@@ -12,8 +12,9 @@
     "video-not-sufficiently-visible": "请让视频大部分显示在窗口中后重试。",
     "video-frame-not-supported": "当前页面不支持视频截图。",
     "video-page-changed": "页面在截图过程中发生了变化，请重试。",
-    "capture-failed": "浏览器未能截取当前窗口。",
-    "crop-failed": "视频画面裁剪失败。",
+    "video-frame-not-ready": "视频画面尚未准备好，请稍后重试。",
+    "video-frame-capture-timeout": "等待稳定视频帧超时，请重试。",
+    "video-frame-capture-unsupported": "当前视频无法安全读取画面，未创建空笔记。",
     "screenshot-too-large": "截图超过 10 MiB 限制。",
     "service-unavailable": "PageNest Service 当前不可用。",
     "unsupported-service-capability": "PageNest Service 尚不支持视频笔记。",
@@ -133,18 +134,36 @@
         throw new RuntimeError("video-page-changed", "Video page changed during capture");
       }
 
-      let screenshot;
+      let captured;
       try {
-        screenshot = await chromeApi.tabs.captureVisibleTab(tab.windowId, { format: "png" });
+        const results = await chromeApi.scripting.executeScript({
+          target: { tabId: tab.id },
+          func: captureApi.captureVideoFrame,
+          args: [{
+            video_index: probe.video_index,
+            expected_page_url: probe.page_url,
+            max_dimension: captureApi.MAX_VIDEO_FRAME_DIMENSION,
+            max_frame_bytes: captureApi.MAX_FRAME_BYTES,
+            mime_type: captureApi.DEFAULT_FRAME_MIME_TYPE,
+            quality: captureApi.DEFAULT_FRAME_QUALITY,
+            timeout_ms: captureApi.FRAME_READY_TIMEOUT_MS,
+          }],
+        });
+        captured = results?.[0]?.result;
       } catch {
-        throw new RuntimeError("capture-failed", "Unable to capture the visible tab");
+        throw new RuntimeError(
+          "video-frame-capture-unsupported",
+          "Unable to capture a decoded video frame"
+        );
       }
-
-      let cropped;
-      try {
-        cropped = await captureApi.cropScreenshot(screenshot, probe, options.cropOptions);
-      } catch (error) {
-        throw controlled(error, "crop-failed", "Unable to crop the visible video frame");
+      if (!captured?.ok) {
+        throw new RuntimeError(
+          captured?.error || "video-frame-capture-unsupported",
+          "Decoded video frame capture did not complete"
+        );
+      }
+      if (!sessionApi.sourcesMatch(tab.url, captured.page_url)) {
+        throw new RuntimeError("video-page-changed", "Video page changed during frame capture");
       }
 
       let connected;
@@ -156,8 +175,8 @@
 
       const previousSession = await sessionApi.getSession(options.sessionOptions);
       const frame = {
-        video_timestamp_seconds: probe.current_time,
-        image_data_url: cropped.image_data_url,
+        video_timestamp_seconds: captured.current_time,
+        image_data_url: captured.image_data_url,
         request_analysis: true,
       };
       const sameNotebook = previousSession &&
@@ -174,7 +193,7 @@
           chromeApi,
           feedbackApi,
           tab.id,
-          feedbackPayload("saved", { timestamp: timestampLabel(probe.current_time) })
+          feedbackPayload("saved", { timestamp: timestampLabel(captured.current_time) })
         );
         const analysis = await analyzeSavedFrame(
           clientApi, connected, previousSession, result.entry_id
@@ -185,7 +204,15 @@
           result,
           analysis,
           probe,
-          crop: cropped.crop,
+          capture: {
+            mime_type: captured.mime_type,
+            size: captured.size,
+            source_width: captured.source_width,
+            source_height: captured.source_height,
+            output_width: captured.output_width,
+            output_height: captured.output_height,
+            frame_sync: captured.frame_sync,
+          },
         };
       }
 
@@ -230,10 +257,22 @@
         analysis,
         session,
         probe,
-        crop: cropped.crop,
+        capture: {
+          mime_type: captured.mime_type,
+          size: captured.size,
+          source_width: captured.source_width,
+          source_height: captured.source_height,
+          output_width: captured.output_width,
+          output_height: captured.output_height,
+          frame_sync: captured.frame_sync,
+        },
       };
     } catch (error) {
-      const controlledError = controlled(error, "capture-failed", "Video capture failed");
+      const controlledError = controlled(
+        error,
+        "video-frame-capture-unsupported",
+        "Video frame capture failed"
+      );
       if (tab?.id) {
         await showFeedback(
           chromeApi,

@@ -1,6 +1,14 @@
 const assert = require("node:assert/strict");
+const fs = require("node:fs");
+const path = require("node:path");
 const runtime = require("../extension/core/video-notebook-runtime.js");
 const capture = require("../extension/core/video-frame-capture.js");
+
+const runtimeSource = fs.readFileSync(
+  path.join(__dirname, "..", "extension", "core", "video-notebook-runtime.js"),
+  "utf8"
+);
+assert.equal(runtimeSource.includes("captureVisibleTab"), false);
 
 const existingSession = {
   notebook_id: "notebook-1",
@@ -10,6 +18,7 @@ const existingSession = {
 };
 const probe = {
   ok: true,
+  video_index: 0,
   current_time: 42.25,
   page_url: "https://example.test/watch?v=1",
   page_title: "<Synthetic lecture>",
@@ -17,16 +26,17 @@ const probe = {
   viewport_height: 800,
   rect: { left: 100, top: 50, right: 700, bottom: 450, width: 600, height: 400 },
 };
-const pngBytes = Uint8Array.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 1]);
-class Canvas {
-  getContext() { return { drawImage() {} }; }
-  async convertToBlob() { return new Blob([pngBytes], { type: "image/png" }); }
-}
-const cropOptions = {
-  fetch: async () => ({ blob: async () => new Blob(["source"]) }),
-  createImageBitmap: async () => ({ width: 2000, height: 1600, close() {} }),
-  OffscreenCanvas: Canvas,
-  btoa: (binary) => Buffer.from(binary, "binary").toString("base64"),
+const directFrame = {
+  ok: true,
+  current_time: 42.25,
+  page_url: "https://example.test/watch?v=1",
+  image_data_url: "data:image/webp;base64,UklGRgAAAABXRUJQ",
+  mime_type: "image/webp",
+  size: 12,
+  source_width: 1920,
+  source_height: 1080,
+  output_width: 1920,
+  output_height: 1080,
 };
 
 function harness(overrides = {}) {
@@ -51,7 +61,7 @@ function harness(overrides = {}) {
       assert.equal(request.title, overrides.expectedTitle || "<Synthetic lecture>");
       assert.equal(request.source_title, overrides.expectedTitle || "<Synthetic lecture>");
       assert.equal(request.initial_entry.video_timestamp_seconds, 42.25);
-      assert.ok(request.initial_entry.image_data_url.startsWith("data:image/png;base64,"));
+      assert.ok(request.initial_entry.image_data_url.startsWith("data:image/webp;base64,"));
       assert.equal(request.initial_entry.request_analysis, true);
       return {
         notebook_id: "created-notebook",
@@ -82,13 +92,32 @@ function harness(overrides = {}) {
   const chromeApi = overrides.chromeApi || {
     tabs: {
       query: async () => [{ id: 7, windowId: 3, url: overrides.tabUrl || "https://example.test/watch?utm_source=x&v=1#now" }],
-      captureVisibleTab: async () => { events.push("capture"); return "data:image/png;base64,AAAA"; },
     },
     scripting: {
       executeScript: async (request) => {
         if (request.func === probeApi.probeVisibleVideo) {
           events.push("probe");
           return [{ result: overrides.probe || probe }];
+        }
+        if (request.func === (overrides.captureApi || capture).captureVideoFrame) {
+          events.push("capture:frame");
+          assert.deepEqual(request.target, { tabId: 7 });
+          assert.equal(Object.hasOwn(request.target, "allFrames"), false);
+          assert.deepEqual(Object.keys(request.args[0]).sort(), [
+            "expected_page_url",
+            "max_dimension",
+            "max_frame_bytes",
+            "mime_type",
+            "quality",
+            "timeout_ms",
+            "video_index",
+          ]);
+          const activeProbe = overrides.probe || probe;
+          return [{ result: overrides.frameResult || {
+            ...directFrame,
+            current_time: activeProbe.current_time,
+            page_url: activeProbe.page_url,
+          } }];
         }
         if (request.func === feedbackApi.hideTransientUi) {
           events.push("ui:hide");
@@ -110,7 +139,6 @@ function harness(overrides = {}) {
       captureApi: overrides.captureApi || capture,
       clientApi,
       feedbackApi,
-      cropOptions,
     },
     calls,
     events,
@@ -131,7 +159,7 @@ async function expectCode(run, code) {
   assert.equal(appended.ok, true);
   assert.equal(appended.created, false);
   assert.deepEqual(sameVideo.calls, { appends: 1, creates: 0, analyzes: 1, sets: 0 });
-  assert.ok(sameVideo.events.indexOf("ui:hide") < sameVideo.events.indexOf("capture"));
+  assert.ok(sameVideo.events.indexOf("ui:hide") < sameVideo.events.indexOf("capture:frame"));
   assert.ok(sameVideo.events.indexOf("save:append") < sameVideo.events.indexOf("ui:saved"));
   assert.ok(sameVideo.events.indexOf("ui:saved") < sameVideo.events.indexOf("analyze:appended-entry"));
 
@@ -141,7 +169,7 @@ async function expectCode(run, code) {
   assert.deepEqual(firstCapture.calls, { appends: 0, creates: 1, analyzes: 1, sets: 1 });
   assert.equal(firstCapture.session().notebook_id, "created-notebook");
   assert.equal(firstCapture.session().source_title, "<Synthetic lecture>");
-  assert.ok(firstCapture.events.indexOf("capture") < firstCapture.events.indexOf("save:create"));
+  assert.ok(firstCapture.events.indexOf("capture:frame") < firstCapture.events.indexOf("save:create"));
   assert.ok(firstCapture.events.indexOf("save:create") < firstCapture.events.indexOf("session:set"));
   assert.ok(firstCapture.events.indexOf("session:set") < firstCapture.events.indexOf("ui:started"));
   assert.ok(firstCapture.events.indexOf("ui:started") < firstCapture.events.indexOf("analyze:created-entry"));
@@ -190,9 +218,14 @@ async function expectCode(run, code) {
   assert.equal(noVideo.calls.sets, 0);
   assert.equal(noVideo.events.at(-1), "ui:error");
 
-  const captureFailure = harness({ session: null });
-  captureFailure.options.chromeApi.tabs.captureVisibleTab = async () => { throw new Error("denied"); };
-  await expectCode(() => runtime.handleCommand(runtime.CAPTURE_COMMAND, captureFailure.options), "capture-failed");
+  const captureFailure = harness({
+    session: null,
+    frameResult: { ok: false, error: "video-frame-capture-unsupported" },
+  });
+  await expectCode(
+    () => runtime.handleCommand(runtime.CAPTURE_COMMAND, captureFailure.options),
+    "video-frame-capture-unsupported"
+  );
   assert.equal(captureFailure.calls.creates, 0);
   assert.equal(captureFailure.calls.analyzes, 0);
   assert.equal(captureFailure.calls.sets, 0);
@@ -208,16 +241,23 @@ async function expectCode(run, code) {
     () => runtime.handleCommand(runtime.CAPTURE_COMMAND, hideFailure.options),
     "video-frame-not-supported"
   );
-  assert.equal(hideFailure.events.includes("capture"), false);
+  assert.equal(hideFailure.events.includes("capture:frame"), false);
   assert.equal(hideFailure.calls.creates, 0);
 
-  const cropFailure = harness({
+  const frameInjectionFailure = harness({
     session: null,
-    captureApi: { cropScreenshot: async () => { const error = new Error(); error.code = "crop-failed"; throw error; } },
   });
-  await expectCode(() => runtime.handleCommand(runtime.CAPTURE_COMMAND, cropFailure.options), "crop-failed");
-  assert.equal(cropFailure.calls.creates, 0);
-  assert.equal(cropFailure.calls.sets, 0);
+  const originalExecute = frameInjectionFailure.options.chromeApi.scripting.executeScript;
+  frameInjectionFailure.options.chromeApi.scripting.executeScript = async (request) => {
+    if (request.func === capture.captureVideoFrame) throw new Error("renderer rejected injection");
+    return originalExecute(request);
+  };
+  await expectCode(
+    () => runtime.handleCommand(runtime.CAPTURE_COMMAND, frameInjectionFailure.options),
+    "video-frame-capture-unsupported"
+  );
+  assert.equal(frameInjectionFailure.calls.creates, 0);
+  assert.equal(frameInjectionFailure.calls.sets, 0);
 
   const oldSession = { ...existingSession };
   const createFailure = harness({

@@ -38,7 +38,9 @@
       return false;
     }
 
-    for (const video of doc.querySelectorAll("video")) {
+    const videos = Array.from(doc.querySelectorAll("video"));
+    for (let videoIndex = 0; videoIndex < videos.length; videoIndex += 1) {
+      const video = videos[videoIndex];
       if (video.isConnected === false || hiddenByTree(video)) continue;
       const raw = video.getBoundingClientRect();
       if (!raw || raw.width <= 1 || raw.height <= 1) continue;
@@ -57,6 +59,7 @@
       }
       candidates.push({
         video,
+        videoIndex,
         visibleArea,
         visibleRatio,
         playing: !video.paused && !video.ended,
@@ -88,6 +91,7 @@
     const currentTime = Number(selected.video.currentTime);
     return {
       ok: true,
+      video_index: selected.videoIndex,
       current_time: Number.isFinite(currentTime) && currentTime >= 0 ? currentTime : 0,
       rect: selected.rect,
       video_rect: selected.videoRect,

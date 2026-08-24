@@ -10,14 +10,15 @@ from collector.notebooks import analyzer
 
 
 class Completion:
-    def __init__(self, content):
+    def __init__(self, content, structured=True):
         self.content = content
         self.request_count = 1
-        self.structured = True
+        self.structured = structured
 
 
-def fake_client(monkeypatch, response=None, error=None, wait=False):
+def fake_client(monkeypatch, response=None, responses=None, error=None, wait=False):
     calls = []
+    queued = iter(responses) if responses is not None else None
 
     class Client:
         def __init__(self, **options):
@@ -35,7 +36,8 @@ def fake_client(monkeypatch, response=None, error=None, wait=False):
                 await asyncio.sleep(3600)
             if error:
                 raise error
-            return Completion(response)
+            content = next(queued) if queued is not None else response
+            return Completion(content, structured=options.get("structured", True))
 
     monkeypatch.setattr(analyzer, "AIClient", Client)
     return calls
@@ -117,7 +119,7 @@ def test_frame_analysis_validation_remains_strict(content):
 
 
 @pytest.mark.asyncio
-async def test_trailing_fence_analysis_completes_without_retry(monkeypatch):
+async def test_retry_01_valid_first_response_uses_one_provider_call(monkeypatch):
     calls = fake_client(
         monkeypatch,
         '{"title":"A","summary":"B"}\n```',
@@ -131,6 +133,81 @@ async def test_trailing_fence_analysis_completes_without_retry(monkeypatch):
         summary="B",
     )
     assert len([call for call in calls if "request" in call]) == 1
+
+
+@pytest.mark.asyncio
+async def test_retry_02_invalid_structured_then_valid_nonstructured_completes(
+    monkeypatch,
+):
+    calls = fake_client(
+        monkeypatch,
+        responses=[
+            '{"name":"A","description":"B"}',
+            '{"title":"A","summary":"B"}',
+        ],
+    )
+
+    result = await analyzer.analyze_frame("data:image/png;base64,AAAA", "")
+
+    assert result == analyzer.AnalysisResult(
+        status="complete",
+        title="A",
+        summary="B",
+    )
+    requests = [call["request"] for call in calls if "request" in call]
+    assert len(requests) == 2
+    assert requests[0].get("structured", True) is True
+    assert requests[1]["structured"] is False
+    assert requests[1]["max_requests"] == 1
+
+
+@pytest.mark.asyncio
+async def test_retry_03_two_invalid_responses_are_controlled_failure(monkeypatch):
+    calls = fake_client(monkeypatch, responses=["not-json", "still-not-json"])
+
+    result = await analyzer.analyze_frame("data:image/png;base64,AAAA", "")
+
+    assert result == analyzer.AnalysisResult(status="failed")
+    assert len([call for call in calls if "request" in call]) == 2
+
+
+@pytest.mark.asyncio
+async def test_retry_04_single_element_array_is_rejected_then_retried(monkeypatch):
+    calls = fake_client(
+        monkeypatch,
+        responses=[
+            '[{"title":"A","summary":"B"}]',
+            '{"title":"A","summary":"B"}',
+        ],
+    )
+
+    result = await analyzer.analyze_frame("data:image/png;base64,AAAA", "")
+
+    assert result.status == "complete"
+    requests = [call["request"] for call in calls if "request" in call]
+    assert len(requests) == 2
+    assert requests[1]["structured"] is False
+
+
+@pytest.mark.asyncio
+async def test_retry_05_arbitrary_prose_remains_rejected(monkeypatch):
+    fake_client(
+        monkeypatch,
+        responses=["Here is the result.", "Here is the result."],
+    )
+
+    result = await analyzer.analyze_frame("data:image/png;base64,AAAA", "")
+
+    assert result == analyzer.AnalysisResult(status="failed")
+
+
+@pytest.mark.asyncio
+async def test_retry_06_malformed_json_remains_rejected(monkeypatch):
+    fake_client(monkeypatch, responses=['{"title":', '{"summary":'])
+
+    result = await analyzer.analyze_frame("data:image/png;base64,AAAA", "")
+
+    assert result == analyzer.AnalysisResult(status="failed")
 
 
 @pytest.mark.asyncio

@@ -236,6 +236,65 @@ def test_analyze_api_failure_is_saved_and_never_returns_500(notebook_client, mon
     assert response.json()["analysis_status"] == "failed"
 
 
+def test_retry_07_08_09_failure_preserves_capture_revision_and_entry_id(
+    notebook_client, monkeypatch
+):
+    client, vault = notebook_client
+    requests = []
+    real_client = httpx.AsyncClient
+
+    def handler(request):
+        requests.append(json.loads(request.content))
+        return httpx.Response(
+            200,
+            json={"choices": [{"message": {"content": "not-json"}}]},
+        )
+
+    def client_factory(**options):
+        return real_client(
+            transport=httpx.MockTransport(handler),
+            timeout=options.get("timeout"),
+        )
+
+    monkeypatch.setattr(settings, "hermes_api_url", "https://ai.example.test/v1")
+    monkeypatch.setattr(settings, "hermes_api_key", "test-key")
+    monkeypatch.setattr(settings, "hermes_model_name", "vision-model")
+    monkeypatch.setattr(httpx, "AsyncClient", client_factory)
+    created = client.post(
+        "/api/notebooks",
+        json={
+            "title": "失败重试仍保留",
+            "source_url": "https://example.test/video",
+            "initial_entry": {
+                "video_timestamp_seconds": 5,
+                "image_data_url": PNG_DATA,
+                "request_analysis": True,
+            },
+        },
+        headers=auth_headers(),
+    ).json()
+    notebook_path = next(vault.rglob("*.pagenest"))
+    before = notebook_path.read_text("utf-8")
+
+    response = client.post(
+        f"/api/notebooks/{created['notebook_id']}/entries/"
+        f"{created['entry_id']}/analyze",
+        json={"relative_path": created["relative_path"]},
+        headers=auth_headers(),
+    )
+
+    assert response.status_code == 200
+    result = response.json()
+    assert result["analysis_status"] == "failed"
+    assert result["revision"] == 2
+    assert result["entry_id"] == created["entry_id"]
+    assert len(requests) == 2
+    assert "response_format" in requests[0]
+    assert "response_format" not in requests[1]
+    after = notebook_path.read_text("utf-8")
+    assert before.count(PNG_DATA) == after.count(PNG_DATA) == 1
+
+
 def test_unsupported_large_notebook_returns_controlled_success_without_full_read(
     notebook_client, monkeypatch
 ):
@@ -309,7 +368,9 @@ def test_unsupported_large_notebook_returns_controlled_success_without_full_read
 
 
 @pytest.mark.asyncio
-async def test_running_analysis_releases_lock_for_new_append(tmp_path, monkeypatch):
+async def test_retry_10_network_analysis_releases_lock_for_new_append(
+    tmp_path, monkeypatch
+):
     vault = tmp_path / "vault"
     vault.mkdir()
     store = NotebookStore(lambda: vault)

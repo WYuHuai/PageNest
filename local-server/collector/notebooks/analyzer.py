@@ -61,6 +61,12 @@ def _decode_structured_content(content: str) -> dict:
     return decoded
 
 
+def _validate_completion(content: str | None) -> FrameAnalysis:
+    if content is None:
+        raise ValueError("AI completion content is unavailable")
+    return FrameAnalysis.model_validate(_decode_structured_content(content))
+
+
 def _messages(
     image_data_url: str,
     source_title: str,
@@ -104,25 +110,35 @@ async def analyze_frame(
                 model_name=settings.hermes_model_name,
                 timeout_seconds=ANALYSIS_TIMEOUT_SECONDS,
             ) as client:
+                messages = _messages(
+                    image_data_url,
+                    source_title,
+                    video_timestamp_seconds,
+                    source_url,
+                )
+                request_options = {
+                    "messages": messages,
+                    "max_tokens": 500,
+                    "temperature": 0.1,
+                    "response_schema": FrameAnalysis.model_json_schema(),
+                    "schema_name": "video_notebook_frame",
+                    "reasoning_effort": "none",
+                }
                 completion = await client.chat_completion(
-                    messages=_messages(
-                        image_data_url,
-                        source_title,
-                        video_timestamp_seconds,
-                        source_url,
-                    ),
-                    max_tokens=500,
-                    temperature=0.1,
-                    response_schema=FrameAnalysis.model_json_schema(),
-                    schema_name="video_notebook_frame",
-                    reasoning_effort="none",
+                    **request_options,
                     max_requests=2,
                 )
-        if completion.content is None:
-            return AnalysisResult(status="failed")
-        parsed = FrameAnalysis.model_validate(
-            _decode_structured_content(completion.content)
-        )
+                try:
+                    parsed = _validate_completion(completion.content)
+                except ValueError:
+                    if not completion.structured:
+                        raise
+                    retry = await client.chat_completion(
+                        **request_options,
+                        structured=False,
+                        max_requests=1,
+                    )
+                    parsed = _validate_completion(retry.content)
         return AnalysisResult(
             status="complete",
             title=parsed.title,

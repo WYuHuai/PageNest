@@ -3,6 +3,7 @@ import json
 
 import httpx
 import pytest
+from pydantic import ValidationError
 
 from collector.config import settings
 from collector.notebooks import analyzer
@@ -45,6 +46,91 @@ def configured(monkeypatch):
     monkeypatch.setattr(settings, "hermes_api_url", "https://ai.example.test/v1")
     monkeypatch.setattr(settings, "hermes_api_key", "secret")
     monkeypatch.setattr(settings, "hermes_model_name", "vision-model")
+
+
+@pytest.mark.parametrize(
+    "content",
+    [
+        pytest.param('{"title":"A","summary":"B"}', id="VISION-PARSE-01"),
+        pytest.param(
+            '```json\n{"title":"A","summary":"B"}\n```',
+            id="VISION-PARSE-02",
+        ),
+        pytest.param(
+            '{"title":"A","summary":"B"}\n```',
+            id="VISION-PARSE-03",
+        ),
+        pytest.param(
+            ' \r\n```\r\n  {"title":"A","summary":"B"}  \r\n```\r\n ',
+            id="VISION-PARSE-04",
+        ),
+    ],
+)
+def test_structured_content_decoder_accepts_only_markdown_fence_noise(content):
+    assert analyzer._decode_structured_content(content) == {
+        "title": "A",
+        "summary": "B",
+    }
+
+
+@pytest.mark.parametrize(
+    "content",
+    [
+        pytest.param(
+            '{"title":"A","summary":"B"}\nHere is the result.',
+            id="VISION-PARSE-05",
+        ),
+        pytest.param(
+            'Here is the result:\n{"title":"A","summary":"B"}',
+            id="VISION-PARSE-06",
+        ),
+        pytest.param(
+            '{"title":"A","summary":"B"}\n'
+            '{"title":"C","summary":"D"}',
+            id="VISION-PARSE-07",
+        ),
+        pytest.param('["A","B"]', id="VISION-PARSE-11"),
+        pytest.param('{"title":"A",', id="VISION-PARSE-12"),
+    ],
+)
+def test_structured_content_decoder_rejects_non_contract_content(content):
+    with pytest.raises((json.JSONDecodeError, ValueError)):
+        analyzer._decode_structured_content(content)
+
+
+@pytest.mark.parametrize(
+    "content",
+    [
+        pytest.param(
+            '{"name":"A","description":"B"}',
+            id="VISION-PARSE-08",
+        ),
+        pytest.param('{"title":"","summary":"B"}', id="VISION-PARSE-09"),
+        pytest.param('{"title":"A","summary":""}', id="VISION-PARSE-10"),
+    ],
+)
+def test_frame_analysis_validation_remains_strict(content):
+    decoded = analyzer._decode_structured_content(content)
+
+    with pytest.raises(ValidationError):
+        analyzer.FrameAnalysis.model_validate(decoded)
+
+
+@pytest.mark.asyncio
+async def test_trailing_fence_analysis_completes_without_retry(monkeypatch):
+    calls = fake_client(
+        monkeypatch,
+        '{"title":"A","summary":"B"}\n```',
+    )
+
+    result = await analyzer.analyze_frame("data:image/png;base64,AAAA", "")
+
+    assert result == analyzer.AnalysisResult(
+        status="complete",
+        title="A",
+        summary="B",
+    )
+    assert len([call for call in calls if "request" in call]) == 1
 
 
 @pytest.mark.asyncio

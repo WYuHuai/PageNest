@@ -4,7 +4,7 @@
 <p align="center">Save a webpage as one self-contained <code>.pagenest</code> file, then reopen it inside Obsidian with a dedicated web-style Viewer.</p>
 
 <p align="center">
-  <a href="https://github.com/WYuHuai/PageNest/releases/tag/v1.9.1"><img alt="PageNest v1.9.1" src="https://img.shields.io/badge/release-v1.9.1-1E45FB"></a>
+  <a href="https://github.com/WYuHuai/PageNest/releases/tag/v1.10.0"><img alt="PageNest v1.10.0" src="https://img.shields.io/badge/release-v1.10.0-1E45FB"></a>
   <a href="https://github.com/WYuHuai/PageNest/actions/workflows/ci.yml"><img alt="CI" src="https://github.com/WYuHuai/PageNest/actions/workflows/ci.yml/badge.svg"></a>
   <img alt="Windows validation" src="https://img.shields.io/badge/Windows-11%20clean%20install%20validated%20%7C%2010%20not%20fully%20validated-0078D4?logo=windows">
   <img alt="Edge and Chrome" src="https://img.shields.io/badge/Browser-Edge%20%7C%20Chrome-4285F4">
@@ -13,7 +13,7 @@
 
 <p align="center">
   <a href="README.zh-CN.md">简体中文</a> ·
-  <a href="https://github.com/WYuHuai/PageNest/releases/download/v1.9.1/PageNest-Setup-1.9.1.exe">Download installer</a> ·
+  <a href="https://github.com/WYuHuai/PageNest/releases/download/v1.10.0/PageNest-Setup-1.10.0.exe">Download installer</a> ·
   <a href="#install-in-3-steps">Install</a> ·
   <a href="docs/supported-sites.md">Supported sites</a> ·
   <a href="docs/troubleshooting.md">Troubleshooting</a>
@@ -23,20 +23,18 @@ PageNest is a local-first web collector for Windows, Edge/Chrome, and Obsidian.
 Click the extension on a page and PageNest creates one portable `.pagenest`
 file in your vault—without a sidecar asset folder.
 
-> **v1.9.1 patch:** Windows now opens the installed extension directory
-> correctly when setup finishes.
+## New in v1.10.0
 
-## New in v1.9.0
-
-- **Search every saved page in Obsidian:** Find titles, body text, code, loaded
-  comments, and collection notes without opening files one by one.
-- **Make the library readable by AI and text tools:** Generate one optional
-  Markdown library for Codex, ripgrep, Dataview, and ordinary AI plugins—without
-  creating a sidecar note for every capture.
-- **Keep the web-style experience:** Offline pages still preserve supported
-  images, carousels, comments, layout, links, and one-click code copying.
-- **Open older collections:** Existing `.pagenest` and legacy `.hermes` files
-  remain supported. See the [v1.9.0 release notes](docs/release-notes-v1.9.0.md).
+- **Build a Video Notebook as you watch:** Use the extension shortcut to save
+  clean top-frame video frames into a lazily created, timeline-sorted notebook.
+- **Add optional visual notes:** A vision-capable OpenAI-compatible model can
+  generate a title and summary while the original screenshot remains saved if
+  analysis fails.
+- **Choose capture quality:** Standard and High PNG profiles preserve the
+  decoded frame without upscaling a low-resolution source.
+- **Inspect frames in Obsidian:** The Viewer Lightbox enlarges screenshots and
+  shows their title, summary, and timestamp. See the
+  [v1.10.0 release notes](docs/release-notes-v1.10.0.md).
 
 ## Web clipping without flattening the web
 
@@ -99,8 +97,8 @@ local, portable, and readable inside your vault.
 
 ### 1. Install PageNest
 
-Download [`PageNest-Setup-1.9.1.exe`](https://github.com/WYuHuai/PageNest/releases/download/v1.9.1/PageNest-Setup-1.9.1.exe)
-and its [SHA-256 checksum](https://github.com/WYuHuai/PageNest/releases/download/v1.9.1/PageNest-Setup-1.9.1.exe.sha256),
+Download [`PageNest-Setup-1.10.0.exe`](https://github.com/WYuHuai/PageNest/releases/download/v1.10.0/PageNest-Setup-1.10.0.exe)
+and its [SHA-256 checksum](https://github.com/WYuHuai/PageNest/releases/download/v1.10.0/PageNest-Setup-1.10.0.exe.sha256),
 verify the checksum, run the installer, and select an existing Obsidian vault.
 Windows users should use this installer rather than clone the source repository.
 

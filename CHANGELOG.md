@@ -4,6 +4,32 @@ All notable user-facing changes are recorded here.
 
 ## Unreleased
 
+## 1.10.0 - 2026-08-25
+
+### Added
+
+- Capture clean top-frame video frames into lazily created Video Notebooks with
+  timeline-sorted entries and Standard or High PNG quality profiles.
+- Generate optional AI vision titles and summaries for captured frames.
+- Open Video Notebook screenshots in an Obsidian Viewer Lightbox with their
+  title, summary, and timestamp.
+
+### Improved
+
+- Make video capture safer in Edge by using the decoded video frame instead of
+  the renderer-risky visible-tab path.
+- Preserve notebook frames and failure metadata when vision analysis is
+  unavailable, unsupported, malformed, or memory-constrained.
+- Improve compatibility with Markdown-fenced vision JSON, one bounded
+  non-structured retry, legacy WeChat typography, and existing Viewer CSP
+  nonces.
+
+### Fixed
+
+- Ignore tracking parameters when matching Video Notebook sources, keep
+  out-of-order captures in timeline order, and prevent nested legacy WeChat
+  headings from amplifying tail text.
+
 ## 1.9.1 - 2026-08-16
 
 - Fix the installer completion action so Windows opens the installed browser

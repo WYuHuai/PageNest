@@ -1,9 +1,9 @@
 {
-  "release": "1.9.1",
+  "release": "1.10.0",
   "components": {
-    "browser_extension": "1.9.1",
-    "local_server": "1.9.1",
-    "obsidian_viewer": "1.4.0"
+    "browser_extension": "1.10.0",
+    "local_server": "1.10.0",
+    "obsidian_viewer": "1.5.0"
   },
   "protocol": {
     "api_protocol_version": 1,
@@ -16,7 +16,7 @@
   },
   "compatibility": {
     "browser_extension": {
-      "local_server": "1.9.x"
+      "local_server": "1.10.x"
     },
     "obsidian_viewer": {
       "file_format": "1.x",

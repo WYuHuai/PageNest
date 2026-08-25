@@ -1,8 +1,9 @@
 {
   "manifest_version": 3,
-  "name": "PageNest Web Collector",
+  "name": "__MSG_extensionName__",
   "version": "1.10.0",
-  "description": "提取网页正文和图片，保存为 Obsidian 单文件离线页面，并可选使用 OpenAI 兼容接口整理。",
+  "description": "__MSG_extensionDescription__",
+  "default_locale": "zh_CN",
   "permissions": ["activeTab", "scripting", "storage", "clipboardWrite"],
   "host_permissions": ["http://127.0.0.1/*", "http://localhost/*", "<all_urls>"],
   "background": {
@@ -13,7 +14,7 @@
       "suggested_key": {
         "default": "Ctrl+Shift+Y"
       },
-      "description": "Capture the visible video frame to the active Video Notebook"
+      "description": "__MSG_captureVideoFrameCommand__"
     }
   },
   "content_scripts": [{
@@ -28,7 +29,7 @@
     "128": "icons/icon128.png"
   },
   "action": {
-    "default_title": "保存到 Obsidian",
+    "default_title": "__MSG_actionTitle__",
     "default_popup": "popup.html",
     "default_icon": {
       "16": "icons/icon16.png",

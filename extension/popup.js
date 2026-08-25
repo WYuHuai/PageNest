@@ -1,6 +1,7 @@
 let article;
 let tab;
 const $ = id => document.getElementById(id);
+const t = (key, substitutions) => PageNestI18n.message(key, substitutions);
 
 function showView(name) {
   $("tabBar").dataset.active=name;
@@ -33,14 +34,14 @@ async function loadVideoCaptureQuality() {
 function showServiceStatus(state, detail="") {
   const status=$("serviceStatus");
   const labels={
-    connecting:"正在连接 PageNest 后台服务",
-    connected:"PageNest 后台服务已连接",
-    disconnected:"PageNest 后台服务未连接",
+    connecting:t("serviceConnecting"),
+    connected:t("serviceConnected"),
+    disconnected:t("serviceDisconnected"),
   };
   status.className=`service-status ${state}`;
   status.querySelector("strong").textContent=labels[state];
   $("serviceStatusDetail").textContent=detail||(
-    state==="disconnected"?"请启动 PageNest 后重试":"通常只需要片刻"
+    state==="disconnected"?t("startServiceRetry"):t("usuallyMoments")
   );
   $("reconnectService").classList.toggle("hidden",state!=="disconnected");
 }
@@ -51,19 +52,19 @@ async function connectService() {
   if(!result){
     const diagnostic=PageNestConnection.diagnostic();
     const detail={
-      "untrusted-extension":"当前扩展未获本机服务授权。请删除这个扩展，再从 %LOCALAPPDATA%\\Programs\\PageNest\\Extension 加载。",
-      "pairing-disabled":"当前扩展没有安装器配置的连接信息。请从 %LOCALAPPDATA%\\Programs\\PageNest\\Extension 重新加载。",
-      "service-unreachable":"无法连接 PageNest 后台服务。请先从开始菜单启动 PageNest，再重试。",
-    }[diagnostic]||"连接配置无效。请重新运行 PageNest 安装器进行修复。";
+      "untrusted-extension":t("diagnosticUntrusted"),
+      "pairing-disabled":t("diagnosticPairingDisabled"),
+      "service-unreachable":t("diagnosticUnreachable"),
+    }[diagnostic]||t("diagnosticInvalid");
     showServiceStatus("disconnected",detail);
     return false;
   }
   fillSettings(result.connection);
   if(result.incompatible){
-    showServiceStatus("disconnected","Service 版本过旧，请升级 PageNest 本地服务");
+    showServiceStatus("disconnected",t("serviceOld"));
     return false;
   }
-  showServiceStatus("connected",`Service ${result.meta.service_version||"已就绪"}`);
+  showServiceStatus("connected",`Service ${result.meta.service_version||t("ready")}`);
   return true;
 }
 
@@ -77,14 +78,7 @@ function captureKindForUrl(value) {
 }
 
 function localFileAccessMessage() {
-  return [
-    "PageNest 还没有访问本地 HTML 文件的权限。",
-    "请：",
-    "1. 右键 PageNest 扩展图标",
-    "2. 选择“管理扩展程序”",
-    "3. 开启“允许访问文件网址”",
-    "4. 返回这个 HTML 页面重新点击 PageNest",
-  ].join("\n");
+  return t("localFileAccess");
 }
 
 async function ensureCaptureAccess(value, extensionApi=chrome.extension) {
@@ -93,7 +87,7 @@ async function ensureCaptureAccess(value, extensionApi=chrome.extension) {
     const allowed = await new Promise(resolve => extensionApi.isAllowedFileSchemeAccess(resolve));
     if (!allowed) throw new Error(localFileAccessMessage());
   }
-  if (!kind) throw new Error("当前页面类型不支持收藏；请打开普通网页或本地 HTML 文件后重试");
+  if (!kind) throw new Error(t("unsupportedPage"));
   return kind;
 }
 
@@ -187,7 +181,7 @@ function redactLocalCapture(capture) {
   capture.article_html = parsed.body.innerHTML;
   const failed = (capture.images || []).filter(image => image.source_type === "local-file-unavailable").length;
   capture.extraction_warning = failed
-    ? `${failed} 张本地图片无法由浏览器读取，正文仍可保存；请检查文件访问权限或图片路径。`
+    ? t("localImagesUnavailable", String(failed))
     : "";
 }
 
@@ -202,7 +196,7 @@ async function loadAiSettings() {
 }
 
 function fillAiProviderPresets() {
-  const options=PageNestAiPresets.providers.map(provider=>new Option(provider.label,provider.id));
+  const options=PageNestAiPresets.providers.map(provider=>new Option(t(provider.labelKey)||provider.label,provider.id));
   $("aiProviderPreset").replaceChildren(...options);
 }
 
@@ -225,7 +219,7 @@ function clearStaleSavedAiKey() {
 
 async function identify() {
   $("progress").classList.remove("hidden");
-  $("progress").textContent="正在识别网页正文……";
+  $("progress").textContent=t("identifyingBody");
   [tab]=await chrome.tabs.query({active:true,currentWindow:true});
   const captureKind=await ensureCaptureAccess(tab.url||"");
   const target=captureKind==="web"?{tabId:tab.id,allFrames:true}:{tabId:tab.id};
@@ -259,10 +253,10 @@ async function identify() {
   $("title").textContent=article.title;
   $("detailTitle").textContent=article.title;
   $("domain").textContent=article.source_kind==="local-html"
-    ?`本地 HTML · ${article.source_name||"本地文件"}`
+    ?`Local HTML · ${article.source_name||t("localFile")}`
     :new URL(article.url).hostname;
   $("status").textContent=article.extraction_warning||(
-    article.source_kind==="local-html"?"已识别 · 本地 HTML":`已识别 · ${article.extraction_method}`
+    article.source_kind==="local-html"?t("localHtmlIdentified"):t("identifiedMethod", article.extraction_method)
   );
   const textLength=article.article_text.length.toLocaleString();
   const imageCount=article.images.length;
@@ -273,7 +267,7 @@ async function identify() {
   $("saveLength").textContent=textLength;
   $("saveImages").textContent=imageCount.toLocaleString();
   $("saveVideos").textContent=videoCount.toLocaleString();
-  $("saveStatus").textContent=article.extraction_warning?"建议检查":"识别成功";
+  $("saveStatus").textContent=article.extraction_warning?t("reviewSuggested"):t("recognitionSuccess");
   $("saveStatus").className=`status-pill ${article.extraction_warning?"is-warning":"is-ready"}`;
   $("status").className="";
   $("progress").classList.add("hidden");
@@ -315,9 +309,14 @@ function showResult(data) {
   const legacy=Number(data.capture_version||1)<12;
   const failed=Number(data.failed_images)||0;
   const incomplete=data.media_complete===false;
-  const placementHtml=`<div class="placement ${appended||unplaced||failed||legacy?"warning":"ok"}"><b>图片位置</b>：原位 ${exact} 张 · 顺序回填 ${ordinal} 张 · 文字定位 ${context} 张 · 末尾兜底 ${appended} 张 · 未定位 ${unplaced} 张 · 下载失败 ${failed} 张${unplaced?"<br>飞书图片未找到对应内容块，已停止末尾堆放；请把这组数字反馈用于诊断。":""}${legacy?`<br>检测到旧版采集协议，请到 edge://extensions 点击“重新加载”，并确认扩展版本为 v${chrome.runtime.getManifest().version}。`:""}</div>`;
+  const placementHtml=`<div class="placement ${appended||unplaced||failed||legacy?"warning":"ok"}"><b>${escapeHtml(t("imagePlacement"))}</b>: ${escapeHtml(t("imagePlacementCounts", [String(exact),String(ordinal),String(context),String(appended),String(unplaced),String(failed)]))}${unplaced?`<br>${escapeHtml(t("feishuPlacementWarning"))}`:""}${legacy?`<br>${escapeHtml(t("legacyCaptureWarning", chrome.runtime.getManifest().version))}`:""}</div>`;
   $("result").classList.remove("hidden");
-  $("result").innerHTML=`<h2>${data.duplicate?"这篇网页已经收藏过":incomplete?"页面已保存，但有媒体未嵌入":"单文件页面已保存"}</h2><div class="result-grid"><b>分类</b><span>${escapeHtml(data.category)}</span><b>离线页面</b><span>${escapeHtml(page)}</span><b>内嵌图片</b><span>${Number(data.saved_images)||0} 张</span><b>内嵌视频</b><span>${Number(data.saved_videos)||0} 个${Number(data.failed_videos)||0?`（${Number(data.failed_videos)} 个提取失败）`:""}</span><b>文件形式</b><span>一个离线页面，无附件目录</span><b>智能整理</b><span>${data.hermes_success?`整理成功 · ${Number(data.hermes_seconds||0).toFixed(1)} 秒`:"仅保留正文"}</span><b>图片处理</b><span>${Number(data.image_seconds||0).toFixed(1)} 秒</span><b>总耗时</b><span>${Number(data.total_seconds||0).toFixed(1)} 秒</span></div>${placementHtml}<div class="result-actions"><button id="openFolder">打开文件夹</button><button id="copyPath">复制路径</button><button id="openObsidian">在 Obsidian 中打开</button></div>`;
+  const heading=data.duplicate?t("alreadySaved"):incomplete?t("savedMediaIncomplete"):t("savedSingleFile");
+  const savedVideos=Number(data.saved_videos)||0;
+  const failedVideos=Number(data.failed_videos)||0;
+  const videoValue=failedVideos?t("videosWithFailures",[String(savedVideos),String(failedVideos)]):t("videoCount",String(savedVideos));
+  const organizerValue=data.hermes_success?t("organizedInSeconds",Number(data.hermes_seconds||0).toFixed(1)):t("bodyOnly");
+  $("result").innerHTML=`<h2>${escapeHtml(heading)}</h2><div class="result-grid"><b>${escapeHtml(t("category"))}</b><span>${escapeHtml(data.category)}</span><b>${escapeHtml(t("offlinePage"))}</b><span>${escapeHtml(page)}</span><b>${escapeHtml(t("embeddedImages"))}</b><span>${escapeHtml(t("imageCount",String(Number(data.saved_images)||0)))}</span><b>${escapeHtml(t("embeddedVideos"))}</b><span>${escapeHtml(videoValue)}</span><b>${escapeHtml(t("fileFormat"))}</b><span>${escapeHtml(t("singleFileNoAssets"))}</span><b>${escapeHtml(t("aiOrganization"))}</b><span>${escapeHtml(organizerValue)}</span><b>${escapeHtml(t("imageProcessing"))}</b><span>${escapeHtml(t("seconds",Number(data.image_seconds||0).toFixed(1)))}</span><b>${escapeHtml(t("totalTime"))}</b><span>${escapeHtml(t("seconds",Number(data.total_seconds||0).toFixed(1)))}</span></div>${placementHtml}<div class="result-actions"><button id="openFolder">${escapeHtml(t("openFolder"))}</button><button id="copyPath">${escapeHtml(t("copyPath"))}</button><button id="openObsidian">${escapeHtml(t("openInObsidian"))}</button></div>`;
   $("openFolder").onclick=()=>api("/api/open-folder",{path:data.folder_path});
   $("copyPath").onclick=()=>navigator.clipboard.writeText(page);
   $("openObsidian").onclick=()=>chrome.tabs.create({url:`obsidian://open?path=${encodeURIComponent(page)}`});
@@ -337,9 +336,9 @@ async function api(path, body, retryPairing=true) {
         return api(path,body,false);
       }
     }
-    const data=await response.json().catch(()=>({detail:"本地服务返回了无法读取的内容"}));
+    const data=await response.json().catch(()=>({detail:t("unreadableServiceResponse")}));
     if(!response.ok) {
-      const error=new Error(apiErrorMessage(data.detail,`请求失败（${response.status}）`));
+      const error=new Error(apiErrorMessage(data.detail,t("requestFailed",String(response.status))));
       error.status=response.status;
       error.detail=data.detail;
       throw error;
@@ -347,9 +346,9 @@ async function api(path, body, retryPairing=true) {
     return data;
   } catch(error) {
     if(error.name==="AbortError") throw new Error(path==="/api/vault/select"
-      ?"文件夹选择器等待超时，请重新选择仓库"
-      :"保存超过 5 分钟，客户端已停止等待；请先检查知识库中是否出现新页面，再决定是否重试");
-    if(error instanceof TypeError) throw new Error("PageNest 后台服务未连接，请启动 PageNest 后重试");
+      ?t("vaultPickerTimeout")
+      :t("saveTimeout"));
+    if(error instanceof TypeError) throw new Error(t("serviceUnavailable"));
     throw error;
   } finally {
     clearTimeout(timeout);
@@ -362,7 +361,7 @@ async function collectWithServiceCapabilities(payload, request=api) {
     capabilities=await request("/api/meta");
   } catch(error) {
     if(error.status===404) {
-      const upgrade=new Error("本地 PageNest Service 版本过旧，不支持当前网页保存格式，请升级本地服务。");
+      const upgrade=new Error(t("serviceCaptureFormatOld"));
       upgrade.status=404;
       throw upgrade;
     }
@@ -370,7 +369,7 @@ async function collectWithServiceCapabilities(payload, request=api) {
   }
   const variant=payload.page_variant||"standard";
   if(!Array.isArray(capabilities?.supported_page_variants)||!capabilities.supported_page_variants.includes(variant)) {
-    throw new Error(`本地 PageNest Service 不支持当前网页保存格式：${variant}，请升级本地服务。`);
+    throw new Error(t("unsupportedCaptureVariant", variant));
   }
   return request("/api/collect",payload);
 }
@@ -378,7 +377,7 @@ async function collectWithServiceCapabilities(payload, request=api) {
 async function selectVaultWithServiceCapabilities(request=api) {
   const meta=await request("/api/meta");
   if(!Array.isArray(meta?.capabilities)||!meta.capabilities.includes("vault-selection")) {
-    throw new Error("本地 PageNest Service 不支持更换仓库，请重新安装当前版本的 PageNest 本地服务");
+    throw new Error(t("vaultChangeUnsupported"));
   }
   return request("/api/vault/select",{});
 }
@@ -388,7 +387,7 @@ function applyFolderData(data) {
   const selected=select.value;
   const auto=document.createElement("option");
   auto.value="auto";
-  auto.textContent="智能整理自动判断";
+  auto.textContent=t("autoFolder");
   select.replaceChildren(auto);
   for(const folder of data.folders) {
     const option=document.createElement("option");
@@ -398,16 +397,16 @@ function applyFolderData(data) {
   }
   select.value=data.folders.includes(selected)?selected:"auto";
   $("vaultName").textContent=data.vault_name;
-  $("folderStatus").textContent=`已识别 ${data.folders.length} 个文件夹`;
+  $("folderStatus").textContent=t("foldersFound",String(data.folders.length));
   $("folderStatus").className="";
-  $("saveFolderStatus").textContent=`${data.vault_name} · ${data.folders.length} 个文件夹`;
+  $("saveFolderStatus").textContent=t("vaultFolderCount",[data.vault_name,String(data.folders.length)]);
   $("saveFolderStatus").className="field-hint";
 }
 
 async function loadFolders() {
-  $("folderStatus").textContent="正在读取 Obsidian 文件夹…";
+  $("folderStatus").textContent=t("readingFolders");
   $("folderStatus").className="";
-  $("saveFolderStatus").textContent="正在读取 Obsidian 文件夹…";
+  $("saveFolderStatus").textContent=t("readingFolders");
   $("saveFolderStatus").className="field-hint";
   applyFolderData(await api("/api/folders"));
 }
@@ -419,11 +418,11 @@ document.querySelectorAll(".tab-button").forEach(button=>{
 $("save").onclick=async()=>{
   let timer;
   try {
-    if(!article) throw new Error("网页正文尚未识别完成");
+    if(!article) throw new Error(t("savingNotReady"));
     $("save").disabled=true;
     $("progress").classList.remove("hidden","error");
     const started=Date.now();
-    const update=()=>{$("progress").textContent=`正在生成完整离线页面，完成后会一次性写入知识库；已等待 ${Math.floor((Date.now()-started)/1000)} 秒`};
+    const update=()=>{$("progress").textContent=t("savingElapsed",String(Math.floor((Date.now()-started)/1000)))};
     update();
     timer=setInterval(update,1000);
     article.user_note=$("note").value;
@@ -454,7 +453,7 @@ $("changeVault").onclick=async()=>{
   const previousLabel=$("changeVault").textContent;
   $("changeVault").disabled=true;
   $("refreshFolders").disabled=true;
-  $("folderStatus").textContent="请在 Windows 窗口中选择 Obsidian Vault…";
+  $("folderStatus").textContent=t("chooseVaultWindow");
   $("folderStatus").className="";
   try {
     const data=await selectVaultWithServiceCapabilities();
@@ -465,11 +464,11 @@ $("changeVault").onclick=async()=>{
       return;
     }
     applyFolderData(data);
-    $("changeVault").textContent="更换仓库";
+    $("changeVault").textContent=t("changeVault");
   } catch(error) {
     $("folderStatus").textContent=error.message;
     $("folderStatus").className="error";
-    $("changeVault").textContent="重新选择";
+    $("changeVault").textContent=t("chooseAgain");
   } finally {
     $("changeVault").disabled=false;
     $("refreshFolders").disabled=false;
@@ -481,7 +480,7 @@ $("reconnectService").onclick=async()=>{
 $("retry").onclick=()=>identify().catch(error=>{
   $("status").textContent=error.message;
   $("status").className="error";
-  $("saveStatus").textContent="识别失败";
+  $("saveStatus").textContent=t("recognitionFailed");
   $("saveStatus").className="status-pill is-warning";
 });
 $("cancel").onclick=()=>window.close();
@@ -489,9 +488,9 @@ $("saveSettings").onclick=async()=>{
   await chrome.storage.local.set({server:$("server").value.replace(/\/$/,""),token:$("token").value});
   PageNestConnection.invalidate();
   try {
-    if(!await connectService()) throw new Error("PageNest 后台服务未连接");
+    if(!await connectService()) throw new Error(t("serviceDisconnected"));
     const data=await api("/api/health");
-    $("connection").textContent=data.vault_configured?`连接正常，已识别 ${data.folder_count} 个文件夹`:"连接正常，但还需要填写 OBSIDIAN_VAULT_PATH";
+    $("connection").textContent=data.vault_configured?t("connectionFolders",String(data.folder_count)):t("vaultPathMissing");
     $("connection").className="ok";
     await Promise.all([loadFolders(),loadAiSettings()]);
   } catch(error) {
@@ -508,7 +507,7 @@ $("videoCaptureQuality").onchange=async()=>{
       chrome.storage.local
     );
     $("videoCaptureQuality").value=selected.key;
-    status.textContent=selected.key==="high"?"已启用高清 PNG 截图":"已启用标准 PNG 截图";
+    status.textContent=selected.key==="high"?t("qualityHighEnabled"):t("qualityStandardEnabled");
     status.className="field-hint ok";
   } catch(error) {
     status.textContent=error.message;
@@ -531,7 +530,7 @@ $("aiUrl").oninput=()=>{
 $("aiKey").oninput=()=>{$("aiKey").dataset.saved="false"};
 $("saveAiSettings").onclick=async()=>{
   $("saveAiSettings").disabled=true;
-  $("aiConnection").textContent="正在测试接口…";
+  $("aiConnection").textContent=t("testingEndpoint");
   $("aiConnection").className="";
   try {
     const data=await api("/api/ai-settings",{
@@ -543,8 +542,8 @@ $("saveAiSettings").onclick=async()=>{
     $("aiKey").dataset.saved=data.has_api_key?"true":"false";
     $("aiKey").dataset.savedUrl=data.has_api_key?(data.api_url||""):"";
     $("aiConnection").textContent=data.connection.online
-      ?`连接成功 · ${data.connection.model}${data.connection.vision?" · 支持图片":""}`
-      :"已关闭智能整理，网页仍可正常保存";
+      ?t("aiConnected",[data.connection.model,data.connection.vision?` · ${t("supportsImages")}`:""])
+      :t("aiDisabled");
     $("aiConnection").className="ok";
   } catch(error) {
     $("aiConnection").textContent=error.message;
@@ -555,6 +554,7 @@ $("saveAiSettings").onclick=async()=>{
 };
 
 async function initialize() {
+  PageNestI18n.localizeDocument();
   $("extensionVersion").textContent=`v${chrome.runtime.getManifest().version}`;
   $("status").style.whiteSpace="pre-line";
   fillSettings(await getSettings());
@@ -563,7 +563,7 @@ async function initialize() {
   if(pageResult.status==="rejected") {
     $("status").textContent=pageResult.reason.message;
     $("status").className="error";
-    $("saveStatus").textContent="识别失败";
+    $("saveStatus").textContent=t("recognitionFailed");
     $("saveStatus").className="status-pill is-warning";
     $("progress").classList.add("hidden");
   }

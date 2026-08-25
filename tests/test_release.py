@@ -130,13 +130,17 @@ def test_windows_icon_contains_required_sizes():
 
 def test_store_assets_match_required_dimensions():
     expected = {
-        "icon-128.png": (128, 128),
-        "promo-small-440x280.png": (440, 280),
-        "promo-marquee-1400x560.png": (1400, 560),
-        "screenshot-01-capture-1280x800.png": (1280, 800),
+        "assets/logo-300.png": (300, 300),
+        "assets/promo-small-440x280.png": (440, 280),
+        "assets/promo-large-1400x560.png": (1400, 560),
+        "screenshots/01_web_capture.png": (1280, 800),
+        "screenshots/02_video_notebook.png": (1280, 800),
+        "screenshots/03_vision_ai.png": (1280, 800),
+        "screenshots/04_lightbox.png": (1280, 800),
+        "screenshots/05_local_first.png": (1280, 800),
     }
     for name, size in expected.items():
-        with Image.open(ROOT / "store" / "assets" / name) as image:
+        with Image.open(ROOT / "store-assets" / "edge" / name) as image:
             assert image.size == size
 
 
@@ -158,7 +162,10 @@ def test_store_package_is_upload_ready(tmp_path):
     assert (output / "listing.zh-CN.md").is_file()
     assert (output / "privacy-disclosures.md").is_file()
     assert (output / "reviewer-notes.md").is_file()
-    assert (output / "screenshot-01-capture-1280x800.png").is_file()
+    assert (output / "description.zh-CN.txt").is_file()
+    assert (output / "PARTNER_CENTER_CHECKLIST.md").is_file()
+    assert (output / "01_web_capture.png").is_file()
+    assert (output / "05_local_first.png").is_file()
     assert package.name in (output / "SHA256SUMS.txt").read_text("utf-8")
 
 
@@ -197,19 +204,16 @@ def test_installer_recursively_includes_extension_runtime():
     ) in definition
 
 
-def test_installer_opens_the_preconfigured_extension_directory():
+def test_installer_keeps_unpacked_extension_as_manual_recovery_only():
     definition = (ROOT / "installer" / "PageNest.iss").read_text("utf-8")
     guide = (ROOT / "installer" / "extension-install.html").read_text("utf-8")
-    extension_run_entry = (
-        'Filename: "{app}\\Extension"; '
-        'Description: "打开正确的浏览器扩展文件夹"; '
-        "Flags: shellexec postinstall skipifsilent nowait"
-    )
-    assert extension_run_entry in definition
+    assert '[Run]' not in definition
+    assert 'Name: "{group}\\浏览器扩展文件夹"' in definition
+    assert "Microsoft Edge Add-ons" in definition
     assert 'Filename: "{sys}\\explorer.exe"' not in definition
-    assert "请勿加载下载的源码目录" in definition
+    assert "PageNest 后台服务已连接" in definition
     assert "%LOCALAPPDATA%\\Programs\\PageNest\\Extension" in guide
-    assert "不要选择下载的源码目录" in guide
+    assert "只有商店版本暂不可用时" in guide
 
 
 def test_local_service_port_candidates_stay_in_sync():

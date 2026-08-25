@@ -46,9 +46,16 @@ Viewer 1.5.0.
 
 ## Install or upgrade / 安装或升级
 
-Download and run `PageNest-Setup-1.10.0.exe`, select the existing Obsidian
-Vault, then reload the unpacked browser extension and restart Obsidian. Existing
-configuration and saved `.pagenest` files are preserved.
+**Recommended / 推荐：** install PageNest from Microsoft Edge Add-ons, then
+download and run `PageNest-Setup-1.10.0.exe`. Select an existing Obsidian Vault
+and open the extension; “PageNest Service connected” confirms the installation.
+The installer deploys the Local Service and PageNest Viewer automatically.
+Restart Obsidian and enable PageNest Viewer once if you want to read `.pagenest`
+files inside Obsidian. Existing configuration and saved files are preserved.
+
+The individual Extension, Service, and Viewer archives in GitHub Release Assets
+are for advanced recovery and development. Ordinary Windows users should use the
+installer and should not load an unpacked extension.
 
 The installer is unsigned, so Windows SmartScreen may display an unknown
 publisher warning. Verify the published SHA-256 checksum before installation.

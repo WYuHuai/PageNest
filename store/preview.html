@@ -6,15 +6,15 @@
   <title>PageNest store screenshot</title>
   <link rel="stylesheet" href="../extension/popup.css">
   <style>
-    html,body{width:1280px;height:800px;overflow:hidden}body{display:grid;grid-template-columns:1fr 438px;align-items:center;gap:80px;margin:0;padding:72px 92px;background:radial-gradient(circle at 18% 12%,#353272,#11152c 56%,#090c18);font-family:system-ui;color:#f5f6ff}.hero{max-width:580px}.mark{width:86px;height:86px;margin-bottom:34px}.hero h1{font-size:54px;line-height:1.08;letter-spacing:-1.8px;margin:0 0 22px}.hero p{font-size:21px;line-height:1.65;color:#c5cbed;margin:0}.chips{display:flex;gap:12px;margin-top:34px}.chips span{padding:9px 13px;border:1px solid #4c568b;border-radius:999px;background:#181e3b;color:#dbe0ff}.popup-panel{width:390px;min-height:570px;border:1px solid #414a7d;border-radius:22px;background:radial-gradient(circle at top,#252554,#0d1020 55%);box-shadow:0 28px 80px #0008;overflow:hidden}.popup-panel main{padding:18px}.popup-panel .card{margin:12px 0}.popup-panel details{display:none}
+    html,body{width:1280px;height:800px;overflow:hidden}body{display:grid;grid-template-columns:1fr 438px;align-items:center;gap:80px;margin:0;padding:56px 92px;background:radial-gradient(circle at 18% 12%,#353272,#11152c 56%,#090c18);font-family:system-ui;color:#f5f6ff}.hero{max-width:590px}.mark{width:86px;height:86px;margin-bottom:30px}.hero h1{font-size:54px;line-height:1.08;letter-spacing:-1.8px;margin:0 0 22px}.hero p{font-size:21px;line-height:1.65;color:#c5cbed;margin:0}.chips{display:flex;flex-wrap:wrap;gap:12px;margin-top:34px}.chips span{padding:9px 13px;border:1px solid #4c568b;border-radius:999px;background:#181e3b;color:#dbe0ff}.popup-panel{width:420px;height:688px;border:1px solid #414a7d;border-radius:22px;background:#fff;color:#101525;box-shadow:0 28px 80px #0008;overflow:hidden}.popup-panel main{height:100%}body.settings .hero h1{font-size:49px}body.settings .popup-panel{height:688px}.popup-panel .settings-view{padding-bottom:100px}
   </style>
 </head>
 <body>
   <section class="hero">
     <img class="mark" src="assets/icon-128.png" alt="PageNest">
-    <h1>把网页完整装进<br>你的 Obsidian</h1>
-    <p>正文、原位图片、代码和链接保存为一个离线文件。数据默认留在本机，断网也能继续阅读。</p>
-    <div class="chips"><span>单文件离线保存</span><span>本地优先</span><span>无需 Python</span></div>
+    <h1 id="heroTitle">保存完整网页<br>不只是收藏链接</h1>
+    <p id="heroCopy">正文、原位图片、代码和链接保存为一个离线文件。内容默认留在自己的 Vault，断网也能继续阅读。</p>
+    <div class="chips" id="chips"><span>单文件离线保存</span><span>本地优先</span><span>无需 Python</span></div>
   </section>
   <section id="popup" class="popup-panel" aria-label="PageNest 扩展实际界面"></section>
   <script>
@@ -22,14 +22,36 @@
       const documentCopy = new DOMParser().parseFromString(html, "text/html");
       document.querySelector("#popup").append(documentCopy.querySelector("main"));
       const set = (id, value) => { document.getElementById(id).textContent = value; };
-      set("extensionVersion", "v1.7.4");
+      set("extensionVersion", "v1.10.0");
       set("domain", "example.com");
       set("title", "示例文章：从浏览器保存到 Obsidian");
       set("status", "已识别正文");
       set("length", "2,846 字");
       set("images", "12 张图片");
-      set("folderStatus", "已读取 Obsidian 文件夹");
+      set("saveLength", "2,846");
+      set("saveImages", "12");
+      set("saveVideos", "0");
+      set("saveStatus", "识别成功");
+      document.getElementById("saveStatus").className = "status-pill is-ready";
+      set("folderStatus", "演示 Vault · 5 个文件夹");
+      set("saveFolderStatus", "演示 Vault · 5 个文件夹");
+      set("vaultName", "演示 Vault");
       document.getElementById("note").value = "稍后整理到本周阅读笔记";
+      const settings = new URLSearchParams(location.search).get("view") === "settings";
+      if (settings) {
+        document.body.classList.add("settings");
+        set("heroTitle", "你的内容\n保存在自己的电脑里");
+        document.getElementById("heroTitle").style.whiteSpace = "pre-line";
+        set("heroCopy", "安装器自动连接本机 Service，并把 Viewer 部署到所选 Vault。路径、令牌和 API Key 不会出现在商店截图中。");
+        document.getElementById("chips").innerHTML = "<span>Local Service 已连接</span><span>自己的 Vault</span><span>无遥测</span>";
+        document.querySelectorAll(".app-view").forEach(view => { view.hidden = view.dataset.view !== "settings"; view.classList.toggle("is-active", view.dataset.view === "settings"); });
+        document.querySelectorAll(".tab-button").forEach(button => { button.classList.toggle("is-active", button.dataset.target === "settings"); });
+        document.getElementById("tabBar").dataset.active = "settings";
+        const service = document.getElementById("serviceStatus");
+        service.className = "service-status connected";
+        service.querySelector("strong").textContent = "PageNest 后台服务已连接";
+        set("serviceStatusDetail", "Service 1.10.0 · 本机安全连接");
+      }
     });
   </script>
 </body>

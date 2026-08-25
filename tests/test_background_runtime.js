@@ -20,9 +20,16 @@ assert.deepStrictEqual(manifest.permissions, [
 assert.deepStrictEqual(manifest.commands, {
   "capture-video-notebook-frame": {
     suggested_key: { default: "Ctrl+Shift+Y" },
-    description: "Capture the visible video frame to the active Video Notebook",
+    description: "__MSG_captureVideoFrameCommand__",
   },
 });
+for (const locale of ["zh_CN", "en"]) {
+  const messages = JSON.parse(fs.readFileSync(
+    path.join(root, "extension", "_locales", locale, "messages.json"),
+    "utf8",
+  ));
+  assert.ok(messages.captureVideoFrameCommand.message);
+}
 
 const calls = { network: 0, privileged: 0, keepalive: 0 };
 const forbidden = (group) => () => {

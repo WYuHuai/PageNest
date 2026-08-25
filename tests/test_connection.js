@@ -217,12 +217,14 @@ function storage(initial){
   assert.match(popupJs,/\$\("tabBar"\)\.dataset\.active=name/);
   assert.ok(!popupJs.includes("本地收藏服务未启动，请从开始菜单启动 PageNest 后重试"));
   assert.ok(!popupJs.includes("[object Object]"));
-  assert.match(popupJs,/Service 版本过旧/);
-  assert.match(popupJs,/%LOCALAPPDATA%\\\\Programs\\\\PageNest\\\\Extension/);
+  const zhMessages=JSON.parse(fs.readFileSync(path.resolve(__dirname,"../extension/_locales/zh_CN/messages.json"),"utf8"));
+  assert.match(zhMessages.serviceOld.message,/Service 版本过旧/);
+  assert.match(popupJs,/t\("serviceOld"\)/);
+  assert.ok(!popupJs.includes("%LOCALAPPDATA%\\Programs\\PageNest\\Extension"));
   assert.match(popupJs,/function selectVaultWithServiceCapabilities/);
   assert.match(popupJs,/request\("\/api\/vault\/select",\{\}\)/);
   assert.match(popupJs,/if\(data\.cancelled\)/);
-  assert.match(popupJs,/textContent="重新选择"/);
+  assert.match(popupJs,/textContent=t\("chooseAgain"\)/);
   assert.ok(!popupJs.includes('} else {\n    showServiceStatus("disconnected");'));
 
   assert.deepEqual(PageNestConnection.DEFAULT_SERVERS,[

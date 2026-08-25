@@ -50,7 +50,8 @@ async function popupHelpers() {
   const start = source.indexOf("function captureKindForUrl");
   const end = source.indexOf("function inlineImagePolicy", start);
   assert.ok(start >= 0 && end > start, "local capture access helpers must be present");
-  const context = vm.createContext({URL, Promise, Error});
+  const messages = JSON.parse(fs.readFileSync(path.join(extension, "_locales/zh_CN/messages.json"), "utf8"));
+  const context = vm.createContext({URL, Promise, Error, t: key => messages[key]?.message || key});
   vm.runInContext(
     `${source.slice(start, end)}\nthis.captureKindForUrl=captureKindForUrl;this.ensureCaptureAccess=ensureCaptureAccess;`,
     context,

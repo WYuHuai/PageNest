@@ -1,0 +1,22 @@
+PageNest — 网页与视频的本地知识收藏器
+
+PageNest 帮你把网页和视频内容真正保存到自己的电脑，而不是只收藏一个以后可能失效的链接。
+
+收藏网页时，PageNest 会尽量保留正文结构、原位图片、代码、表格、链接和支持的媒体，并把结果写成一个自包含的 .pagenest 文件。它支持普通网页、本地 HTML、微信公众号文章，以及多个常见内容网站；已经嵌入的内容在离线时仍可阅读，也不会产生难以搬运的附件目录。
+
+观看 HTML5 视频时，按下 Ctrl+Shift+Y，PageNest 会直接读取当前视频画面，把截图加入同一个 Video Notebook，并按照视频时间自动排序。Direct Video Frame Capture 可以避开播放器悬浮标题和进度条。Standard 与 High 两种 PNG 质量档位适合普通画面、PPT、代码和小字。
+
+如果配置了兼容的视觉 AI，PageNest 会理解每一张截图，为画面生成标题和摘要。即使画面没有明显文字，也可以根据人物、场景、软件界面或图表生成笔记。AI 或网络失败不会删除已经保存的原始截图。
+
+在 Obsidian 中，PageNest Viewer 可直接阅读 .pagenest 文件。点击视频截图可以进入沉浸式大图查看，同时保留标题、时间戳和 AI Summary；全文搜索和可选的 AI 可读资料库也能帮助你整理长期收藏。
+
+核心能力：
+• 网页本地收藏与自包含 .pagenest 文件
+• Video Notebook 与视频帧快捷截图
+• 视频时间线自动排序
+• 视觉 AI 自动标题和摘要
+• Standard / High PNG 截图质量
+• Obsidian Viewer 与图片 Lightbox
+• Local-first storage，无广告、无遥测
+
+重要说明：PageNest 完整功能需要安装免费的 PageNest Windows Local Service。Local Service 负责把内容安全写入用户选择的 Vault，并通过仅限本机的 127.0.0.1 接口与扩展通信。普通网页收藏和视频截图不要求配置 AI；AI 功能使用用户自己选择并配置的兼容服务。

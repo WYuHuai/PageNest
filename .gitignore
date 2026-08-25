@@ -26,6 +26,8 @@ screenshot*.png
 screenshot*.jpg
 screenshot*.jpeg
 !store/assets/*.png
+!store-assets/edge/screenshots/
+!store-assets/edge/screenshots/*.png
 *.log
 *.dmp
 *.tmp

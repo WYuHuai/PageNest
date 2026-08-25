@@ -60,10 +60,6 @@ Type: files; Name: "{app}\Service\.env"
 Type: filesandordirs; Name: "{app}\Service\logs"
 Type: files; Name: "{app}\连接设置.txt"
 
-[Run]
-Filename: "{app}\extension-install.html"; Description: "查看 Edge/Chrome 扩展安装步骤"; Flags: shellexec postinstall skipifsilent
-Filename: "{app}\Extension"; Description: "打开正确的浏览器扩展文件夹"; Flags: shellexec postinstall skipifsilent nowait
-
 [Code]
 const
   HexDigits = '0123456789abcdef';
@@ -463,7 +459,7 @@ procedure CurPageChanged(CurPageID: Integer);
 begin
   if CurPageID = wpFinished then
     WizardForm.FinishedLabel.Caption :=
-      'PageNest 已安装，浏览器扩展连接信息已经预配置。' + #13#10 + #13#10 +
-      '点击完成后会打开正确的 Extension 文件夹和安装说明。' + #13#10 +
-      '请勿加载下载的源码目录，否则扩展无法连接本机服务。';
+      'PageNest 已安装，本地服务与浏览器扩展安全配对已经配置。' + #13#10 + #13#10 +
+      '现在打开从 Microsoft Edge Add-ons 安装的 PageNest 扩展。' + #13#10 +
+      '看到“PageNest 后台服务已连接”即可开始使用。';
 end;

@@ -6,6 +6,7 @@ from PIL import Image, ImageDraw
 ROOT = Path(__file__).resolve().parents[1]
 SOURCE = ROOT / "assets" / "pagenest-icon-1024.png"
 OUTPUT = ROOT / "store" / "assets"
+EDGE_OUTPUT = ROOT / "store-assets" / "edge" / "assets"
 
 
 def _background(size: tuple[int, int]) -> Image.Image:
@@ -32,6 +33,7 @@ def _promo(icon: Image.Image, size: tuple[int, int], icon_size: int) -> Image.Im
 
 def build_assets() -> list[Path]:
     OUTPUT.mkdir(parents=True, exist_ok=True)
+    EDGE_OUTPUT.mkdir(parents=True, exist_ok=True)
     with Image.open(SOURCE) as source:
         icon = source.convert("RGBA")
     outputs = {
@@ -44,6 +46,9 @@ def build_assets() -> list[Path]:
         path = OUTPUT / name
         image.save(path, optimize=True)
         paths.append(path)
+    logo = EDGE_OUTPUT / "logo-300.png"
+    icon.resize((300, 300), Image.Resampling.LANCZOS).save(logo, optimize=True)
+    paths.append(logo)
     return paths
 
 

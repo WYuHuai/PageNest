@@ -11,6 +11,25 @@ const collectEnd = source.indexOf("async function loadFolders", collectStart);
 assert.ok(identifyStart >= 0 && identifyEnd > identifyStart);
 assert.ok(collectStart >= 0 && collectEnd > collectStart);
 
+const localized = {
+  serviceConnecting: "正在连接 PageNest 后台服务",
+  serviceConnected: "PageNest 后台服务已连接",
+  serviceDisconnected: "PageNest 后台服务未连接",
+  usuallyMoments: "通常只需要片刻",
+  startServiceRetry: "请启动 PageNest 后重试",
+  diagnosticUnreachable: "无法连接 PageNest 后台服务",
+  diagnosticInvalid: "连接配置无效",
+  serviceOld: "Service 版本过旧，请升级 PageNest 本地服务",
+  ready: "已就绪",
+  identifyingBody: "正在识别网页正文",
+  recognitionSuccess: "识别成功",
+};
+const t = (key, substitutions) => {
+  const template = localized[key] || key;
+  const values = Array.isArray(substitutions) ? substitutions : [substitutions];
+  return values.reduce((value, item, index) => value.replace(`$${index + 1}`, item ?? ""), template);
+};
+
 function element() {
   const strong = {textContent: ""};
   return {
@@ -34,6 +53,7 @@ async function serviceStateContract(connectionResult, diagnostic = "service-unre
   const end = source.indexOf("function captureKindForUrl", start);
   const context = vm.createContext({
     $: id => elements[id],
+    t,
     PageNestConnection: {
       connect: async () => connectionResult,
       diagnostic: () => diagnostic,
@@ -64,6 +84,7 @@ async function serviceStateContract(connectionResult, diagnostic = "service-unre
     article: undefined,
     tab: undefined,
     $: id => elements[id],
+    t,
     chrome: {
       tabs: {query: async () => { events.push("active-tab"); return [{id: 7, url: capture.url}]; }},
       scripting: {executeScript: async options => {

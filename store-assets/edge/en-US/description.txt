@@ -1,0 +1,22 @@
+PageNest — a local-first collector for webpages and video notes
+
+PageNest saves useful web and video content to your own computer instead of leaving you with a bookmark that may disappear later.
+
+When you capture a webpage, PageNest preserves the article structure, in-place images, code, tables, links, and supported media whenever possible. The result is one self-contained .pagenest file: no fragile sidecar asset folder, and embedded content remains readable offline. Dedicated capture paths cover regular articles, local HTML files, WeChat Official Account articles, and several popular content sites.
+
+While watching an HTML5 video, press Ctrl+Shift+Y to save the current decoded frame. PageNest adds each frame to the same Video Notebook and sorts entries by the video's timestamp. Direct Video Frame Capture avoids player titles and hover progress bars. Standard and High PNG profiles cover everyday video, slides, code, and small text without pretending a low-resolution source is sharper than it is.
+
+Connect an OpenAI-compatible vision model if you want automatic notes. PageNest can generate a title and summary for each frame based on text, people, scenes, software interfaces, or charts. The original screenshot is preserved even when the model, gateway, or network fails.
+
+PageNest Viewer opens .pagenest files directly inside Obsidian. Click a captured frame for an immersive Lightbox that keeps the image, title, timestamp, and AI summary together. Full-text search and an optional AI-readable library help turn a long-running collection into usable knowledge.
+
+Highlights:
+• Local webpage capture in one self-contained file
+• Video Notebook and keyboard frame capture
+• Automatic timeline ordering
+• Optional vision-AI titles and summaries
+• Standard / High PNG capture profiles
+• Obsidian Viewer and image Lightbox
+• Local-first storage with no ads or telemetry
+
+Important: full PageNest functionality requires the free PageNest Windows Local Service. It writes content to the Vault selected by the user and communicates with the extension through a token-protected loopback interface on 127.0.0.1. Web capture and video screenshots do not require AI; AI features use only the compatible endpoint that the user chooses and configures.

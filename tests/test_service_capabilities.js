@@ -7,7 +7,8 @@ const source = fs.readFileSync(path.resolve(__dirname, "../extension/popup.js"),
 const start = source.indexOf("async function collectWithServiceCapabilities");
 const end = source.indexOf("async function loadFolders", start);
 assert.ok(start >= 0 && end > start, "capability negotiation function is required");
-const context = {};
+const messages = JSON.parse(fs.readFileSync(path.resolve(__dirname, "../extension/_locales/zh_CN/messages.json"), "utf8"));
+const context = {t: (key, value) => (messages[key]?.message || key).replace("$1", value || "")};
 vm.runInNewContext(
   `${source.slice(start, end)}\nthis.collectWithServiceCapabilities = collectWithServiceCapabilities; this.selectVaultWithServiceCapabilities = selectVaultWithServiceCapabilities;`,
   context,

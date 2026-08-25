@@ -3,7 +3,7 @@ const fs = require("fs");
 const path = require("path");
 const presets = require("../extension/core/ai-presets.js");
 
-assert.strictEqual(presets.providers[0].id, "custom", "自己填写必须排在最前面");
+assert.strictEqual(presets.providers[0].id, "custom", "custom provider must remain first");
 
 const expectedUrls = {
   openai: "https://api.openai.com/v1",

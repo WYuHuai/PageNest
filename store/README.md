@@ -1,39 +1,25 @@
-# PageNest browser-store submission kit
+# PageNest Microsoft Edge Add-ons submission kit
 
-This directory contains source material for Chrome Web Store and Microsoft Edge
-Add-ons. Both stores use the same Manifest V3 extension ZIP.
+The public v1.10.0 extension package supports Simplified Chinese (`zh_CN`, the
+default locale) and English (`en`). Full listing copy, five 1280×800 screenshots,
+permission answers, reviewer notes, and the Partner Center checklist live under
+`store-assets/edge/`.
 
-Before submission:
-
-1. Verify the public support, privacy, and source URLs before submission.
-2. Publish `PRIVACY.md` at a stable public HTTPS URL.
-3. Keep the fixed store IDs in `release-manifest.json`. The first release
-   contains the Edge CRX ID; add the Chrome item ID before publishing there.
-4. Rebuild the installer. It reads configured IDs from the manifest:
-
-   ```powershell
-   powershell -ExecutionPolicy Bypass -File scripts\build_windows_installer.ps1
-   ```
-
-5. Confirm automatic pairing and the full flow on a clean Windows 10/11 machine
-   by following `reviewer-notes.md` exactly.
-6. Review current store policies and complete developer-account identity checks.
-7. Upload the generated ZIP and the assets under `store/assets/`.
-
-Build the kit with:
+Build the final kit after all release files are tracked:
 
 ```powershell
-local-server\.venv\Scripts\python scripts\generate_store_assets.py
-local-server\.venv\Scripts\python scripts\package_store.py
+python scripts/package_store.py
 ```
 
-The generated output is written to `release/store-v<version>/` and remains
-ignored by Git. Upload only `pagenest-web-store-v<version>.zip` as the extension
-package. The other files are dashboard copy and image assets, not ZIP contents.
+Output: `release/store-v1.10.0/`.
 
-Required and supplied images:
+- Upload only `pagenest-web-store-v1.10.0.zip` as the extension package.
+- Use `PARTNER_CENTER_CHECKLIST.md` for listing metadata and image uploads.
+- The Update API can upload/publish the package but cannot change listing
+  languages, descriptions, search terms, screenshots, or promotional assets.
+- Never put an API key, local Service token, Vault path, or user data in the ZIP
+  or reviewer notes.
 
-- extension icon: 128x128;
-- product screenshot: 1280x800;
-- small promotional image: 440x280;
-- optional marquee promotional image: 1400x560.
+The normal public installation path is Edge Add-ons plus
+`PageNest-Setup-1.10.0.exe`. Unpacked extension loading is for development or
+recovery only.

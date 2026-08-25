@@ -3,6 +3,7 @@ const fs = require("node:fs");
 const Module = require("node:module");
 const path = require("node:path");
 const vm = require("node:vm");
+const {bridgeWithCsp} = require("./viewer_csp_harness");
 
 let viewFactory;
 const registeredExtensions = [];
@@ -234,7 +235,11 @@ function channelFrom(page) {
     };
   }
 
-  function lightboxHarness({title = "<img src=x onerror=alert(1)>", summary = "安全摘要 <script>alert(1)</script>"} = {}) {
+  function lightboxHarness({
+    title = "<img src=x onerror=alert(1)>",
+    summary = "安全摘要 <script>alert(1)</script>",
+    csp = "default-src 'none'; img-src data:; script-src 'nonce-hermes-offline'; style-src 'unsafe-inline'",
+  } = {}) {
     const body = fakeElement("body");
     body.style.overflow = "auto";
     const documentElement = fakeElement("html");
@@ -269,10 +274,10 @@ function channelFrom(page) {
       scrollY: 22,
       scrollTo(x, y) { scrolls.push([x, y]); },
     };
-    const script = HermesPageViewerPlugin.copyBridgeScript("a".repeat(64))
-      .match(/<script[^>]*>([\s\S]*?)<\/script>/)[1];
-    vm.runInNewContext(script, {document, window});
-    return {body, documentElement, documentListeners, entry, screenshot, scrolls, script};
+    const injected = bridgeWithCsp(HermesPageViewerPlugin, csp);
+    assert.equal(injected.allowed, true, "runtime must be authorized by the effective CSP");
+    vm.runInNewContext(injected.script, {document, window});
+    return {body, documentElement, documentListeners, entry, screenshot, scrolls, script: injected.script};
   }
 
   const lightbox = lightboxHarness();
@@ -326,19 +331,84 @@ function channelFrom(page) {
   assert.equal(lightbox.script.includes("innerHTML"), false, "LIGHTBOX-13");
   assert.equal(view.getViewData(), "<!doctype html><body><pre>const answer = 42;</pre></body>", "LIGHTBOX-14");
 
-  const cspPage = HermesPageViewerPlugin.withCopyBridge(
-    "<meta http-equiv=\"Content-Security-Policy\" content=\"default-src 'none'; script-src 'none'\"><body></body>",
+  const existing = bridgeWithCsp(
+    HermesPageViewerPlugin,
+    "default-src 'none'; script-src 'nonce-existing'; img-src data:",
     "b".repeat(64),
   );
-  assert.match(cspPage, new RegExp(`script-src 'nonce-${"b".repeat(64)}'`));
-  assert.match(cspPage, new RegExp(`<script nonce="${"b".repeat(64)}" data-hermes-copy-bridge>`));
-  assert.doesNotMatch(cspPage, /nonce-hermes-offline/);
-  assert.doesNotMatch(cspPage, /script-src 'none'/);
-  assert.match(cspPage, /data-pagenest-viewer-lightbox/);
-  assert.match(cspPage, /background: rgba\(0, 0, 0, \.66\)/);
-  assert.match(cspPage, /backdrop-filter: blur\(8px\)/);
-  assert.match(cspPage, /max-width: 90vw/);
-  assert.match(cspPage, /max-height: 72vh/);
+  assert.equal(existing.nonce, "existing", "CSP-01");
+  assert.equal(existing.allowed, true, "CSP-01 executable contract");
+
+  const historicalCsp = bridgeWithCsp(
+    HermesPageViewerPlugin,
+    "default-src 'none'; img-src data:; script-src 'nonce-hermes-offline'; style-src 'unsafe-inline'",
+  );
+  assert.equal(historicalCsp.nonce, "hermes-offline", "CSP-02");
+  assert.equal(historicalCsp.allowed, true, "CSP-02 executable contract");
+
+  const none = bridgeWithCsp(
+    HermesPageViewerPlugin,
+    "default-src 'none'; img-src data:; script-src 'none'; style-src 'unsafe-inline'",
+    "b".repeat(64),
+  );
+  assert.equal(none.nonce, "b".repeat(64), "CSP-03");
+  assert.equal(none.allowed, true, "CSP-03 executable contract");
+  assert.match(none.csp, new RegExp(`script-src 'nonce-${"b".repeat(64)}'`));
+
+  const defaultOnly = bridgeWithCsp(HermesPageViewerPlugin, "default-src 'none'; img-src data:");
+  assert.equal(defaultOnly.script, "", "CSP-04 fail closed");
+  assert.equal(defaultOnly.csp, "default-src 'none'; img-src data:", "CSP-04 policy preserved");
+
+  const defaultNonce = bridgeWithCsp(HermesPageViewerPlugin, "default-src 'nonce-default-policy'; img-src data:");
+  assert.equal(defaultNonce.nonce, "default-policy", "CSP-04 effective default nonce");
+  assert.equal(defaultNonce.allowed, true, "CSP-04 effective default executable contract");
+
+  const elementPolicy = bridgeWithCsp(
+    HermesPageViewerPlugin,
+    "default-src 'none'; script-src 'nonce-script'; script-src-elem 'nonce-element'",
+  );
+  assert.equal(elementPolicy.nonce, "element", "CSP-05");
+  assert.equal(elementPolicy.allowed, true, "CSP-05 executable contract");
+
+  const elementNone = bridgeWithCsp(
+    HermesPageViewerPlugin,
+    "default-src 'none'; script-src 'nonce-script'; script-src-elem 'none'",
+    "d".repeat(64),
+  );
+  assert.equal(elementNone.nonce, "d".repeat(64), "CSP-05 effective none update");
+  assert.equal(elementNone.allowed, true, "CSP-05 effective none executable contract");
+  assert.match(elementNone.csp, /script-src 'nonce-script'; script-src-elem 'nonce-dd+/);
+
+  const preserved = bridgeWithCsp(
+    HermesPageViewerPlugin,
+    "default-src 'none'; IMG-SRC data:; media-src blob:; ScRiPt-SrC    'none' ; style-src 'unsafe-inline'; base-uri 'none'",
+    "c".repeat(64),
+  );
+  assert.match(preserved.csp, /IMG-SRC data:; media-src blob:/, "CSP-06");
+  assert.match(preserved.csp, /ScRiPt-SrC 'nonce-cc+/, "CSP-06 case/whitespace parsing");
+  assert.match(preserved.csp, /style-src 'unsafe-inline'; base-uri 'none'/, "CSP-06");
+
+  const multiple = bridgeWithCsp(
+    HermesPageViewerPlugin,
+    "default-src 'none'; script-src 'nonce-first-valid' 'nonce-second-valid'",
+  );
+  assert.equal(multiple.nonce, "first-valid", "CSP-07");
+
+  const malformed = bridgeWithCsp(
+    HermesPageViewerPlugin,
+    "default-src 'none'; script-src 'nonce-bad*value'",
+  );
+  assert.equal(malformed.script, "", "CSP-08");
+  assert.equal(malformed.csp, "default-src 'none'; script-src 'nonce-bad*value'", "CSP-08 policy preserved");
+
+  const currentLightbox = lightboxHarness({csp: "default-src 'none'; script-src 'none'"});
+  assert.equal(currentLightbox.screenshot.attributes.role, "button", "CURRENT_NONE_CSP");
+  assert.match(historicalCsp.page, /data-pagenest-viewer-lightbox/);
+  assert.match(historicalCsp.page, /background: rgba\(0, 0, 0, \.66\)/);
+  assert.match(historicalCsp.page, /backdrop-filter: blur\(8px\)/);
+  assert.match(historicalCsp.page, /max-width: 90vw/);
+  assert.match(historicalCsp.page, /max-height: 72vh/);
+  assert.doesNotMatch(historicalCsp.page, /unsafe-eval/);
   view.clear();
   assert.equal(listeners.has("message"), false);
   console.log("obsidian plugin copy bridge tests passed");

@@ -3,6 +3,7 @@ const fs = require("node:fs");
 const Module = require("node:module");
 const path = require("node:path");
 const vm = require("node:vm");
+const {bridgeWithCsp} = require("./viewer_csp_harness");
 
 class TextFileView {}
 class Plugin {}
@@ -116,12 +117,14 @@ function viewerDocument(source, content, {notebook = false} = {}) {
   };
 }
 
-const runtime = Viewer.copyBridgeScript("a".repeat(64))
-  .match(/<script[^>]*>([\s\S]*?)<\/script>/)[1];
+const HISTORICAL_CSP = "default-src 'none'; img-src data:; media-src data:; style-src 'unsafe-inline'; font-src data:; script-src 'nonce-hermes-offline'; base-uri 'none'; form-action 'none'";
 
 function run(source, content, options = {}) {
   const document = viewerDocument(source, content, options);
-  vm.runInNewContext(runtime, {
+  const injected = bridgeWithCsp(Viewer, HISTORICAL_CSP);
+  assert.equal(injected.nonce, "hermes-offline", "historical CSP nonce must be reused");
+  assert.equal(injected.allowed, true, "historical CSP must authorize the injected runtime");
+  vm.runInNewContext(injected.script, {
     URL,
     document,
     window: {parent: {postMessage() {}}},

@@ -192,8 +192,86 @@ class PageNestSearchModal extends Modal {
   }
 }
 
-function copyBridgeScript(channel) {
-  return `<script nonce="${channel}" data-hermes-copy-bridge>
+const CSP_NONCE_SOURCE = /^'nonce-([A-Za-z0-9+/_-]+={0,2})'$/iu;
+const RUNTIME_NONCE = /^[A-Za-z0-9+/_-]+={0,2}$/u;
+
+function htmlAttribute(tag, name) {
+  const expression = new RegExp(`\\b${name}\\s*=\\s*(?:"([^"]*)"|'([^']*)'|([^\\s>]+))`, "iu");
+  const match = expression.exec(tag);
+  if (!match) return null;
+  return {end: match.index + match[0].length, start: match.index, value: match[1] ?? match[2] ?? match[3] ?? ""};
+}
+
+function contentSecurityPolicy(page) {
+  const policies = [];
+  for (const match of page.matchAll(/<meta\b[^>]*>/giu)) {
+    const httpEquiv = htmlAttribute(match[0], "http-equiv");
+    if (httpEquiv?.value.toLowerCase() !== "content-security-policy") continue;
+    const content = htmlAttribute(match[0], "content");
+    if (!content) return {valid: false};
+    policies.push({
+      content: content.value,
+      contentEnd: content.end,
+      contentStart: content.start,
+      end: match.index + match[0].length,
+      start: match.index,
+      tag: match[0],
+    });
+  }
+  if (policies.length > 1) return {valid: false};
+  return policies.length ? {valid: true, policy: policies[0]} : {valid: true, policy: null};
+}
+
+function cspDirectives(content) {
+  const segments = content.split(";");
+  const directives = [];
+  segments.forEach((segment, index) => {
+    const trimmed = segment.trim();
+    if (!trimmed) return;
+    const [name, ...tokens] = trimmed.split(/\s+/u);
+    if (!directives.some(directive => directive.name === name.toLowerCase())) {
+      directives.push({index, name: name.toLowerCase(), originalName: name, tokens});
+    }
+  });
+  return {directives, segments};
+}
+
+function replaceCspContent(page, policy, content) {
+  const tag = `${policy.tag.slice(0, policy.contentStart)}content="${content}"${policy.tag.slice(policy.contentEnd)}`;
+  return `${page.slice(0, policy.start)}${tag}${page.slice(policy.end)}`;
+}
+
+function viewerRuntimePolicy(page, generatedNonce) {
+  if (!RUNTIME_NONCE.test(generatedNonce)) return null;
+  const parsedPolicy = contentSecurityPolicy(page);
+  if (!parsedPolicy.valid) return null;
+  if (!parsedPolicy.policy) return {nonce: generatedNonce, page};
+
+  const parsed = cspDirectives(parsedPolicy.policy.content);
+  const effective = parsed.directives.find(directive => directive.name === "script-src-elem")
+    || parsed.directives.find(directive => directive.name === "script-src")
+    || parsed.directives.find(directive => directive.name === "default-src");
+  if (!effective) return {nonce: generatedNonce, page};
+
+  for (const token of effective.tokens) {
+    const nonce = token.match(CSP_NONCE_SOURCE)?.[1];
+    if (nonce) return {nonce, page};
+  }
+  const replaceableNone = ["script-src", "script-src-elem"].includes(effective.name)
+    && effective.tokens.length === 1
+    && effective.tokens[0].toLowerCase() === "'none'";
+  if (!replaceableNone) return null;
+
+  const original = parsed.segments[effective.index];
+  const leading = original.match(/^\s*/u)?.[0] || "";
+  const trailing = original.match(/\s*$/u)?.[0] || "";
+  parsed.segments[effective.index] = `${leading}${effective.originalName} 'nonce-${generatedNonce}'${trailing}`;
+  const nextContent = parsed.segments.join(";");
+  return {nonce: generatedNonce, page: replaceCspContent(page, parsedPolicy.policy, nextContent)};
+}
+
+function copyBridgeScript(channel, nonce = channel) {
+  return `<script nonce="${nonce}" data-hermes-copy-bridge>
 function pagenestNormalizeLegacyWeChatHeadings() {
   if (typeof document.querySelector !== 'function') return;
   var sourceMeta = document.querySelector('meta[name="hermes-source"]');
@@ -335,11 +413,10 @@ document.querySelectorAll('[data-pagenest-notebook-entry]').forEach(function (en
 }
 
 function withCopyBridge(page, channel) {
-  const runtimePage = page.replace(
-    /script-src\s+'none'/iu,
-    `script-src 'nonce-${channel}'`,
-  );
-  const bridge = `${RESPONSIVE_MEDIA_STYLE}${NOTEBOOK_LIGHTBOX_STYLE}${copyBridgeScript(channel)}`;
+  const runtime = viewerRuntimePolicy(page, channel);
+  const runtimePage = runtime?.page || page;
+  const runtimeScript = runtime ? copyBridgeScript(channel, runtime.nonce) : "";
+  const bridge = `${RESPONSIVE_MEDIA_STYLE}${NOTEBOOK_LIGHTBOX_STYLE}${runtimeScript}`;
   const bodyEnd = runtimePage.toLowerCase().lastIndexOf("</body>");
   return bodyEnd < 0
     ? `${runtimePage}${bridge}`

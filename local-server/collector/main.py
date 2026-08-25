@@ -44,7 +44,7 @@ async def lifespan(_app: FastAPI):
     yield
 
 
-app = FastAPI(title="PageNest Web Collector", version="1.10.0", lifespan=lifespan)
+app = FastAPI(title="PageNest Web Collector", version="1.10.1", lifespan=lifespan)
 app.add_middleware(RequestSizeLimitMiddleware, max_bytes=MAX_REQUEST_BYTES)
 app.add_middleware(
     CORSMiddleware,

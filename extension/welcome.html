@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>PageNest</title>
+  <link rel="stylesheet" href="welcome.css">
+</head>
+<body>
+  <main class="welcome-shell">
+    <section class="hero-card">
+      <div class="brand-mark" aria-hidden="true">P</div>
+      <p class="eyebrow" data-i18n="welcomeLabel">欢迎使用 PageNest</p>
+      <h1>PageNest</h1>
+      <p class="tagline" data-i18n="welcomeTagline">把网页和视频，变成真正属于你的本地笔记。</p>
+
+      <ul class="feature-list">
+        <li data-i18n="welcomeFeatureWeb">保存完整网页</li>
+        <li data-i18n="welcomeFeatureVideo">视频关键画面自动整理</li>
+        <li data-i18n="welcomeFeatureAi">AI 自动生成标题和摘要</li>
+        <li data-i18n="welcomeFeatureLocal">本地文件优先</li>
+        <li data-i18n="welcomeFeatureObsidian">Obsidian 阅读</li>
+      </ul>
+
+      <section id="welcomeState" class="state-card checking" aria-live="polite">
+        <span class="state-icon" aria-hidden="true">●</span>
+        <div class="state-copy">
+          <h2 id="welcomeStateTitle" data-i18n="onboardingChecking">正在检测 PageNest</h2>
+          <p id="welcomeStateDescription" data-i18n="usuallyMoments">通常只需要片刻</p>
+          <p id="welcomeLocalExplanation" class="local-explanation hidden" data-i18n="onboardingLocalExplanation">本地组件负责把内容保存到你的电脑和 Obsidian Vault。</p>
+        </div>
+        <div class="state-actions">
+          <button id="welcomeInstall" class="primary hidden" type="button" data-i18n="installPageNest">安装 PageNest</button>
+          <button id="welcomeRecheck" class="secondary hidden" type="button" data-i18n="recheck">重新检测</button>
+          <button id="welcomeStart" class="primary hidden" type="button" data-i18n="startUsing">开始使用</button>
+        </div>
+      </section>
+
+      <details class="obsidian-note">
+        <summary data-i18n="usingObsidian">使用 Obsidian？</summary>
+        <p data-i18n="welcomeObsidianHelp">Windows Installer 会安装 PageNest Viewer；首次使用时请在 Obsidian 的第三方插件中启用它。</p>
+      </details>
+    </section>
+  </main>
+
+  <script src="connection-config.js"></script>
+  <script src="core/connection.js"></script>
+  <script src="core/i18n.js"></script>
+  <script src="core/onboarding.js"></script>
+  <script src="welcome.js"></script>
+</body>
+</html>

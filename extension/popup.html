@@ -19,6 +19,26 @@
 
     <div class="view-stack">
       <section id="view-save" class="app-view is-active" data-view="save" aria-labelledby="tab-save">
+        <section id="serviceOnboarding" class="onboarding-card connecting" aria-live="polite">
+          <span class="onboarding-mark" aria-hidden="true">P</span>
+          <div>
+            <span class="eyebrow" data-i18n="firstUse">首次使用</span>
+            <h2 id="onboardingTitle" data-i18n="onboardingChecking">正在检测 PageNest</h2>
+            <p id="onboardingDescription" data-i18n="usuallyMoments">通常只需要片刻</p>
+            <p id="onboardingLocalExplanation" class="onboarding-explanation hidden" data-i18n="onboardingLocalExplanation">本地组件负责把内容保存到你的电脑和 Obsidian Vault。</p>
+          </div>
+          <div id="onboardingActions" class="onboarding-actions hidden">
+            <button id="installPageNest" class="primary-action" type="button" data-i18n="installPageNest">安装 PageNest</button>
+            <button id="recheckOnboarding" class="secondary-action" type="button" data-i18n="recheck">重新检测</button>
+          </div>
+        </section>
+
+        <div id="serviceConnectedBanner" class="connected-banner hidden">
+          <strong data-i18n="pageNestConnected">✓ PageNest 已连接</strong>
+          <span data-i18n="onboardingConnectedDescription">网页保存和视频笔记已经就绪。</span>
+        </div>
+
+        <div id="saveWorkspace" class="hidden">
         <div class="page-heading">
           <div>
             <span class="eyebrow" data-i18n="quickCapture">快速收藏</span>
@@ -66,6 +86,7 @@
         <div id="progress" class="progress hidden"></div>
         <div id="result" class="result-panel hidden"></div>
         <button id="save" class="primary-action" type="button" data-i18n="saveToObsidian">保存到 Obsidian</button>
+        </div>
       </section>
 
       <section id="view-identify" class="app-view" data-view="identify" aria-labelledby="tab-identify" hidden>
@@ -207,6 +228,7 @@
   <script src="capture-selection.js"></script>
   <script src="connection-config.js"></script>
   <script src="core/connection.js"></script>
+  <script src="core/onboarding.js"></script>
   <script src="core/ai-presets.js"></script>
   <script src="core/video-capture-quality.js"></script>
   <script src="adapters/xiaohongshu-video-bridge.js"></script>

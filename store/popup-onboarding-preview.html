@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>PageNest Popup onboarding preview</title>
+  <style>
+    html, body { min-height: 100%; margin: 0; }
+    body { display: grid; place-items: center; background: #eef1f8; }
+    iframe { width: 420px; height: 600px; border: 0; border-radius: 18px; box-shadow: 0 24px 70px rgba(25,37,82,.2); }
+  </style>
+</head>
+<body>
+  <iframe id="popup" src="../extension/popup.html" title="PageNest Popup"></iframe>
+  <script>
+    document.getElementById("popup").addEventListener("load", async event => {
+      const frame = event.currentTarget.contentWindow;
+      const messages = await fetch("../extension/_locales/zh_CN/messages.json").then(response => response.json());
+      frame.chrome = {
+        i18n: {
+          getMessage: key => messages[key]?.message || "",
+          getUILanguage: () => "zh-CN",
+        },
+        runtime: {getManifest: () => ({version: "1.10.1"})},
+      };
+      frame.PageNestI18n.localizeDocument(frame.document);
+      const state = new URL(location.href).searchParams.get("state") || "missing";
+      frame.showSaveExperience(state);
+    });
+  </script>
+</body>
+</html>

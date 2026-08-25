@@ -10,6 +10,6 @@
 - Privacy: `https://github.com/WYuHuai/PageNest/blob/main/PRIVACY.md`
 - Source: `https://github.com/WYuHuai/PageNest`
 
-Full functionality requires the PageNest Windows Local Service. Web capture and
-video screenshots do not require AI; visual titles and summaries use the
-compatible endpoint configured by the user.
+On first open, PageNest guides the user through installing its Windows companion
+and provides an in-extension connection recheck. Web capture and video screenshots
+do not require AI; visual titles and summaries use the compatible endpoint configured by the user.

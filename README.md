@@ -4,7 +4,7 @@
 <p align="center">收藏完整网页，而不是只留一个链接；观看视频时按下快捷键，把关键画面自动整理成可搜索、可放大的时间线笔记。</p>
 
 <p align="center">
-  <a href="https://github.com/WYuHuai/PageNest/releases/tag/v1.10.0"><img alt="PageNest v1.10.0" src="https://img.shields.io/badge/release-v1.10.0-1E45FB"></a>
+  <a href="https://github.com/WYuHuai/PageNest/releases/tag/v1.10.1"><img alt="PageNest v1.10.1" src="https://img.shields.io/badge/release-v1.10.1-1E45FB"></a>
   <a href="https://github.com/WYuHuai/PageNest/actions/workflows/ci.yml"><img alt="CI" src="https://github.com/WYuHuai/PageNest/actions/workflows/ci.yml/badge.svg"></a>
   <img alt="Windows" src="https://img.shields.io/badge/Windows-11%20validated-0078D4?logo=windows">
   <img alt="Edge" src="https://img.shields.io/badge/Browser-Microsoft%20Edge-0A84FF?logo=microsoftedge">
@@ -14,7 +14,7 @@
 <p align="center">
   <strong>简体中文</strong> ·
   <a href="README.en.md">English</a> ·
-  <a href="https://github.com/WYuHuai/PageNest/releases/download/v1.10.0/PageNest-Setup-1.10.0.exe">下载安装器</a> ·
+  <a href="https://github.com/WYuHuai/PageNest/releases/latest/download/PageNest-Setup.exe">下载安装器</a> ·
   <a href="docs/troubleshooting.md">故障排查</a>
 </p>
 
@@ -37,7 +37,7 @@ PageNest 是面向 Windows、Microsoft Edge 和 Obsidian 的本地优先知识�
     <td width="50%"><img src="store-assets/edge/screenshots/04_lightbox.png" alt="沉浸式大图查看"><br><sub>点击截图放大查看，图片和 AI 笔记同时保留</sub></td>
   </tr>
   <tr>
-    <td width="50%"><img src="store-assets/edge/screenshots/05_local_first.png" alt="本地优先存储"><br><sub>本地优先：笔记存到自己的 Vault</sub></td>
+    <td width="50%"><img src="store-assets/edge/screenshots/05_local_first.png" alt="首次使用安装引导"><br><sub>第一次打开即可完成本地组件安装</sub></td>
   </tr>
 </table>
 
@@ -51,7 +51,7 @@ PageNest 是面向 Windows、Microsoft Edge 和 Obsidian 的本地优先知识�
 
 ## 2 分钟安装
 
-PageNest 的完整功能需要 Microsoft Edge 扩展和 Windows Local Service。普通用户不需要理解或手工复制内部组件。
+PageNest 的完整功能需要 Microsoft Edge 扩展和一个 Windows 本地组件。扩展会完成安装引导，普通用户不需要理解或手工复制内部组件，也不需要先访问 GitHub。
 
 ### 第一步：安装 Edge 扩展
 
@@ -59,17 +59,17 @@ PageNest 的完整功能需要 Microsoft Edge 扩展和 Windows Local Service。
 
 > 如果商店页面仍在审核，请等待正式链接开放。`Load unpacked` 仅用于开发和故障恢复，不是普通安装方案。
 
-### 第二步：运行 PageNest 安装器
+### 第二步：在扩展中安装 PageNest
 
-从 [GitHub Releases](https://github.com/WYuHuai/PageNest/releases/tag/v1.10.0) 下载推荐安装包：
+第一次打开扩展时，点击 **安装 PageNest**，然后正常运行下载的 Windows Installer。
+安装器会自动安装并启动本地组件，把 PageNest Viewer 放入所选 Vault，并配置扩展与
+本机服务的安全配对。无需安装 Python、Node.js，也无需手工填写端口或 token。
 
-**[`PageNest-Setup-1.10.0.exe`](https://github.com/WYuHuai/PageNest/releases/download/v1.10.0/PageNest-Setup-1.10.0.exe)**
+安装完成后回到扩展，点击 **重新检测**；看到 **✓ PageNest 已连接**即可开始使用。
 
-双击运行，选择一个已经存在的 Obsidian Vault。安装器会自动安装并启动 Local Service，
-把 PageNest Viewer 放入所选 Vault，并配置商店扩展与本机服务的安全配对。无需安装
-Python、Node.js，也无需手工填写 Service token。
+备用安装方式：直接下载稳定安装包
+[`PageNest-Setup.exe`](https://github.com/WYuHuai/PageNest/releases/latest/download/PageNest-Setup.exe)。
 
-完成后打开 PageNest 扩展；看到“PageNest 后台服务已连接”即可使用。
 
 ### 可选：在 Obsidian 中阅读
 
@@ -148,7 +148,7 @@ API Key 保存在本机 Service 配置中；请勿把它提交到仓库、Issue 
 ## 开发者与架构
 
 内部数据流与安全边界见 [架构文档](docs/architecture.md)、[版本兼容说明](docs/version-compatibility.md)
-和 [v1.10.0 Release Notes](docs/release-notes-v1.10.0.md)。高级用户可以在 GitHub Release
+和 [v1.10.1 Release Notes](docs/release-notes-v1.10.1.md)。高级用户可以在 GitHub Release
 Assets 中取得单独的 Extension、Service 和 Viewer 压缩包；普通用户应只下载 Windows 安装器。
 
 ## 手工安装（开发/恢复）

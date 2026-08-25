@@ -4,7 +4,7 @@
 <p align="center">把网页保存为一个自包含的 <code>.pagenest</code> 文件，再用专属网页模式 Viewer 直接在 Obsidian 里打开。</p>
 
 <p align="center">
-  <a href="https://github.com/WYuHuai/PageNest/releases/tag/v1.10.0"><img alt="PageNest v1.10.0" src="https://img.shields.io/badge/release-v1.10.0-1E45FB"></a>
+  <a href="https://github.com/WYuHuai/PageNest/releases/tag/v1.10.1"><img alt="PageNest v1.10.1" src="https://img.shields.io/badge/release-v1.10.1-1E45FB"></a>
   <a href="https://github.com/WYuHuai/PageNest/actions/workflows/ci.yml"><img alt="CI" src="https://github.com/WYuHuai/PageNest/actions/workflows/ci.yml/badge.svg"></a>
   <img alt="Windows 验证状态" src="https://img.shields.io/badge/Windows-11%20干净安装已验证%20%7C%2010%20尚未完整验证-0078D4?logo=windows">
   <img alt="Edge 和 Chrome" src="https://img.shields.io/badge/浏览器-Edge%20%7C%20Chrome-4285F4">
@@ -12,9 +12,9 @@
 </p>
 
 <p align="center">
-  <a href="README.md">English</a> ·
-  <a href="https://github.com/WYuHuai/PageNest/releases/download/v1.10.0/PageNest-Setup-1.10.0.exe">下载安装器</a> ·
-  <a href="#三步安装">安装</a> ·
+  <a href="README.en.md">English</a> ·
+  <a href="https://github.com/WYuHuai/PageNest/releases/latest/download/PageNest-Setup.exe">下载安装器</a> ·
+  <a href="#两分钟安装">安装</a> ·
   <a href="docs/supported-sites.md">支持网站</a> ·
   <a href="docs/troubleshooting.md">故障排查</a>
 </p>
@@ -77,18 +77,22 @@ PageNest 不承诺对所有网站逐像素复刻。它的目标是保留更多�
 | 完整保存 + AI 文字总结 | 完整网页，并附加基于正文的文字总结 | 是 |
 | 完整保存 + AI 图文总结 | 完整网页，并让支持视觉的模型结合正文与图片总结 | 是 |
 
-## 三步安装
+## 两分钟安装
 
 > 当前平台状态：真实工作流已在 Windows 11 实机与 Windows CI 中测试，自动化
 > Windows Sandbox 安装冒烟通过；可持久化干净 Windows 11 虚拟机的重启登录流程
 > 尚未完成，Windows 10 尚未完整验证。
 
-### 1. 安装 PageNest
+### 1. 安装 Edge 扩展
 
-直接下载 [`PageNest-Setup-1.10.0.exe`](https://github.com/WYuHuai/PageNest/releases/download/v1.10.0/PageNest-Setup-1.10.0.exe)
-及其 [SHA-256 校验文件](https://github.com/WYuHuai/PageNest/releases/download/v1.10.0/PageNest-Setup-1.10.0.exe.sha256)，
-核对校验值后运行安装程序，并选择一个已有的 Obsidian 知识库。普通 Windows 用户
-不需要克隆源码，也不要按照 Python 项目的方式安装依赖。
+从 Microsoft Edge Add-ons 安装 PageNest，然后第一次打开扩展。
+
+### 2. 跟随首次使用引导
+
+点击 **安装 PageNest**，正常运行下载的 Windows Installer，再回到扩展点击
+**重新检测**。看到 **✓ PageNest 已连接**即可开始收藏；普通用户无需寻找 GitHub。
+
+备用下载：[`PageNest-Setup.exe`](https://github.com/WYuHuai/PageNest/releases/latest/download/PageNest-Setup.exe)。
 
 - 不需要安装 Python。
 - 不需要安装 Node.js。

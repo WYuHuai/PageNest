@@ -41,12 +41,22 @@ $installer = Join-Path $repository "release\v$version\PageNest-Setup-$version.ex
 if (-not (Test-Path -LiteralPath $installer -PathType Leaf)) {
     throw "Expected installer was not produced: $installer"
 }
-$checksum = (Get-FileHash -Algorithm SHA256 -LiteralPath $installer).Hash.ToLowerInvariant()
-$checksumFile = "$installer.sha256"
-[IO.File]::WriteAllText(
-    $checksumFile,
-    "$checksum  $([IO.Path]::GetFileName($installer))`n",
-    [Text.UTF8Encoding]::new($false)
-)
+$stableInstaller = Join-Path (Split-Path -Parent $installer) "PageNest-Setup.exe"
+Copy-Item -LiteralPath $installer -Destination $stableInstaller -Force
+$versionedHash = (Get-FileHash -Algorithm SHA256 -LiteralPath $installer).Hash.ToLowerInvariant()
+$stableHash = (Get-FileHash -Algorithm SHA256 -LiteralPath $stableInstaller).Hash.ToLowerInvariant()
+if ($versionedHash -ne $stableHash) {
+    throw "Stable installer alias does not match the versioned installer"
+}
+foreach ($artifact in @($installer, $stableInstaller)) {
+    $checksum = (Get-FileHash -Algorithm SHA256 -LiteralPath $artifact).Hash.ToLowerInvariant()
+    [IO.File]::WriteAllText(
+        "$artifact.sha256",
+        "$checksum  $([IO.Path]::GetFileName($artifact))`n",
+        [Text.UTF8Encoding]::new($false)
+    )
+}
 Write-Output $installer
-Write-Output $checksumFile
+Write-Output "$installer.sha256"
+Write-Output $stableInstaller
+Write-Output "$stableInstaller.sha256"

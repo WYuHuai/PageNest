@@ -20,11 +20,11 @@ from scripts.package_release import (
 def test_release_versions_are_consistent():
     release = validate_version_metadata(ROOT)
     assert release["components"] == {
-        "browser_extension": "1.10.0",
-        "local_server": "1.10.0",
+        "browser_extension": "1.10.1",
+        "local_server": "1.10.1",
         "obsidian_viewer": "1.5.0",
     }
-    assert release["release"] == "1.10.0"
+    assert release["release"] == "1.10.1"
     assert release["protocol"] == {
         "api_protocol_version": 1,
         "pagenest_format_version": 1,
@@ -63,7 +63,7 @@ def test_release_validator_rejects_runtime_and_private_entries(entry):
 
 
 def test_release_packages_have_expected_roots(tmp_path):
-    installer = tmp_path / "PageNest-Setup-1.10.0.exe"
+    installer = tmp_path / "PageNest-Setup-1.10.1.exe"
     installer.write_bytes(b"test installer")
     packages = build_release(tmp_path)
     browser, viewer, server = packages
@@ -72,6 +72,10 @@ def test_release_packages_have_expected_roots(tmp_path):
         names = set(archive.namelist())
         assert "manifest.json" in names
         assert "background.js" in names
+        assert "welcome.html" in names
+        assert "welcome.css" in names
+        assert "welcome.js" in names
+        assert "core/onboarding.js" in names
         assert "core/runtime-protocol.js" in names
         assert "icons/icon128.png" in names
         assert "connection-config.js" in names
@@ -98,6 +102,11 @@ def test_release_packages_have_expected_roots(tmp_path):
     checksums = (tmp_path / "SHA256SUMS.txt").read_text("utf-8")
     assert installer.name in checksums
     assert hashlib.sha256(installer.read_bytes()).hexdigest() in checksums
+    stable = tmp_path / "PageNest-Setup.exe"
+    assert stable.read_bytes() == installer.read_bytes()
+    assert (tmp_path / "PageNest-Setup.exe.sha256").is_file()
+    assert (tmp_path / "PageNest-Setup-1.10.1.exe.sha256").is_file()
+    assert stable.name in checksums
 
 
 @pytest.mark.parametrize(
@@ -152,6 +161,10 @@ def test_store_package_is_upload_ready(tmp_path):
         manifest = json.loads(archive.read("manifest.json"))
         assert "manifest.json" in names
         assert "background.js" in names
+        assert "welcome.html" in names
+        assert "welcome.css" in names
+        assert "welcome.js" in names
+        assert "core/onboarding.js" in names
         assert "core/runtime-protocol.js" in names
         assert "icons/icon128.png" in names
         assert "tabs" not in manifest["permissions"]
@@ -243,6 +256,20 @@ def test_installer_always_registers_and_starts_user_service():
     assert "WizardSilent or" not in installer
     assert "StartAndVerifyService;" in installer
     assert "{param:NOSTART|0}" in installer
+
+
+def test_release_build_keeps_a_byte_identical_stable_installer_alias():
+    build_script = (ROOT / "scripts" / "build_windows_installer.ps1").read_text("utf-8")
+    package_script = (ROOT / "scripts" / "package_release.py").read_text("utf-8")
+    onboarding = (ROOT / "extension" / "core" / "onboarding.js").read_text("utf-8")
+
+    assert '"PageNest-Setup.exe"' in build_script
+    assert "Stable installer alias does not match" in build_script
+    assert 'output / "PageNest-Setup.exe"' in package_script
+    assert "shutil.copyfile(installer, stable_installer)" in package_script
+    assert "Stable installer alias differs" in package_script
+    assert "releases/latest/download/PageNest-Setup.exe" in onboarding
+    assert not re.search(r"releases/latest/download/PageNest-Setup-\d", onboarding)
 
 
 def test_release_smoke_uses_an_isolated_ephemeral_port():

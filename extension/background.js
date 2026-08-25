@@ -13,6 +13,11 @@ importScripts(
   "core/video-notebook-runtime.js"
 );
 
+chrome.runtime.onInstalled.addListener((details) => {
+  if (details.reason !== "install") return;
+  chrome.tabs.create({url: chrome.runtime.getURL("welcome.html")});
+});
+
 const sessionHandlers = Object.freeze({
   setNotebookSession: (session) => globalThis.PageNestVideoNotebookSession.setSession(session),
   getNotebookSession: () => globalThis.PageNestVideoNotebookSession.getSession(),

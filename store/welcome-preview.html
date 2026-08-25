@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>PageNest first-run preview</title>
+  <style>
+    html, body, iframe { width: 100%; height: 100%; margin: 0; border: 0; }
+    body { overflow: hidden; }
+  </style>
+</head>
+<body>
+  <iframe id="welcome" src="../extension/welcome.html" title="PageNest Welcome"></iframe>
+  <script>
+    document.getElementById("welcome").addEventListener("load", async event => {
+      const frame = event.currentTarget.contentWindow;
+      const messages = await fetch("../extension/_locales/zh_CN/messages.json").then(response => response.json());
+      frame.chrome = {
+        i18n: {
+          getMessage: key => messages[key]?.message || "",
+          getUILanguage: () => "zh-CN",
+        },
+      };
+      frame.PageNestI18n.localizeDocument(frame.document);
+      frame.PageNestWelcome.renderState(frame.document, "missing");
+    });
+  </script>
+</body>
+</html>

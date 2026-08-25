@@ -22,7 +22,7 @@
       const documentCopy = new DOMParser().parseFromString(html, "text/html");
       document.querySelector("#popup").append(documentCopy.querySelector("main"));
       const set = (id, value) => { document.getElementById(id).textContent = value; };
-      set("extensionVersion", "v1.10.0");
+      set("extensionVersion", "v1.10.1");
       set("domain", "example.com");
       set("title", "示例文章：从浏览器保存到 Obsidian");
       set("status", "已识别正文");
@@ -50,7 +50,7 @@
         const service = document.getElementById("serviceStatus");
         service.className = "service-status connected";
         service.querySelector("strong").textContent = "PageNest 后台服务已连接";
-        set("serviceStatusDetail", "Service 1.10.0 · 本机安全连接");
+        set("serviceStatusDetail", "Service 1.10.1 · 本机安全连接");
       }
     });
   </script>

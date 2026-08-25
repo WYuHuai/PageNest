@@ -39,7 +39,7 @@ EDGE_FILES = (
     (EDGE_ROOT / "CAPTIONS.md", "CAPTIONS.md"),
     (EDGE_ROOT / "PARTNER_CENTER_CHECKLIST.md", "PARTNER_CENTER_CHECKLIST.md"),
     (EDGE_ROOT / "privacy-and-permissions.md", "privacy-and-permissions.md"),
-    (EDGE_ROOT / "reviewer-notes.md", "reviewer-notes-v1.10.0.md"),
+    (EDGE_ROOT / "reviewer-notes.md", "reviewer-notes-v1.10.1.md"),
 )
 EDGE_ASSETS = (
     EDGE_ROOT / "assets" / "logo-300.png",

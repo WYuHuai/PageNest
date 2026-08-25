@@ -4,6 +4,16 @@ All notable user-facing changes are recorded here.
 
 ## Unreleased
 
+## 1.10.1 - 2026-08-25
+
+### Added
+
+- Added first-run onboarding for Edge users.
+- Added a direct Windows Installer download action.
+- Added reconnect and update-required states.
+- Added a stable Windows Installer download alias.
+- Improved the Simplified Chinese first-use experience.
+
 ## 1.10.0 - 2026-08-25
 
 ### Added

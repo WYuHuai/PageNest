@@ -2,6 +2,8 @@ PageNest — a local-first collector for webpages and video notes
 
 PageNest saves useful web and video content to your own computer instead of leaving you with a bookmark that may disappear later.
 
+The first time you open the extension, PageNest guides you through installing its Windows companion. Run the installer, return to the extension, and choose “Check again.” “PageNest connected” means you are ready—there is no port or connection-token setup.
+
 When you capture a webpage, PageNest preserves the article structure, in-place images, code, tables, links, and supported media whenever possible. The result is one self-contained .pagenest file: no fragile sidecar asset folder, and embedded content remains readable offline. Dedicated capture paths cover regular articles, local HTML files, WeChat Official Account articles, and several popular content sites.
 
 While watching an HTML5 video, press Ctrl+Shift+Y to save the current decoded frame. PageNest adds each frame to the same Video Notebook and sorts entries by the video's timestamp. Direct Video Frame Capture avoids player titles and hover progress bars. Standard and High PNG profiles cover everyday video, slides, code, and small text without pretending a low-resolution source is sharper than it is.

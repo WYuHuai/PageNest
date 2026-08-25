@@ -2,6 +2,7 @@ import argparse
 import hashlib
 import json
 import re
+import shutil
 import subprocess
 import zipfile
 from pathlib import Path, PurePosixPath
@@ -242,7 +243,22 @@ def build_release(output_root: Path | None = None) -> list[Path]:
     checksum_files = list(packages)
     installer = output / f"PageNest-Setup-{version}.exe"
     if installer.is_file():
-        checksum_files.append(installer)
+        stable_installer = output / "PageNest-Setup.exe"
+        shutil.copyfile(installer, stable_installer)
+        installer_hash = hashlib.sha256(installer.read_bytes()).hexdigest()
+        stable_hash = hashlib.sha256(stable_installer.read_bytes()).hexdigest()
+        if installer_hash != stable_hash:
+            raise ValueError("Stable installer alias differs from the versioned installer")
+        for artifact, digest in (
+            (installer, installer_hash),
+            (stable_installer, stable_hash),
+        ):
+            artifact.with_name(f"{artifact.name}.sha256").write_text(
+                f"{digest}  {artifact.name}\n",
+                encoding="utf-8",
+                newline="\n",
+            )
+        checksum_files.extend((installer, stable_installer))
     checksum_lines = [
         f"{hashlib.sha256(path.read_bytes()).hexdigest()}  {path.name}"
         for path in checksum_files

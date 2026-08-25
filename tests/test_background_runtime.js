@@ -38,6 +38,8 @@ const forbidden = (group) => () => {
 };
 let listener = null;
 let commandListener = null;
+let installedListener = null;
+const welcomeTabs = [];
 const sessionValues = {};
 const storage = {
   async get(key) {
@@ -57,6 +59,10 @@ const context = {
   chrome: {
     runtime: {
       id: "abcdefghijklmnopabcdefghijklmnop",
+      getURL: value => `chrome-extension://abcdefghijklmnopabcdefghijklmnop/${value}`,
+      onInstalled: {
+        addListener(candidate) { installedListener = candidate; },
+      },
       onMessage: {
         addListener(candidate) {
           listener = candidate;
@@ -69,7 +75,9 @@ const context = {
         addListener(candidate) { commandListener = candidate; },
       },
     },
-    tabs: new Proxy({}, { get: forbidden("privileged") }),
+    tabs: {
+      create(options) { welcomeTabs.push(options); },
+    },
     scripting: new Proxy({}, { get: forbidden("privileged") }),
     desktopCapture: new Proxy({}, { get: forbidden("privileged") }),
   },
@@ -89,6 +97,14 @@ vm.runInContext(
 );
 assert.strictEqual(typeof listener, "function");
 assert.strictEqual(typeof commandListener, "function");
+assert.strictEqual(typeof installedListener, "function");
+
+installedListener({reason: "update"});
+assert.deepStrictEqual(welcomeTabs, []);
+installedListener({reason: "install"});
+assert.deepStrictEqual(JSON.parse(JSON.stringify(welcomeTabs)), [{
+  url: "chrome-extension://abcdefghijklmnopabcdefghijklmnop/welcome.html",
+}]);
 
 const protocol = context.PageNestRuntimeProtocol;
 const validMessage = {

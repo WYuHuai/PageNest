@@ -4,6 +4,10 @@ const path = require("node:path");
 const vm = require("node:vm");
 
 const source = fs.readFileSync(path.resolve(__dirname, "../extension/popup.js"), "utf8");
+const onboardingSource = fs.readFileSync(
+  path.resolve(__dirname, "../extension/core/onboarding.js"),
+  "utf8",
+);
 const identifyStart = source.indexOf("async function identify()");
 const identifyEnd = source.indexOf("function escapeHtml", identifyStart);
 const collectStart = source.indexOf("async function collectWithServiceCapabilities");
@@ -15,12 +19,28 @@ const localized = {
   serviceConnecting: "正在连接 PageNest 后台服务",
   serviceConnected: "PageNest 后台服务已连接",
   serviceDisconnected: "PageNest 后台服务未连接",
+  serviceMissing: "PageNest 尚未连接",
+  serviceUpdateRequired: "PageNest 需要更新",
+  serviceConnectionError: "PageNest 连接需要修复",
   usuallyMoments: "通常只需要片刻",
   startServiceRetry: "请启动 PageNest 后重试",
   diagnosticUnreachable: "无法连接 PageNest 后台服务",
   diagnosticInvalid: "连接配置无效",
   serviceOld: "Service 版本过旧，请升级 PageNest 本地服务",
   ready: "已就绪",
+  onboardingChecking: "正在检测 PageNest",
+  onboardingAlmostReady: "PageNest 还差一步即可使用",
+  onboardingMissingDescription: "第一次使用需要安装一次 PageNest",
+  onboardingLocalExplanation: "本地组件负责保存内容",
+  installPageNest: "安装 PageNest",
+  recheck: "重新检测",
+  pageNestConnected: "✓ PageNest 已连接",
+  onboardingConnectedDescription: "网页保存和视频笔记已经就绪",
+  onboardingUpdateRequired: "PageNest 需要更新",
+  onboardingUpdateDescription: "本地组件版本较旧",
+  updatePageNest: "更新 PageNest",
+  onboardingConnectionError: "PageNest 连接需要修复",
+  onboardingConnectionErrorDescription: "重新安装 PageNest",
   identifyingBody: "正在识别网页正文",
   recognitionSuccess: "识别成功",
 };
@@ -52,14 +72,17 @@ async function serviceStateContract(connectionResult, diagnostic = "service-unre
   const start = source.indexOf("async function getSettings");
   const end = source.indexOf("function captureKindForUrl", start);
   const context = vm.createContext({
+    URL,
     $: id => elements[id],
     t,
+    chrome: {tabs: {create: async () => {}}},
     PageNestConnection: {
       connect: async () => connectionResult,
       diagnostic: () => diagnostic,
       load: async () => ({}),
     },
   });
+  vm.runInContext(onboardingSource, context);
   vm.runInContext(`${source.slice(start, end)}\nthis.connectService=connectService;`, context);
   const connected = await context.connectService();
   return {connected, elements};
@@ -140,15 +163,20 @@ async function serviceStateContract(connectionResult, diagnostic = "service-unre
 
   const disconnected = await serviceStateContract(null);
   assert.equal(disconnected.connected, false);
-  assert.equal(disconnected.elements.serviceStatus.strong.textContent, "PageNest 后台服务未连接");
+  assert.equal(disconnected.elements.serviceStatus.strong.textContent, "PageNest 尚未连接");
   assert.equal(disconnected.elements.reconnectService.classList.hidden, false);
+  assert.equal(disconnected.elements.serviceOnboarding.classList.hidden, false);
+  assert.equal(disconnected.elements.saveWorkspace.classList.hidden, true);
+  assert.equal(disconnected.elements.installPageNest.textContent, "安装 PageNest");
 
   const incompatible = await serviceStateContract({
     connection: {server: "http://127.0.0.1:8765", token: "valid"},
     incompatible: true,
   });
   assert.equal(incompatible.connected, false);
+  assert.equal(incompatible.elements.serviceStatus.strong.textContent, "PageNest 需要更新");
   assert.match(incompatible.elements.serviceStatusDetail.textContent, /版本过旧/);
+  assert.equal(incompatible.elements.installPageNest.textContent, "更新 PageNest");
 
   const connected = await serviceStateContract({
     connection: {server: "http://127.0.0.1:18765", token: "rediscovered"},
@@ -159,5 +187,7 @@ async function serviceStateContract(connectionResult, diagnostic = "service-unre
   assert.equal(connected.elements.token.value, "rediscovered");
   assert.equal(connected.elements.serviceStatus.strong.textContent, "PageNest 后台服务已连接");
   assert.equal(connected.elements.reconnectService.classList.hidden, true);
+  assert.equal(connected.elements.serviceOnboarding.classList.hidden, true);
+  assert.equal(connected.elements.saveWorkspace.classList.hidden, false);
   console.log("popup capture orchestration contract passed");
 })().catch(error => { console.error(error); process.exitCode = 1; });

@@ -4,7 +4,7 @@
 <p align="center">Save a webpage as one self-contained <code>.pagenest</code> file, then reopen it inside Obsidian with a dedicated web-style Viewer.</p>
 
 <p align="center">
-  <a href="https://github.com/WYuHuai/PageNest/releases/tag/v1.10.0"><img alt="PageNest v1.10.0" src="https://img.shields.io/badge/release-v1.10.0-1E45FB"></a>
+  <a href="https://github.com/WYuHuai/PageNest/releases/tag/v1.10.1"><img alt="PageNest v1.10.1" src="https://img.shields.io/badge/release-v1.10.1-1E45FB"></a>
   <a href="https://github.com/WYuHuai/PageNest/actions/workflows/ci.yml"><img alt="CI" src="https://github.com/WYuHuai/PageNest/actions/workflows/ci.yml/badge.svg"></a>
   <img alt="Windows validation" src="https://img.shields.io/badge/Windows-11%20clean%20install%20validated%20%7C%2010%20not%20fully%20validated-0078D4?logo=windows">
   <img alt="Edge and Chrome" src="https://img.shields.io/badge/Browser-Edge%20%7C%20Chrome-4285F4">
@@ -13,8 +13,8 @@
 
 <p align="center">
   <a href="README.md">简体中文</a> ·
-  <a href="https://github.com/WYuHuai/PageNest/releases/download/v1.10.0/PageNest-Setup-1.10.0.exe">Download installer</a> ·
-  <a href="#install-in-3-steps">Install</a> ·
+  <a href="https://github.com/WYuHuai/PageNest/releases/latest/download/PageNest-Setup.exe">Download installer</a> ·
+  <a href="#install-in-2-minutes">Install</a> ·
   <a href="docs/supported-sites.md">Supported sites</a> ·
   <a href="docs/troubleshooting.md">Troubleshooting</a>
 </p>
@@ -88,19 +88,24 @@ local, portable, and readable inside your vault.
 | Webpage + AI text summary | Complete webpage plus a text-only summary | Yes |
 | Webpage + AI visual summary | Complete webpage plus a text-and-image summary with a vision-capable model | Yes |
 
-## Install in 3 steps
+## Install in 2 minutes
 
 > Current platform status: the real workflow has been tested on a Windows 11
 > host and in Windows CI, and an automated Windows Sandbox installer smoke test
 > passes. A persistent clean-VM restart cycle is not complete, and Windows 10
 > has not been fully validated.
 
-### 1. Install PageNest
+### 1. Install the Edge extension
 
-Download [`PageNest-Setup-1.10.0.exe`](https://github.com/WYuHuai/PageNest/releases/download/v1.10.0/PageNest-Setup-1.10.0.exe)
-and its [SHA-256 checksum](https://github.com/WYuHuai/PageNest/releases/download/v1.10.0/PageNest-Setup-1.10.0.exe.sha256),
-verify the checksum, run the installer, and select an existing Obsidian vault.
-Windows users should use this installer rather than clone the source repository.
+Install PageNest from Microsoft Edge Add-ons, then open it once.
+
+### 2. Follow the first-run guide
+
+Click **Install PageNest**, run the downloaded Windows Installer, return to the
+extension, and click **Check again**. **✓ PageNest connected** means capture is
+ready. You do not need to find GitHub or configure internal components.
+
+Fallback download: [`PageNest-Setup.exe`](https://github.com/WYuHuai/PageNest/releases/latest/download/PageNest-Setup.exe).
 
 - No Python installation required.
 - No Node.js installation required.

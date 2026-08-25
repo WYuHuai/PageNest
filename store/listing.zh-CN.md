@@ -10,5 +10,5 @@
 - 隐私政策：`https://github.com/WYuHuai/PageNest/blob/main/PRIVACY.md`
 - 源代码：`https://github.com/WYuHuai/PageNest`
 
-完整功能需要安装 PageNest Windows Local Service。普通网页收藏与视频截图不要求 AI；
-视觉标题和摘要使用用户自己配置的兼容接口。
+第一次打开扩展时，PageNest 会引导用户安装一次 Windows 本地组件，并可在安装后直接
+重新检测连接。普通网页收藏与视频截图不要求 AI；视觉标题和摘要使用用户自己配置的兼容接口。

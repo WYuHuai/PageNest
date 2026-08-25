@@ -36,36 +36,70 @@ function showServiceStatus(state, detail="") {
   const labels={
     connecting:t("serviceConnecting"),
     connected:t("serviceConnected"),
-    disconnected:t("serviceDisconnected"),
+    missing:t("serviceMissing"),
+    incompatible:t("serviceUpdateRequired"),
+    error:t("serviceConnectionError"),
   };
   status.className=`service-status ${state}`;
   status.querySelector("strong").textContent=labels[state];
   $("serviceStatusDetail").textContent=detail||(
-    state==="disconnected"?t("startServiceRetry"):t("usuallyMoments")
+    state==="missing"?t("startServiceRetry"):t("usuallyMoments")
   );
-  $("reconnectService").classList.toggle("hidden",state!=="disconnected");
+  $("reconnectService").classList.toggle("hidden",["connecting","connected"].includes(state));
+}
+
+function showSaveExperience(state, detail="") {
+  const connected=state===PageNestOnboarding.STATES.CONNECTED;
+  const card=$("serviceOnboarding");
+  card.className=`onboarding-card ${state}`;
+  card.classList.toggle("hidden",connected);
+  $("saveWorkspace").classList.toggle("hidden",!connected);
+  $("serviceConnectedBanner").classList.toggle("hidden",!connected);
+  if(connected) return;
+
+  const copy={
+    connecting:["onboardingChecking","usuallyMoments"],
+    missing:["onboardingAlmostReady","onboardingMissingDescription"],
+    incompatible:["onboardingUpdateRequired","onboardingUpdateDescription"],
+    error:["onboardingConnectionError","onboardingConnectionErrorDescription"],
+  }[state];
+  $("onboardingTitle").textContent=t(copy[0]);
+  $("onboardingDescription").textContent=detail||t(copy[1]);
+  $("onboardingLocalExplanation").classList.toggle("hidden",state==="connecting");
+  $("onboardingActions").classList.toggle("hidden",state==="connecting");
+  $("installPageNest").textContent=t(state==="incompatible"?"updatePageNest":"installPageNest");
 }
 
 async function connectService() {
   showServiceStatus("connecting");
-  const result=await PageNestConnection.connect();
-  if(!result){
-    const diagnostic=PageNestConnection.diagnostic();
+  showSaveExperience("connecting");
+  const checked=await PageNestOnboarding.check();
+  const result=checked.result;
+  if(result?.connection) fillSettings(result.connection);
+  if(checked.state===PageNestOnboarding.STATES.CONNECTED) {
+    showServiceStatus("connected",`Service ${result.meta.service_version||t("ready")}`);
+    showSaveExperience("connected");
+    return true;
+  }
+  if(checked.state===PageNestOnboarding.STATES.MISSING) {
+    showServiceStatus("missing",t("diagnosticUnreachable"));
+    showSaveExperience("missing");
+    return false;
+  }
+  if(checked.state===PageNestOnboarding.STATES.INCOMPATIBLE) {
+    showServiceStatus("incompatible",t("serviceOld"));
+    showSaveExperience("incompatible");
+    return false;
+  }
+  {
     const detail={
       "untrusted-extension":t("diagnosticUntrusted"),
       "pairing-disabled":t("diagnosticPairingDisabled"),
-      "service-unreachable":t("diagnosticUnreachable"),
-    }[diagnostic]||t("diagnosticInvalid");
-    showServiceStatus("disconnected",detail);
+    }[checked.diagnostic]||t("diagnosticInvalid");
+    showServiceStatus("error",detail);
+    showSaveExperience("error",detail);
     return false;
   }
-  fillSettings(result.connection);
-  if(result.incompatible){
-    showServiceStatus("disconnected",t("serviceOld"));
-    return false;
-  }
-  showServiceStatus("connected",`Service ${result.meta.service_version||t("ready")}`);
-  return true;
 }
 
 function captureKindForUrl(value) {
@@ -474,9 +508,19 @@ $("changeVault").onclick=async()=>{
     $("refreshFolders").disabled=false;
   }
 };
-$("reconnectService").onclick=async()=>{
-  if(await connectService()) await Promise.all([loadFolders(),loadAiSettings()]);
-};
+async function recheckService() {
+  const buttons=[$("reconnectService"),$("recheckOnboarding")];
+  buttons.forEach(button=>{button.disabled=true});
+  try {
+    if(await connectService()) await Promise.all([loadFolders(),loadAiSettings()]);
+  } finally {
+    buttons.forEach(button=>{button.disabled=false});
+  }
+}
+
+$("installPageNest").onclick=()=>PageNestOnboarding.openInstaller();
+$("recheckOnboarding").onclick=recheckService;
+$("reconnectService").onclick=recheckService;
 $("retry").onclick=()=>identify().catch(error=>{
   $("status").textContent=error.message;
   $("status").className="error";
@@ -580,8 +624,9 @@ async function initialize() {
       $("aiConnection").className="error";
     }
   } else if(serviceResult.status==="rejected") {
-    showServiceStatus("disconnected",serviceResult.reason.message);
+    showServiceStatus("error",serviceResult.reason.message);
+    showSaveExperience("error",serviceResult.reason.message);
   }
 }
 
-initialize();
+if(globalThis.chrome?.runtime) initialize();

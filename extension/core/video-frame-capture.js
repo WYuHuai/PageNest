@@ -7,14 +7,12 @@
 
   const MAX_FRAME_BYTES = 10 * 1024 * 1024;
   const MAX_VIDEO_FRAME_DIMENSION = 1920;
-  const DEFAULT_FRAME_MIME_TYPE = "image/webp";
-  const DEFAULT_FRAME_QUALITY = 0.92;
+  const DEFAULT_FRAME_MIME_TYPE = "image/png";
   const FRAME_READY_TIMEOUT_MS = 2000;
-  const VALID_RASTER_MIME_TYPES = Object.freeze([
-    "image/png",
-    "image/jpeg",
-    "image/webp",
-  ]);
+  const SIZE_REDUCTION_FACTOR = 0.85;
+  const MIN_VIDEO_FRAME_DIMENSION = 480;
+  const MAX_ENCODE_ATTEMPTS = 8;
+  const VALID_RASTER_MIME_TYPES = Object.freeze(["image/png"]);
 
   class CaptureError extends Error {
     constructor(code, message) {
@@ -119,7 +117,7 @@
       });
     }
 
-    function encodeCanvas(targetCanvas, mimeType, quality) {
+    function encodeCanvas(targetCanvas, mimeType) {
       const wait = Math.max(1, remainingTime());
       return new Promise((resolve) => {
         let settled = false;
@@ -134,8 +132,7 @@
         try {
           targetCanvas.toBlob(
             (blob) => finish(blob ? { blob } : { error: "encode-failed" }),
-            mimeType,
-            quality
+            mimeType
           );
         } catch (error) {
           finish({ error: error?.name === "SecurityError" ? "canvas-security" : "encode-failed" });
@@ -147,17 +144,9 @@
       if (typeof blob.slice !== "function") return false;
       try {
         const bytes = new Uint8Array(await blob.slice(0, 12).arrayBuffer());
-        if (mimeType === "image/png") {
-          return bytes.length >= 8 &&
-            bytes[0] === 0x89 && bytes[1] === 0x50 && bytes[2] === 0x4e && bytes[3] === 0x47 &&
-            bytes[4] === 0x0d && bytes[5] === 0x0a && bytes[6] === 0x1a && bytes[7] === 0x0a;
-        }
-        if (mimeType === "image/jpeg") {
-          return bytes.length >= 3 && bytes[0] === 0xff && bytes[1] === 0xd8 && bytes[2] === 0xff;
-        }
-        return bytes.length >= 12 &&
-          bytes[0] === 0x52 && bytes[1] === 0x49 && bytes[2] === 0x46 && bytes[3] === 0x46 &&
-          bytes[8] === 0x57 && bytes[9] === 0x45 && bytes[10] === 0x42 && bytes[11] === 0x50;
+        return mimeType === "image/png" && bytes.length >= 8 &&
+          bytes[0] === 0x89 && bytes[1] === 0x50 && bytes[2] === 0x4e && bytes[3] === 0x47 &&
+          bytes[4] === 0x0d && bytes[5] === 0x0a && bytes[6] === 0x1a && bytes[7] === 0x0a;
       } catch {
         return false;
       }
@@ -236,10 +225,9 @@
       const sourceHeight = Number(video.videoHeight);
       const output = dimensions(sourceWidth, sourceHeight, Number(request.max_dimension) || 1920);
       if (!output) return fail("video-frame-not-ready", "invalid-dimensions");
-      const mimeType = String(request.mime_type || "image/webp").toLowerCase();
-      const quality = Math.max(0.5, Math.min(1, Number(request.quality) || 0.92));
+      const mimeType = String(request.mime_type || "image/png").toLowerCase();
       const maximumBytes = Math.max(1, Number(request.max_frame_bytes) || (10 * 1024 * 1024));
-      if (!["image/png", "image/jpeg", "image/webp"].includes(mimeType)) {
+      if (mimeType !== "image/png") {
         return fail("video-frame-capture-unsupported", "invalid-raster");
       }
 
@@ -259,20 +247,60 @@
         );
       }
 
-      const encoded = await encodeCanvas(canvas, mimeType, quality);
-      if (!encoded.blob) {
-        return fail(
-          encoded.error === "encode-timeout" ? "video-frame-capture-timeout" :
+      let blob = null;
+      let actualMimeType = "";
+      let encodeAttempts = 0;
+      while (encodeAttempts < 8) {
+        encodeAttempts += 1;
+        const encoded = await encodeCanvas(canvas, mimeType);
+        if (!encoded.blob) {
+          return fail(
+            encoded.error === "encode-timeout" ? "video-frame-capture-timeout" :
+              "video-frame-capture-unsupported",
+            encoded.error
+          );
+        }
+        blob = encoded.blob;
+        actualMimeType = String(blob.type || "").toLowerCase();
+        if (actualMimeType !== "image/png" || !await hasValidSignature(blob, actualMimeType)) {
+          return fail("video-frame-capture-unsupported", "invalid-raster");
+        }
+        if (Number(blob.size) <= maximumBytes) break;
+
+        const currentMaximum = Math.max(canvas.width, canvas.height);
+        if (encodeAttempts >= 8 || currentMaximum <= 480) {
+          return fail("video-frame-too-large", "frame-size-limit");
+        }
+        const nextMaximum = Math.max(480, Math.floor(currentMaximum * 0.85));
+        const next = dimensions(canvas.width, canvas.height, nextMaximum);
+        if (!next || (next.width === canvas.width && next.height === canvas.height)) {
+          return fail("video-frame-too-large", "frame-size-limit");
+        }
+        const nextCanvas = doc.createElement("canvas");
+        nextCanvas.width = next.width;
+        nextCanvas.height = next.height;
+        const nextContext = nextCanvas.getContext("2d", { alpha: false });
+        if (!nextContext || typeof nextContext.drawImage !== "function") {
+          nextCanvas.width = 1;
+          nextCanvas.height = 1;
+          return fail("video-frame-capture-unsupported", "canvas-unavailable");
+        }
+        try {
+          nextContext.drawImage(canvas, 0, 0, next.width, next.height);
+        } catch (error) {
+          nextCanvas.width = 1;
+          nextCanvas.height = 1;
+          return fail(
             "video-frame-capture-unsupported",
-          encoded.error
-        );
+            error?.name === "SecurityError" ? "canvas-security" : "downscale-failed"
+          );
+        }
+        canvas.width = 1;
+        canvas.height = 1;
+        canvas = nextCanvas;
       }
-      const blob = encoded.blob;
-      if (Number(blob.size) > maximumBytes) return fail("screenshot-too-large", "frame-size-limit");
-      const actualMimeType = String(blob.type || "").toLowerCase();
-      if (!["image/png", "image/jpeg", "image/webp"].includes(actualMimeType) ||
-          !await hasValidSignature(blob, actualMimeType)) {
-        return fail("video-frame-capture-unsupported", "invalid-raster");
+      if (!blob || Number(blob.size) > maximumBytes) {
+        return fail("video-frame-too-large", "frame-size-limit");
       }
       const imageDataUrl = await readDataUrl(blob);
       if (!imageDataUrl || !imageDataUrl.startsWith(`data:${actualMimeType};base64,`)) {
@@ -288,9 +316,10 @@
         size: Number(blob.size),
         source_width: sourceWidth,
         source_height: sourceHeight,
-        output_width: output.width,
-        output_height: output.height,
+        output_width: canvas.width,
+        output_height: canvas.height,
         frame_sync: frameSync,
+        encode_attempts: encodeAttempts,
       };
     } catch (error) {
       return fail(
@@ -309,8 +338,10 @@
     MAX_FRAME_BYTES,
     MAX_VIDEO_FRAME_DIMENSION,
     DEFAULT_FRAME_MIME_TYPE,
-    DEFAULT_FRAME_QUALITY,
     FRAME_READY_TIMEOUT_MS,
+    SIZE_REDUCTION_FACTOR,
+    MIN_VIDEO_FRAME_DIMENSION,
+    MAX_ENCODE_ATTEMPTS,
     VALID_RASTER_MIME_TYPES,
     CaptureError,
     fitFrameDimensions,

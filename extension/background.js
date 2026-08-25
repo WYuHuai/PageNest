@@ -6,6 +6,7 @@ importScripts(
   "core/connection.js",
   "core/video-notebook-session.js",
   "core/video-frame-probe.js",
+  "core/video-capture-quality.js",
   "core/video-frame-capture.js",
   "core/notebook-client.js",
   "core/video-notebook-feedback.js",

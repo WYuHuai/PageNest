@@ -15,6 +15,7 @@
     "video-frame-not-ready": "视频画面尚未准备好，请稍后重试。",
     "video-frame-capture-timeout": "等待稳定视频帧超时，请重试。",
     "video-frame-capture-unsupported": "当前视频无法安全读取画面，未创建空笔记。",
+    "video-frame-too-large": "视频画面即使降低尺寸后仍超过 10 MiB，未创建空笔记。",
     "screenshot-too-large": "截图超过 10 MiB 限制。",
     "service-unavailable": "PageNest Service 当前不可用。",
     "unsupported-service-capability": "PageNest Service 尚不支持视频笔记。",
@@ -86,6 +87,7 @@
     const chromeApi = options.chromeApi || root.chrome;
     const sessionApi = options.sessionApi || root.PageNestVideoNotebookSession;
     const probeApi = options.probeApi || root.PageNestVideoFrameProbe;
+    const qualityApi = options.qualityApi || root.PageNestVideoCaptureQuality;
     const captureApi = options.captureApi || root.PageNestVideoFrameCapture;
     const clientApi = options.clientApi || root.PageNestNotebookClient;
     const feedbackApi = options.feedbackApi || root.PageNestVideoNotebookFeedback;
@@ -134,6 +136,17 @@
         throw new RuntimeError("video-page-changed", "Video page changed during capture");
       }
 
+      let captureProfile = { key: "standard", mimeType: "image/png", maxDimension: 1920 };
+      try {
+        if (typeof qualityApi?.load === "function") {
+          captureProfile = await qualityApi.load(
+            options.qualityStorage || chromeApi?.storage?.local
+          );
+        }
+      } catch {
+        // Storage failures must retain the safe, upgrade-compatible standard profile.
+      }
+
       let captured;
       try {
         const results = await chromeApi.scripting.executeScript({
@@ -142,10 +155,9 @@
           args: [{
             video_index: probe.video_index,
             expected_page_url: probe.page_url,
-            max_dimension: captureApi.MAX_VIDEO_FRAME_DIMENSION,
+            max_dimension: captureProfile.maxDimension,
             max_frame_bytes: captureApi.MAX_FRAME_BYTES,
-            mime_type: captureApi.DEFAULT_FRAME_MIME_TYPE,
-            quality: captureApi.DEFAULT_FRAME_QUALITY,
+            mime_type: captureProfile.mimeType,
             timeout_ms: captureApi.FRAME_READY_TIMEOUT_MS,
           }],
         });

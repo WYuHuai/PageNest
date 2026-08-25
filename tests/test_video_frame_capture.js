@@ -4,17 +4,29 @@ const path = require("node:path");
 const vm = require("node:vm");
 const {
   DEFAULT_FRAME_MIME_TYPE,
-  DEFAULT_FRAME_QUALITY,
   FRAME_READY_TIMEOUT_MS,
+  MAX_ENCODE_ATTEMPTS,
   MAX_FRAME_BYTES,
   MAX_VIDEO_FRAME_DIMENSION,
+  MIN_VIDEO_FRAME_DIMENSION,
+  SIZE_REDUCTION_FACTOR,
   captureVideoFrame,
   fitFrameDimensions,
 } = require("../extension/core/video-frame-capture.js");
 
-const WEBP_BYTES = Uint8Array.from([
-  0x52, 0x49, 0x46, 0x46, 0x04, 0x00, 0x00, 0x00, 0x57, 0x45, 0x42, 0x50,
+const PNG_BYTES = Uint8Array.from([
+  0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0x00, 0x00, 0x00, 0x00,
 ]);
+
+function fakePng(size) {
+  return {
+    type: "image/png",
+    size,
+    slice() {
+      return { arrayBuffer: async () => PNG_BYTES.slice().buffer };
+    },
+  };
+}
 
 assert.deepEqual(fitFrameDimensions(1920, 1080, 1920), { width: 1920, height: 1080 });
 assert.deepEqual(fitFrameDimensions(3840, 2160, 1920), { width: 1920, height: 1080 });
@@ -62,7 +74,7 @@ function video(overrides = {}) {
 }
 
 function environment(targetVideo, overrides = {}) {
-  const state = { canvases: [], draws: [], frameCallbacks: 0, canceledCallbacks: 0 };
+  const state = { canvases: [], draws: [], encodes: [], frameCallbacks: 0, canceledCallbacks: 0 };
   class Canvas {
     constructor() {
       this.width = 0;
@@ -78,11 +90,14 @@ function environment(targetVideo, overrides = {}) {
         },
       };
     }
-    toBlob(callback, type, quality) {
+    toBlob(callback, type) {
       state.mimeType = type;
-      state.quality = quality;
       if (overrides.encodeError) throw overrides.encodeError;
-      const blob = overrides.blob || new Blob([WEBP_BYTES], { type: "image/webp" });
+      const index = state.encodes.length;
+      state.encodes.push({ width: this.width, height: this.height, type });
+      const blob = typeof overrides.blob === "function"
+        ? overrides.blob(this, index)
+        : overrides.blob || new Blob([PNG_BYTES], { type: "image/png" });
       setImmediate(() => callback(blob));
     }
   }
@@ -121,10 +136,9 @@ function environment(targetVideo, overrides = {}) {
     request: {
       video_index: 0,
       expected_page_url: "https://example.test/watch",
-      max_dimension: MAX_VIDEO_FRAME_DIMENSION,
+      max_dimension: overrides.maxDimension || MAX_VIDEO_FRAME_DIMENSION,
       max_frame_bytes: MAX_FRAME_BYTES,
       mime_type: DEFAULT_FRAME_MIME_TYPE,
-      quality: DEFAULT_FRAME_QUALITY,
       timeout_ms: overrides.timeoutMs || FRAME_READY_TIMEOUT_MS,
       test_document: document,
       test_location: { href: "https://example.test/watch" },
@@ -143,9 +157,10 @@ async function capture(targetVideo, overrides = {}) {
   const paused = await capture(video());
   assert.equal(paused.result.ok, true);
   assert.equal(paused.result.current_time, 12.5);
-  assert.equal(paused.result.mime_type, "image/webp");
+  assert.equal(paused.result.mime_type, "image/png");
   assert.equal(paused.result.output_width, 1920);
   assert.equal(paused.result.output_height, 1080);
+  assert.equal(paused.result.encode_attempts, 1);
   assert.equal(paused.state.frameCallbacks, 0);
   assert.equal(paused.state.draws.length, 1);
   assert.equal(paused.state.canvases[0].released, true);
@@ -226,13 +241,41 @@ async function capture(targetVideo, overrides = {}) {
     reason: "decode-error",
   });
 
-  const oversized = await capture(video(), {
-    blob: { type: "image/webp", size: MAX_FRAME_BYTES + 1 },
+  const downscaled = await capture(video(), {
+    blob: (_canvas, index) => index === 0
+      ? fakePng(MAX_FRAME_BYTES + 1)
+      : new Blob([PNG_BYTES], { type: "image/png" }),
   });
-  assert.equal(oversized.result.error, "screenshot-too-large");
+  assert.equal(downscaled.result.ok, true);
+  assert.equal(downscaled.result.encode_attempts, 2);
+  assert.equal(downscaled.result.output_width, 1632);
+  assert.equal(downscaled.result.output_height, 918);
+  assert.equal(downscaled.state.encodes.length, 2);
+
+  const eventuallyFits = await capture(video({ videoWidth: 3072, videoHeight: 1728 }), {
+    maxDimension: 3072,
+    blob: (_canvas, index) => index < 2
+      ? fakePng(MAX_FRAME_BYTES + 1)
+      : new Blob([PNG_BYTES], { type: "image/png" }),
+  });
+  assert.equal(eventuallyFits.result.ok, true);
+  assert.equal(eventuallyFits.result.encode_attempts, 3);
+  assert.equal(eventuallyFits.result.output_width, 2219);
+  assert.equal(eventuallyFits.result.output_height, 1248);
+
+  const cannotFit = await capture(
+    video({ videoWidth: MIN_VIDEO_FRAME_DIMENSION, videoHeight: 270 }),
+    { blob: () => fakePng(MAX_FRAME_BYTES + 1) }
+  );
+  assert.deepEqual(cannotFit.result, {
+    ok: false,
+    error: "video-frame-too-large",
+    reason: "frame-size-limit",
+  });
+  assert.equal(cannotFit.state.encodes.length, 1);
 
   const invalidMime = await capture(video(), {
-    blob: new Blob([WEBP_BYTES], { type: "application/octet-stream" }),
+    blob: new Blob([PNG_BYTES], { type: "application/octet-stream" }),
   });
   assert.equal(invalidMime.result.error, "video-frame-capture-unsupported");
   assert.equal(invalidMime.result.reason, "invalid-raster");
@@ -251,6 +294,18 @@ async function capture(targetVideo, overrides = {}) {
   const scaled = await capture(video({ videoWidth: 3840, videoHeight: 2160 }));
   assert.equal(scaled.result.output_width, 1920);
   assert.equal(scaled.result.output_height, 1080);
+
+  const high = await capture(video({ videoWidth: 3840, videoHeight: 2160 }), {
+    maxDimension: 3072,
+  });
+  assert.equal(high.result.output_width, 3072);
+  assert.equal(high.result.output_height, 1728);
+
+  const highDoesNotUpscale = await capture(video({ videoWidth: 1920, videoHeight: 1080 }), {
+    maxDimension: 3072,
+  });
+  assert.equal(highDoesNotUpscale.result.output_width, 1920);
+  assert.equal(highDoesNotUpscale.result.output_height, 1080);
 
   const displayIndependentFixture = environment(video({ videoWidth: 1280, videoHeight: 720 }));
   Object.assign(displayIndependentFixture.request, {
@@ -291,6 +346,11 @@ async function capture(targetVideo, overrides = {}) {
     "innerWidth",
     "innerHeight",
   ]) assert.equal(source.includes(forbidden), false, `forbidden frame capture capability: ${forbidden}`);
+  assert.equal(source.includes("image/webp"), false);
+  assert.equal(source.includes("image/jpeg"), false);
+  assert.equal(DEFAULT_FRAME_MIME_TYPE, "image/png");
+  assert.equal(SIZE_REDUCTION_FACTOR, 0.85);
+  assert.equal(MAX_ENCODE_ATTEMPTS, 8);
 
   const started = performance.now();
   let totalBytes = 0;
@@ -301,7 +361,7 @@ async function capture(targetVideo, overrides = {}) {
     totalBytes += run.result.size;
   }
   const elapsed = performance.now() - started;
-  assert.equal(totalBytes, WEBP_BYTES.length * 10);
+  assert.equal(totalBytes, PNG_BYTES.length * 10);
   console.log(JSON.stringify({ synthetic_captures: 10, dimensions: "1920x1080", total_bytes: totalBytes, elapsed_ms: Number(elapsed.toFixed(3)) }));
   console.log("video frame capture tests passed");
 })().catch((error) => { console.error(error); process.exitCode = 1; });

@@ -1,6 +1,7 @@
 const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const path = require("node:path");
+const quality = require("../extension/core/video-capture-quality.js");
 const runtime = require("../extension/core/video-notebook-runtime.js");
 const capture = require("../extension/core/video-frame-capture.js");
 
@@ -30,8 +31,8 @@ const directFrame = {
   ok: true,
   current_time: 42.25,
   page_url: "https://example.test/watch?v=1",
-  image_data_url: "data:image/webp;base64,UklGRgAAAABXRUJQ",
-  mime_type: "image/webp",
+  image_data_url: "data:image/png;base64,iVBORw0KGgo=",
+  mime_type: "image/png",
   size: 12,
   source_width: 1920,
   source_height: 1080,
@@ -41,6 +42,7 @@ const directFrame = {
 
 function harness(overrides = {}) {
   const events = [];
+  const captureRequests = [];
   const calls = { appends: 0, creates: 0, analyzes: 0, sets: 0 };
   let storedSession = Object.hasOwn(overrides, "session") ? overrides.session : existingSession;
   const feedbackApi = { hideTransientUi() {}, renderFeedback() {} };
@@ -61,7 +63,7 @@ function harness(overrides = {}) {
       assert.equal(request.title, overrides.expectedTitle || "<Synthetic lecture>");
       assert.equal(request.source_title, overrides.expectedTitle || "<Synthetic lecture>");
       assert.equal(request.initial_entry.video_timestamp_seconds, 42.25);
-      assert.ok(request.initial_entry.image_data_url.startsWith("data:image/webp;base64,"));
+      assert.ok(request.initial_entry.image_data_url.startsWith("data:image/png;base64,"));
       assert.equal(request.initial_entry.request_analysis, true);
       return {
         notebook_id: "created-notebook",
@@ -101,6 +103,7 @@ function harness(overrides = {}) {
         }
         if (request.func === (overrides.captureApi || capture).captureVideoFrame) {
           events.push("capture:frame");
+          captureRequests.push(request.args[0]);
           assert.deepEqual(request.target, { tabId: 7 });
           assert.equal(Object.hasOwn(request.target, "allFrames"), false);
           assert.deepEqual(Object.keys(request.args[0]).sort(), [
@@ -108,10 +111,11 @@ function harness(overrides = {}) {
             "max_dimension",
             "max_frame_bytes",
             "mime_type",
-            "quality",
             "timeout_ms",
             "video_index",
           ]);
+          assert.equal(request.args[0].mime_type, "image/png");
+          assert.equal(request.args[0].max_dimension, overrides.expectedMaxDimension || 1920);
           const activeProbe = overrides.probe || probe;
           return [{ result: overrides.frameResult || {
             ...directFrame,
@@ -136,11 +140,13 @@ function harness(overrides = {}) {
       chromeApi,
       sessionApi,
       probeApi,
+      qualityApi: overrides.qualityApi || quality,
       captureApi: overrides.captureApi || capture,
       clientApi,
       feedbackApi,
     },
     calls,
+    captureRequests,
     events,
     session: () => storedSession,
   };
@@ -162,6 +168,13 @@ async function expectCode(run, code) {
   assert.ok(sameVideo.events.indexOf("ui:hide") < sameVideo.events.indexOf("capture:frame"));
   assert.ok(sameVideo.events.indexOf("save:append") < sameVideo.events.indexOf("ui:saved"));
   assert.ok(sameVideo.events.indexOf("ui:saved") < sameVideo.events.indexOf("analyze:appended-entry"));
+
+  const highQuality = harness({
+    qualityApi: { load: async () => quality.profile("high") },
+    expectedMaxDimension: 3072,
+  });
+  await runtime.handleCommand(runtime.CAPTURE_COMMAND, highQuality.options);
+  assert.equal(highQuality.captureRequests[0].max_dimension, 3072);
 
   const firstCapture = harness({ session: null });
   const created = await runtime.handleCommand(runtime.CAPTURE_COMMAND, firstCapture.options);
@@ -229,6 +242,19 @@ async function expectCode(run, code) {
   assert.equal(captureFailure.calls.creates, 0);
   assert.equal(captureFailure.calls.analyzes, 0);
   assert.equal(captureFailure.calls.sets, 0);
+
+  const oversizedFailure = harness({
+    session: null,
+    frameResult: { ok: false, error: "video-frame-too-large" },
+  });
+  await expectCode(
+    () => runtime.handleCommand(runtime.CAPTURE_COMMAND, oversizedFailure.options),
+    "video-frame-too-large"
+  );
+  assert.equal(oversizedFailure.calls.creates, 0);
+  assert.equal(oversizedFailure.calls.appends, 0);
+  assert.equal(oversizedFailure.calls.analyzes, 0);
+  assert.equal(oversizedFailure.calls.sets, 0);
 
   const hideFailure = harness({ session: null });
   hideFailure.options.chromeApi.scripting.executeScript = async (request) => {

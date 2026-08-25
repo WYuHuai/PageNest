@@ -132,6 +132,24 @@
           </div>
         </section>
 
+        <details class="settings-group" open>
+          <summary>
+            <span><strong>视频截图质量</strong><small>Video Notebook PNG 截图</small></span>
+            <span class="chevron" aria-hidden="true">⌄</span>
+          </summary>
+          <div class="settings-content">
+            <label class="field">质量档位
+              <select id="videoCaptureQuality">
+                <option value="standard">标准</option>
+                <option value="high">高清</option>
+              </select>
+            </label>
+            <small class="field-hint quality-profile-help">标准：适合大多数视频，PNG，最长边 1920。</small>
+            <small class="field-hint quality-profile-help">高清：适合 PPT、代码和小字，PNG，尽量保留更高分辨率；不会放大源视频。</small>
+            <small id="videoCaptureQualityStatus" class="field-hint" aria-live="polite"></small>
+          </div>
+        </details>
+
         <details class="settings-group">
           <summary>
             <span><strong>高级设置</strong><small>智能整理接口</small></span>
@@ -189,6 +207,7 @@
   <script src="connection-config.js"></script>
   <script src="core/connection.js"></script>
   <script src="core/ai-presets.js"></script>
+  <script src="core/video-capture-quality.js"></script>
   <script src="adapters/xiaohongshu-video-bridge.js"></script>
   <script src="popup.js"></script>
 </body>

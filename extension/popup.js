@@ -25,6 +25,11 @@ function fillSettings(data) {
   $("token").value=data.token;
 }
 
+async function loadVideoCaptureQuality() {
+  const selected=await PageNestVideoCaptureQuality.load(chrome.storage.local);
+  $("videoCaptureQuality").value=selected.key;
+}
+
 function showServiceStatus(state, detail="") {
   const status=$("serviceStatus");
   const labels={
@@ -495,6 +500,22 @@ $("saveSettings").onclick=async()=>{
   }
 };
 
+$("videoCaptureQuality").onchange=async()=>{
+  const status=$("videoCaptureQualityStatus");
+  try {
+    const selected=await PageNestVideoCaptureQuality.save(
+      $("videoCaptureQuality").value,
+      chrome.storage.local
+    );
+    $("videoCaptureQuality").value=selected.key;
+    status.textContent=selected.key==="high"?"已启用高清 PNG 截图":"已启用标准 PNG 截图";
+    status.className="field-hint ok";
+  } catch(error) {
+    status.textContent=error.message;
+    status.className="field-hint error";
+  }
+};
+
 fillAiProviderPresets();
 syncAiPresetControls();
 $("aiProviderPreset").onchange=()=>{
@@ -537,6 +558,7 @@ async function initialize() {
   $("extensionVersion").textContent=`v${chrome.runtime.getManifest().version}`;
   $("status").style.whiteSpace="pre-line";
   fillSettings(await getSettings());
+  await loadVideoCaptureQuality();
   const [pageResult, serviceResult]=await Promise.allSettled([identify(),connectService()]);
   if(pageResult.status==="rejected") {
     $("status").textContent=pageResult.reason.message;

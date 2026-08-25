@@ -723,6 +723,12 @@ textarea:focus {
   white-space: normal;
 }
 
+.settings-content > .quality-profile-help {
+  overflow: visible;
+  text-overflow: clip;
+  white-space: normal;
+}
+
 .settings-content .secondary-action {
   min-height: 40px;
   margin-top: 1px;

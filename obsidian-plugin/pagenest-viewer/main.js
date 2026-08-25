@@ -15,6 +15,19 @@ const RESPONSIVE_MEDIA_STYLE = `<style data-pagenest-viewer-media>
 [data-hermes-kind="xhs-video"] { width: 100%; max-width: 100%; overflow: hidden; }
 [data-hermes-kind="xhs-video"] video { display: block; width: 100%; max-width: 100%; height: auto; object-fit: contain; margin: 0 auto; }
 </style>`;
+const NOTEBOOK_LIGHTBOX_STYLE = `<style data-pagenest-viewer-lightbox>
+[data-pagenest-notebook-entry] > img { cursor: zoom-in; }
+[data-pagenest-notebook-entry] > img:focus-visible { outline: 3px solid #8fa8ff; outline-offset: 4px; }
+.pagenest-lightbox-overlay { position: fixed; inset: 0; z-index: 2147483647; display: grid; place-items: center; padding: 3vh 4vw; overflow: auto; background: rgba(0, 0, 0, .66); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); }
+.pagenest-lightbox-panel { position: relative; display: grid; justify-items: center; gap: 12px; width: min(92vw, 1600px); max-height: 94vh; min-width: 0; color: #f7f8fb; }
+.pagenest-lightbox-image { display: block; max-width: 90vw; max-height: 72vh; width: auto; height: auto; object-fit: contain; border-radius: 10px; background: #101216; box-shadow: 0 20px 60px rgba(0, 0, 0, .42); }
+.pagenest-lightbox-title { max-width: min(86vw, 1200px); margin: 0; padding: 0 46px; color: #fff; font: 650 20px/1.4 Inter, "Segoe UI", system-ui, sans-serif; text-align: center; }
+.pagenest-lightbox-timestamp { color: rgba(255, 255, 255, .72); font: 600 12px/1.3 Inter, "Segoe UI", system-ui, sans-serif; letter-spacing: .04em; }
+.pagenest-lightbox-summary { max-width: min(86vw, 1000px); max-height: 18vh; margin: 0; padding: 10px 14px; overflow: auto; border-radius: 10px; background: rgba(18, 21, 29, .72); color: #f1f3f8; font: 400 15px/1.65 Inter, "Segoe UI", system-ui, sans-serif; white-space: pre-wrap; }
+.pagenest-lightbox-close { position: absolute; top: -4px; right: 0; display: grid; place-items: center; width: 38px; height: 38px; padding: 0; border: 1px solid rgba(255, 255, 255, .34); border-radius: 999px; background: rgba(13, 15, 20, .72); color: #fff; font: 26px/1 Arial, sans-serif; cursor: pointer; }
+.pagenest-lightbox-close:hover, .pagenest-lightbox-close:focus-visible { background: rgba(39, 45, 58, .96); outline: 2px solid #fff; outline-offset: 2px; }
+@media (max-height: 680px) { .pagenest-lightbox-image { max-height: 64vh; } .pagenest-lightbox-summary { max-height: 15vh; } }
+</style>`;
 
 async function readIndexDocuments(app) {
   const payload = JSON.parse(await app.vault.adapter.read(INDEX_PATH));
@@ -180,7 +193,7 @@ class PageNestSearchModal extends Modal {
 }
 
 function copyBridgeScript(channel) {
-  return `<script nonce="hermes-offline" data-hermes-copy-bridge>
+  return `<script nonce="${channel}" data-hermes-copy-bridge>
 document.querySelectorAll('[data-hermes-kind="xhs-comments"] .comment-meta').forEach(function (meta) {
   meta.textContent = meta.textContent.replace(/(?:^|\\s·\\s)(?:\\d+\\s*)?赞(?:\\s+赞)?\\s*$/u, '').trim();
   if (!meta.textContent) meta.remove();
@@ -188,15 +201,109 @@ document.querySelectorAll('[data-hermes-kind="xhs-comments"] .comment-meta').for
 window.hermesCopyText = function (text) {
   window.parent.postMessage({type: "${COPY_MESSAGE}", channel: "${channel}", text: text}, "*");
 };
+
+function pagenestLightboxText(node) {
+  return node ? String(node.textContent || '').trim() : '';
+}
+
+function openPageNestLightbox(entry, trigger) {
+  var title = pagenestLightboxText(entry.querySelector('h3'));
+  var summary = pagenestLightboxText(entry.querySelector('p'));
+  var timestamp = pagenestLightboxText(entry.querySelector('time'));
+  var scrollX = window.scrollX || 0;
+  var scrollY = window.scrollY || 0;
+  var htmlOverflow = document.documentElement.style.overflow;
+  var bodyOverflow = document.body.style.overflow;
+  var overlay = document.createElement('div');
+  var panel = document.createElement('div');
+  var close = document.createElement('button');
+  var image = document.createElement('img');
+
+  overlay.className = 'pagenest-lightbox-overlay';
+  overlay.setAttribute('role', 'dialog');
+  overlay.setAttribute('aria-modal', 'true');
+  overlay.setAttribute('aria-label', title || '视频截图预览');
+  panel.className = 'pagenest-lightbox-panel';
+  close.className = 'pagenest-lightbox-close';
+  close.type = 'button';
+  close.setAttribute('aria-label', '关闭截图预览');
+  close.textContent = '×';
+  image.className = 'pagenest-lightbox-image';
+  image.src = trigger.src;
+  image.alt = trigger.getAttribute('alt') || title || '视频截图';
+
+  panel.appendChild(close);
+  if (title) {
+    var titleNode = document.createElement('h2');
+    titleNode.className = 'pagenest-lightbox-title';
+    titleNode.textContent = title;
+    panel.appendChild(titleNode);
+  }
+  if (timestamp) {
+    var timeNode = document.createElement('time');
+    timeNode.className = 'pagenest-lightbox-timestamp';
+    timeNode.textContent = timestamp;
+    panel.appendChild(timeNode);
+  }
+  panel.appendChild(image);
+  if (summary) {
+    var summaryNode = document.createElement('p');
+    summaryNode.className = 'pagenest-lightbox-summary';
+    summaryNode.textContent = summary;
+    panel.appendChild(summaryNode);
+  }
+  overlay.appendChild(panel);
+
+  function closeLightbox() {
+    document.removeEventListener('keydown', onKeyDown);
+    overlay.remove();
+    document.documentElement.style.overflow = htmlOverflow;
+    document.body.style.overflow = bodyOverflow;
+    try { window.scrollTo(scrollX, scrollY); } catch (_) {}
+    try { trigger.focus({preventScroll: true}); } catch (_) { trigger.focus(); }
+  }
+  function onKeyDown(event) {
+    if (event.key === 'Escape') closeLightbox();
+  }
+
+  close.addEventListener('click', closeLightbox);
+  overlay.addEventListener('click', function (event) {
+    if (event.target === overlay) closeLightbox();
+  });
+  document.addEventListener('keydown', onKeyDown);
+  document.documentElement.style.overflow = 'hidden';
+  document.body.style.overflow = 'hidden';
+  document.body.appendChild(overlay);
+  close.focus();
+}
+
+document.querySelectorAll('[data-pagenest-notebook-entry]').forEach(function (entry) {
+  var screenshot = entry.querySelector('img');
+  if (!screenshot) return;
+  screenshot.tabIndex = 0;
+  screenshot.setAttribute('role', 'button');
+  screenshot.setAttribute('aria-label', '放大视频截图');
+  screenshot.addEventListener('click', function () { openPageNestLightbox(entry, screenshot); });
+  screenshot.addEventListener('keydown', function (event) {
+    if (event.key === 'Enter' || event.key === ' ') {
+      event.preventDefault();
+      openPageNestLightbox(entry, screenshot);
+    }
+  });
+});
 </script>`;
 }
 
 function withCopyBridge(page, channel) {
-  const bridge = `${RESPONSIVE_MEDIA_STYLE}${copyBridgeScript(channel)}`;
-  const bodyEnd = page.toLowerCase().lastIndexOf("</body>");
+  const runtimePage = page.replace(
+    /script-src\s+'none'/iu,
+    `script-src 'nonce-${channel}'`,
+  );
+  const bridge = `${RESPONSIVE_MEDIA_STYLE}${NOTEBOOK_LIGHTBOX_STYLE}${copyBridgeScript(channel)}`;
+  const bodyEnd = runtimePage.toLowerCase().lastIndexOf("</body>");
   return bodyEnd < 0
-    ? `${page}${bridge}`
-    : `${page.slice(0, bodyEnd)}${bridge}${page.slice(bodyEnd)}`;
+    ? `${runtimePage}${bridge}`
+    : `${runtimePage.slice(0, bodyEnd)}${bridge}${runtimePage.slice(bodyEnd)}`;
 }
 
 class HermesPageView extends TextFileView {
@@ -348,3 +455,5 @@ module.exports.PageNestSearchModal = PageNestSearchModal;
 module.exports.searchIndexDocuments = searchIndexDocuments;
 module.exports.markdownLibrary = markdownLibrary;
 module.exports.writeMarkdownLibrary = writeMarkdownLibrary;
+module.exports.copyBridgeScript = copyBridgeScript;
+module.exports.withCopyBridge = withCopyBridge;

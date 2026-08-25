@@ -194,6 +194,46 @@ class PageNestSearchModal extends Modal {
 
 function copyBridgeScript(channel) {
   return `<script nonce="${channel}" data-hermes-copy-bridge>
+function pagenestNormalizeLegacyWeChatHeadings() {
+  if (typeof document.querySelector !== 'function') return;
+  var sourceMeta = document.querySelector('meta[name="hermes-source"]');
+  var content = document.querySelector('[data-pagenest-role="content"]');
+  if (!sourceMeta || !content || document.querySelector('[data-pagenest-notebook-entry]')) return;
+
+  var sourceHost = '';
+  try {
+    sourceHost = new URL(String(sourceMeta.getAttribute('content') || '')).hostname.toLowerCase();
+  } catch (_) {
+    return;
+  }
+  if (sourceHost !== 'mp.weixin.qq.com') return;
+
+  var headingSelector = 'h1,h2,h3,h4,h5,h6';
+  var headings = Array.prototype.slice.call(content.querySelectorAll(headingSelector));
+  var nestedHeadings = [];
+  headings.forEach(function (heading) {
+    for (var ancestor = heading.parentElement; ancestor && ancestor !== content; ancestor = ancestor.parentElement) {
+      if (!/^H[1-6]$/.test(ancestor.tagName)) continue;
+      if (nestedHeadings.indexOf(heading) < 0) nestedHeadings.push(heading);
+      if (nestedHeadings.indexOf(ancestor) < 0) nestedHeadings.push(ancestor);
+    }
+  });
+
+  for (var index = headings.length - 1; index >= 0; index -= 1) {
+    var heading = headings[index];
+    if (nestedHeadings.indexOf(heading) < 0) continue;
+    var replacement = document.createElement('div');
+    Array.prototype.forEach.call(heading.attributes, function (attribute) {
+      replacement.setAttribute(attribute.name, attribute.value);
+    });
+    Array.prototype.slice.call(heading.childNodes).forEach(function (child) {
+      replacement.appendChild(child);
+    });
+    heading.replaceWith(replacement);
+  }
+}
+
+pagenestNormalizeLegacyWeChatHeadings();
 document.querySelectorAll('[data-hermes-kind="xhs-comments"] .comment-meta').forEach(function (meta) {
   meta.textContent = meta.textContent.replace(/(?:^|\\s·\\s)(?:\\d+\\s*)?赞(?:\\s+赞)?\\s*$/u, '').trim();
   if (!meta.textContent) meta.remove();

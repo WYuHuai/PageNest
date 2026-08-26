@@ -1,0 +1,478 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="dark">
+  <meta name="description" content="PageNest 功能展示：完整网页保存、Video Notebook、Vision AI、Viewer Lightbox 与首次安装引导。">
+  <title>PageNest 功能展示 · Feature Gallery</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --page: #070b18;
+      --surface: rgba(17, 24, 49, 0.86);
+      --line: rgba(159, 174, 255, 0.2);
+      --text: #f7f8ff;
+      --muted: #aeb7d5;
+      --primary-bright: #8b9aff;
+      --focus: #b9f45c;
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", "Microsoft YaHei", sans-serif;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      min-height: 100vh;
+      margin: 0;
+      color: var(--text);
+      background:
+        radial-gradient(circle at 12% 12%, rgba(65, 91, 255, 0.28), transparent 34rem),
+        radial-gradient(circle at 88% 84%, rgba(58, 207, 180, 0.12), transparent 30rem),
+        var(--page);
+    }
+
+    button, a { font: inherit; }
+    a { color: inherit; }
+
+    .page-shell {
+      width: min(1480px, 100%);
+      margin: 0 auto;
+      padding: 28px clamp(18px, 4vw, 60px) 40px;
+    }
+
+    .topbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 24px;
+      margin-bottom: 24px;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      text-decoration: none;
+    }
+
+    .brand-mark {
+      display: grid;
+      width: 46px;
+      height: 46px;
+      place-items: center;
+      border-radius: 14px;
+      color: white;
+      font-size: 24px;
+      font-weight: 800;
+      background: linear-gradient(145deg, #3152ff, #6c4dff);
+      box-shadow: 0 12px 36px rgba(65, 80, 255, 0.35);
+    }
+
+    .brand-copy strong,
+    .brand-copy span { display: block; }
+    .brand-copy strong { font-size: 20px; }
+    .brand-copy span { color: var(--muted); font-size: 12px; }
+
+    .back-link {
+      padding: 10px 14px;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      color: var(--muted);
+      text-decoration: none;
+      transition: color 160ms ease, border-color 160ms ease, background 160ms ease;
+    }
+
+    .back-link:hover {
+      color: var(--text);
+      border-color: rgba(139, 154, 255, 0.7);
+      background: rgba(92, 115, 255, 0.1);
+    }
+
+    .gallery {
+      overflow: hidden;
+      border: 1px solid var(--line);
+      border-radius: 28px;
+      background: var(--surface);
+      box-shadow: 0 32px 100px rgba(0, 0, 0, 0.34);
+      backdrop-filter: blur(18px);
+    }
+
+    .stage {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) minmax(260px, 0.32fr);
+      gap: clamp(22px, 4vw, 54px);
+      align-items: center;
+      padding: clamp(20px, 4vw, 54px);
+    }
+
+    .visual {
+      min-width: 0;
+      margin: 0;
+    }
+
+    .visual-frame {
+      overflow: hidden;
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      border-radius: 18px;
+      background: #0b1022;
+      box-shadow: 0 26px 80px rgba(0, 0, 0, 0.42);
+    }
+
+    .visual img {
+      display: block;
+      width: 100%;
+      height: auto;
+      aspect-ratio: 16 / 10;
+      object-fit: contain;
+    }
+
+    .copy .eyebrow {
+      margin: 0 0 14px;
+      color: var(--primary-bright);
+      font-size: 13px;
+      font-weight: 750;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+    }
+
+    .copy h1 {
+      margin: 0;
+      font-size: clamp(32px, 4vw, 62px);
+      line-height: 1.06;
+      letter-spacing: -0.04em;
+    }
+
+    .copy .english-title {
+      display: block;
+      margin-top: 10px;
+      color: var(--primary-bright);
+      font-size: clamp(16px, 1.6vw, 22px);
+      font-weight: 700;
+      letter-spacing: 0;
+    }
+
+    .copy .description {
+      margin: 22px 0 0;
+      color: var(--muted);
+      font-size: clamp(15px, 1.5vw, 18px);
+      line-height: 1.75;
+    }
+
+    .copy .description-en {
+      display: block;
+      margin-top: 12px;
+      color: #7f8aab;
+      font-size: 0.86em;
+      line-height: 1.55;
+    }
+
+    .controls {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-top: 30px;
+    }
+
+    .nav-button {
+      display: inline-flex;
+      min-width: 48px;
+      min-height: 48px;
+      align-items: center;
+      justify-content: center;
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      color: var(--text);
+      background: rgba(255, 255, 255, 0.05);
+      cursor: pointer;
+      transition: transform 160ms ease, border-color 160ms ease, background 160ms ease;
+    }
+
+    .nav-button:hover {
+      transform: translateY(-2px);
+      border-color: rgba(139, 154, 255, 0.72);
+      background: rgba(92, 115, 255, 0.16);
+    }
+
+    .nav-button:focus-visible,
+    .thumb:focus-visible,
+    .back-link:focus-visible {
+      outline: 3px solid var(--focus);
+      outline-offset: 3px;
+    }
+
+    .counter {
+      min-width: 72px;
+      color: var(--muted);
+      font-variant-numeric: tabular-nums;
+      text-align: center;
+    }
+
+    .hint {
+      margin-top: 16px;
+      color: #737d9d;
+      font-size: 13px;
+    }
+
+    .thumbs {
+      display: grid;
+      grid-template-columns: repeat(5, minmax(120px, 1fr));
+      gap: 12px;
+      padding: 18px;
+      border-top: 1px solid var(--line);
+      background: rgba(4, 8, 22, 0.58);
+    }
+
+    .thumb {
+      min-width: 0;
+      padding: 8px;
+      border: 1px solid transparent;
+      border-radius: 14px;
+      color: var(--muted);
+      background: transparent;
+      cursor: pointer;
+      text-align: left;
+      transition: border-color 160ms ease, background 160ms ease, color 160ms ease;
+    }
+
+    .thumb img {
+      display: block;
+      width: 100%;
+      margin-bottom: 8px;
+      border-radius: 9px;
+      aspect-ratio: 16 / 10;
+      object-fit: cover;
+      opacity: 0.68;
+      transition: opacity 160ms ease;
+    }
+
+    .thumb span {
+      display: block;
+      overflow: hidden;
+      font-size: 12px;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .thumb[aria-current="true"] {
+      color: var(--text);
+      border-color: rgba(139, 154, 255, 0.7);
+      background: rgba(92, 115, 255, 0.14);
+    }
+
+    .thumb[aria-current="true"] img { opacity: 1; }
+
+    .footer {
+      display: flex;
+      justify-content: space-between;
+      gap: 24px;
+      padding: 18px 4px 0;
+      color: #727d9e;
+      font-size: 12px;
+    }
+
+    @media (max-width: 920px) {
+      .stage { grid-template-columns: 1fr; }
+      .copy { max-width: 720px; }
+      .thumbs {
+        grid-template-columns: repeat(5, 180px);
+        overflow-x: auto;
+        scroll-snap-type: x proximity;
+      }
+      .thumb { scroll-snap-align: start; }
+    }
+
+    @media (max-width: 560px) {
+      .page-shell { padding-inline: 12px; }
+      .topbar { align-items: flex-start; }
+      .back-link { font-size: 12px; }
+      .gallery { border-radius: 20px; }
+      .stage { padding: 14px; }
+      .visual-frame { border-radius: 12px; }
+      .copy { padding: 10px 4px 8px; }
+      .footer { display: block; padding-inline: 8px; }
+      .footer span { display: block; margin-bottom: 8px; }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after {
+        scroll-behavior: auto !important;
+        transition-duration: 0.01ms !important;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="page-shell">
+    <header class="topbar">
+      <a class="brand" href="../README.md" aria-label="返回 PageNest README">
+        <span class="brand-mark" aria-hidden="true">P</span>
+        <span class="brand-copy"><strong>PageNest</strong><span>Feature Gallery · 功能展示</span></span>
+      </a>
+      <a class="back-link" href="../README.md">← 返回产品介绍 / Back to README</a>
+    </header>
+
+    <section class="gallery" aria-label="PageNest 功能展示">
+      <div class="stage">
+        <figure class="visual">
+          <div class="visual-frame">
+            <img id="feature-image" src="../store-assets/edge/screenshots/01_web_capture.png" alt="PageNest Web Capture 功能展示" width="1280" height="800">
+          </div>
+        </figure>
+
+        <div class="copy" aria-live="polite">
+          <p class="eyebrow" id="feature-eyebrow">01 · Web Capture</p>
+          <h1 id="feature-title">完整保存网页<span class="english-title">Keep the webpage, not just the link</span></h1>
+          <p class="description" id="feature-description">正文、图片、代码和排版保存为一个本地文件，断网后也能继续阅读。<span class="description-en">Save the useful structure and media of a webpage into one portable local file.</span></p>
+          <div class="controls" aria-label="图片切换">
+            <button class="nav-button" id="previous" type="button" aria-label="上一张">←</button>
+            <span class="counter" id="counter">1 / 5</span>
+            <button class="nav-button" id="next" type="button" aria-label="下一张">→</button>
+          </div>
+          <p class="hint">使用按钮、缩略图或键盘 ← → 切换 · Use buttons, thumbnails, or arrow keys</p>
+        </div>
+      </div>
+
+      <nav class="thumbs" id="thumbnails" aria-label="功能缩略图"></nav>
+    </section>
+
+    <footer class="footer">
+      <span>本页面不依赖外部 CDN，可在仓库中直接打开。</span>
+      <span>No external CDN · Local-first presentation</span>
+    </footer>
+  </main>
+
+  <noscript>请启用 JavaScript 以使用左右翻页；所有截图仍可在 store-assets/edge/screenshots 中查看。</noscript>
+
+  <script>
+    (() => {
+      "use strict";
+
+      const slides = [
+        {
+          src: "../store-assets/edge/screenshots/01_web_capture.png",
+          alt: "PageNest Web Capture：完整保存网页",
+          eyebrow: "01 · Web Capture",
+          title: "完整保存网页",
+          titleEn: "Keep the webpage, not just the link",
+          description: "正文、图片、代码和排版保存为一个本地文件，断网后也能继续阅读。",
+          descriptionEn: "Save the useful structure and media of a webpage into one portable local file."
+        },
+        {
+          src: "../store-assets/edge/screenshots/02_video_notebook.png",
+          alt: "PageNest Video Notebook：视频关键画面时间线",
+          eyebrow: "02 · Video Notebook",
+          title: "一键截下关键画面",
+          titleEn: "Turn video moments into a timeline",
+          description: "按下快捷键保存当前视频画面，连续截图按视频时间自动整理。",
+          descriptionEn: "Capture the current decoded frame and organize every saved moment by video time."
+        },
+        {
+          src: "../store-assets/edge/screenshots/03_vision_ai.png",
+          alt: "PageNest Vision AI：为画面生成标题与摘要",
+          eyebrow: "03 · Vision AI",
+          title: "视觉 AI 看懂每一帧",
+          titleEn: "Optional titles and summaries",
+          description: "使用你自己配置的 AI provider 生成标题和摘要；原始截图始终保留。",
+          descriptionEn: "Use your configured provider for visual notes while the original screenshot stays intact."
+        },
+        {
+          src: "../store-assets/edge/screenshots/04_lightbox.png",
+          alt: "PageNest Viewer Lightbox：在 Obsidian 中查看大图与笔记",
+          eyebrow: "04 · Viewer Lightbox",
+          title: "在 Obsidian 里沉浸阅读",
+          titleEn: "Inspect every frame with its notes",
+          description: "大图、时间戳、标题和摘要在 Viewer 中一起展示，回顾更直观。",
+          descriptionEn: "Review the full image, timestamp, title, and summary in one focused view."
+        },
+        {
+          src: "../store-assets/edge/screenshots/05_local_first.png",
+          alt: "PageNest First-run onboarding：安装、重新检测与已连接",
+          eyebrow: "05 · First-run onboarding",
+          title: "第一次打开，就能完成安装",
+          titleEn: "From install to connected",
+          description: "扩展引导安装一次 Windows 本地组件，返回后重新检测即可开始使用。",
+          descriptionEn: "Install the Windows companion once, return to the extension, and recheck the connection."
+        }
+      ];
+
+      const image = document.querySelector("#feature-image");
+      const eyebrow = document.querySelector("#feature-eyebrow");
+      const title = document.querySelector("#feature-title");
+      const description = document.querySelector("#feature-description");
+      const counter = document.querySelector("#counter");
+      const thumbnails = document.querySelector("#thumbnails");
+      let activeIndex = 0;
+
+      const render = (index, focusThumbnail = false) => {
+        activeIndex = (index + slides.length) % slides.length;
+        const slide = slides[activeIndex];
+
+        image.src = slide.src;
+        image.alt = slide.alt;
+        eyebrow.textContent = slide.eyebrow;
+        title.replaceChildren(document.createTextNode(slide.title));
+        const titleEn = document.createElement("span");
+        titleEn.className = "english-title";
+        titleEn.textContent = slide.titleEn;
+        title.append(titleEn);
+
+        description.replaceChildren(document.createTextNode(slide.description));
+        const descriptionEn = document.createElement("span");
+        descriptionEn.className = "description-en";
+        descriptionEn.textContent = slide.descriptionEn;
+        description.append(descriptionEn);
+        counter.textContent = `${activeIndex + 1} / ${slides.length}`;
+
+        thumbnails.querySelectorAll(".thumb").forEach((button, buttonIndex) => {
+          const selected = buttonIndex === activeIndex;
+          button.setAttribute("aria-current", selected ? "true" : "false");
+          if (selected && focusThumbnail) {
+            button.scrollIntoView({ block: "nearest", inline: "nearest" });
+            button.focus();
+          }
+        });
+      };
+
+      slides.forEach((slide, index) => {
+        const button = document.createElement("button");
+        button.className = "thumb";
+        button.type = "button";
+        button.setAttribute("aria-label", `查看 ${slide.title}`);
+
+        const thumbnail = document.createElement("img");
+        thumbnail.src = slide.src;
+        thumbnail.alt = "";
+        thumbnail.width = 240;
+        thumbnail.height = 150;
+        thumbnail.loading = index === 0 ? "eager" : "lazy";
+
+        const label = document.createElement("span");
+        label.textContent = slide.eyebrow;
+
+        button.append(thumbnail, label);
+        button.addEventListener("click", () => render(index));
+        thumbnails.append(button);
+      });
+
+      document.querySelector("#previous").addEventListener("click", () => render(activeIndex - 1));
+      document.querySelector("#next").addEventListener("click", () => render(activeIndex + 1));
+
+      document.addEventListener("keydown", (event) => {
+        if (event.key === "ArrowLeft") {
+          event.preventDefault();
+          render(activeIndex - 1);
+        } else if (event.key === "ArrowRight") {
+          event.preventDefault();
+          render(activeIndex + 1);
+        } else if (event.key === "Home") {
+          render(0, true);
+        } else if (event.key === "End") {
+          render(slides.length - 1, true);
+        }
+      });
+
+      render(0);
+    })();
+  </script>
+</body>
+</html>

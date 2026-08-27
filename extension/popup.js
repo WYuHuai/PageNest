@@ -585,8 +585,12 @@ $("saveAiSettings").onclick=async()=>{
     $("aiKey").value=data.has_api_key?"********":"";
     $("aiKey").dataset.saved=data.has_api_key?"true":"false";
     $("aiKey").dataset.savedUrl=data.has_api_key?(data.api_url||""):"";
+    const aiConnectionLabel=[
+      data.connection.model,
+      data.connection.vision?t("supportsImages"):""
+    ].filter(Boolean).join(" · ");
     $("aiConnection").textContent=data.connection.online
-      ?t("aiConnected",[data.connection.model,data.connection.vision?` · ${t("supportsImages")}`:""])
+      ?t("aiConnected",[aiConnectionLabel])
       :t("aiDisabled");
     $("aiConnection").className="ok";
   } catch(error) {

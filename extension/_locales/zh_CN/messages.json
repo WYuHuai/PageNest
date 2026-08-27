@@ -169,7 +169,7 @@
   "savingElapsed": {"message": "正在生成完整离线页面，完成后会一次性写入知识库；已等待 $1 秒", "placeholders": {"seconds": {"content": "$1"}}},
   "connectionFolders": {"message": "连接正常，已识别 $1 个文件夹", "placeholders": {"count": {"content": "$1"}}},
   "vaultPathMissing": {"message": "连接正常，但还需要配置 Obsidian Vault"},
-  "aiConnected": {"message": "连接成功 · $1$2"},
+  "aiConnected": {"message": "连接成功 · $details$", "placeholders": {"details": {"content": "$1"}}},
   "providerCustom": {"message": "自己填写"},
   "providerOpenai": {"message": "OpenAI"},
   "providerDeepseek": {"message": "DeepSeek"},

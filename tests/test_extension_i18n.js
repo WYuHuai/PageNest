@@ -12,10 +12,34 @@ const welcomeHtml = fs.readFileSync(path.join(root, "extension/welcome.html"), "
 const welcomeJs = fs.readFileSync(path.join(root, "extension/welcome.js"), "utf8");
 const i18n = require("../extension/core/i18n.js");
 
+function assertLocalePlaceholders(locale, localeName) {
+  for (const [key, entry] of Object.entries(locale)) {
+    const message = entry.message || "";
+    const placeholders = entry.placeholders || {};
+    const defined = new Set(Object.keys(placeholders).map(name => name.toLowerCase()));
+    const referenced = [...message.matchAll(/\$([A-Za-z0-9_]+)\$/g)]
+      .map(match => match[1].toLowerCase());
+    assert.deepEqual(
+      referenced.filter(name => !defined.has(name)),
+      [],
+      `${localeName}.${key} references an undefined named placeholder`,
+    );
+    for (const [name, placeholder] of Object.entries(placeholders)) {
+      assert.match(
+        placeholder.content || "",
+        /^\$\d+$/,
+        `${localeName}.${key}.placeholders.${name} must map to a positional substitution`,
+      );
+    }
+  }
+}
+
 assert.equal(manifest.default_locale, "zh_CN");
 assert.equal(manifest.name, "__MSG_extensionName__");
 assert.equal(manifest.description, "__MSG_extensionDescription__");
 assert.deepEqual(Object.keys(zh).sort(), Object.keys(en).sort(), "locale key sets must match");
+assertLocalePlaceholders(zh, "zh_CN");
+assertLocalePlaceholders(en, "en");
 for (const key of [
   "extensionName",
   "extensionDescription",

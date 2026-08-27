@@ -19,6 +19,8 @@ SANITIZED_RUNTIME_FIXTURES = {"tests/fixtures/legacy-page.hermes"}
 
 ACTION_REFERENCE = re.compile(r"^\s*uses:\s*[^@\s]+@([^\s#]+)", re.MULTILINE)
 MARKDOWN_LINK = re.compile(r"\[[^\]]+\]\(([^)]+)\)")
+NAMED_MESSAGE_PLACEHOLDER = re.compile(r"\$([A-Za-z0-9_]+)\$")
+POSITIONAL_SUBSTITUTION = re.compile(r"\$\d+")
 TEXT_SUFFIXES = {
     ".bat",
     ".css",
@@ -41,6 +43,45 @@ def validate_yaml_and_json(tracked) -> None:
             json.loads(path.read_text("utf-8"))
         elif path.suffix.lower() in {".yml", ".yaml"}:
             yaml.safe_load(path.read_text("utf-8"))
+
+
+def validate_locale_placeholders(messages: dict, locale_name: str) -> None:
+    for key, entry in messages.items():
+        message = entry.get("message", "")
+        placeholders = entry.get("placeholders", {})
+        defined = {name.lower() for name in placeholders}
+        missing = sorted({
+            name.lower()
+            for name in NAMED_MESSAGE_PLACEHOLDER.findall(message)
+            if name.lower() not in defined
+        })
+        if missing:
+            raise ValueError(
+                f"Undefined Chrome i18n placeholder in {locale_name}.{key}: "
+                + ", ".join(missing)
+            )
+        for name, placeholder in placeholders.items():
+            content = placeholder.get("content", "")
+            if not POSITIONAL_SUBSTITUTION.fullmatch(content):
+                raise ValueError(
+                    f"Invalid Chrome i18n placeholder content in "
+                    f"{locale_name}.{key}.{name}: {content!r}"
+                )
+
+
+def validate_extension_locales() -> None:
+    locale_root = ROOT / "extension" / "_locales"
+    locale_keys = None
+    for messages_path in sorted(locale_root.glob("*/messages.json")):
+        messages = json.loads(messages_path.read_text("utf-8"))
+        validate_locale_placeholders(messages, messages_path.parent.name)
+        keys = set(messages)
+        if locale_keys is None:
+            locale_keys = keys
+        elif keys != locale_keys:
+            raise ValueError(
+                f"Chrome i18n locale key mismatch: {messages_path.parent.name}"
+            )
 
 
 def validate_action_pins() -> None:
@@ -104,6 +145,7 @@ def main() -> None:
     tracked = tracked_files()
     validate_version_metadata()
     validate_yaml_and_json(tracked)
+    validate_extension_locales()
     validate_action_pins()
     validate_markdown_links(tracked)
     validate_icons()

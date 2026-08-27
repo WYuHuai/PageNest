@@ -169,7 +169,7 @@
   "savingElapsed": {"message": "Building the complete offline page before writing it to the Vault · $1 seconds", "placeholders": {"seconds": {"content": "$1"}}},
   "connectionFolders": {"message": "Connected · $1 folders found", "placeholders": {"count": {"content": "$1"}}},
   "vaultPathMissing": {"message": "Connected, but an Obsidian Vault still needs to be configured"},
-  "aiConnected": {"message": "Connected · $1$2"},
+  "aiConnected": {"message": "Connected · $details$", "placeholders": {"details": {"content": "$1"}}},
   "providerCustom": {"message": "Custom"},
   "providerOpenai": {"message": "OpenAI"},
   "providerDeepseek": {"message": "DeepSeek"},

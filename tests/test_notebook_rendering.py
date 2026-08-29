@@ -66,3 +66,14 @@ def test_notebook_round_trip_and_generic_document_reader_do_not_crash():
     assert generic.title == original.title
     assert "总结" in generic.text
     assert generic.source == original.source_url
+
+
+def test_knowledge_10_old_notebook_without_analysis_status_remains_readable():
+    rendered = render_notebook(make_notebook())
+    rendered = rendered.replace(',"analysis_status":null', "")
+
+    restored = read_notebook(rendered)
+
+    assert restored.entries[0].title == "<img src=x onerror=alert(1)>"
+    assert restored.entries[0].summary == "总结 </script><script>alert(1)</script>"
+    assert restored.entries[0].analysis_status is None

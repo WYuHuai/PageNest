@@ -7,7 +7,7 @@ from typing import Annotated, Literal
 import httpx
 from pydantic import BaseModel, ConfigDict, Field
 
-from ..ai_client import AIClient
+from ..ai_client import AIClient, log_analysis_stage
 from ..config import settings
 from ..limits import MAX_NOTE_CHARS
 
@@ -149,6 +149,11 @@ def _messages(
     ]
 
 
+def _prepare_image_reference(image_data_url: str) -> str:
+    """Keep the persisted image unchanged while marking the diagnostic boundary."""
+    return image_data_url
+
+
 async def analyze_frame(
     image_data_url: str,
     source_title: str,
@@ -156,58 +161,125 @@ async def analyze_frame(
     source_url: str = "",
 ) -> AnalysisResult:
     """Analyze one already-persisted frame without exposing provider details."""
+    log_analysis_stage("ANALYZE_INPUT", "start")
     if not settings.hermes_api_url.strip() or not settings.hermes_model_name.strip():
-        return AnalysisResult(status="unavailable")
+        result = AnalysisResult(status="unavailable")
+        log_analysis_stage("ANALYZE_INPUT", "unavailable")
+        log_analysis_stage("ENTRY_RESULT", result.status, title_chars=0, summary_chars=0)
+        return result
 
+    stage = "ANALYZE_INPUT"
     try:
+        log_analysis_stage("ANALYZE_INPUT", "pass")
+        stage = "IMAGE_PREPARE"
+        log_analysis_stage(stage, "start")
+        image_reference = _prepare_image_reference(image_data_url)
+        log_analysis_stage(stage, "pass", image_chars=len(image_reference))
         async with asyncio.timeout(ANALYSIS_TIMEOUT_SECONDS):
+            stage = "AI_CLIENT_ENTER"
             async with AIClient(
                 api_url=settings.hermes_api_url,
                 api_key=settings.hermes_api_key,
                 model_name=settings.hermes_model_name,
                 timeout_seconds=ANALYSIS_TIMEOUT_SECONDS,
             ) as client:
+                stage = "MESSAGE_BUILD"
+                log_analysis_stage(stage, "start")
                 messages = _messages(
-                    image_data_url,
+                    image_reference,
                     source_title,
                     video_timestamp_seconds,
                     source_url,
                 )
+                log_analysis_stage(stage, "pass")
+                stage = "SCHEMA_BUILD"
+                log_analysis_stage(stage, "start")
+                response_schema = KnowledgeFrameAnalysis.model_json_schema()
                 request_options = {
                     "messages": messages,
                     "max_tokens": ANALYSIS_MAX_TOKENS,
                     "temperature": 0.1,
-                    "response_schema": KnowledgeFrameAnalysis.model_json_schema(),
+                    "response_schema": response_schema,
                     "schema_name": "video_notebook_knowledge_frame",
                     "reasoning_effort": "none",
                 }
+                log_analysis_stage(stage, "pass")
+                stage = "AI_CLIENT_ENTER"
                 completion = await client.chat_completion(
                     **request_options,
                     max_requests=2,
                 )
+                stage = "STRUCTURED_PARSE"
+                log_analysis_stage(
+                    stage, "start", attempt=1, structured=completion.structured
+                )
                 try:
                     parsed = _validate_completion(completion.content)
+                    log_analysis_stage(
+                        stage, "pass", attempt=1, structured=completion.structured
+                    )
+                    stage = "FORMAT_SUMMARY"
+                    log_analysis_stage(stage, "start", attempt=1)
                     title, summary = _formatted_result(parsed)
-                except ValueError:
+                    log_analysis_stage(
+                        stage,
+                        "pass",
+                        attempt=1,
+                        title_chars=len(title),
+                        summary_chars=len(summary),
+                    )
+                except ValueError as exc:
+                    log_analysis_stage(stage, "failed", error=exc, attempt=1)
                     if not completion.structured:
                         raise
+                    stage = "STRUCTURED_RETRY"
+                    log_analysis_stage(stage, "start", attempt=2, structured=False)
                     retry = await client.chat_completion(
                         **request_options,
                         structured=False,
                         max_requests=1,
                     )
+                    log_analysis_stage(stage, "response", attempt=2, structured=False)
+                    stage = "STRUCTURED_PARSE"
+                    log_analysis_stage(stage, "start", attempt=2, structured=False)
                     parsed = _validate_completion(retry.content)
+                    log_analysis_stage(stage, "pass", attempt=2, structured=False)
+                    stage = "FORMAT_SUMMARY"
+                    log_analysis_stage(stage, "start", attempt=2)
                     title, summary = _formatted_result(parsed)
-        return AnalysisResult(
+                    log_analysis_stage(
+                        stage,
+                        "pass",
+                        attempt=2,
+                        title_chars=len(title),
+                        summary_chars=len(summary),
+                    )
+                    log_analysis_stage(
+                        "STRUCTURED_RETRY", "pass", attempt=2, structured=False
+                    )
+        result = AnalysisResult(
             status="complete",
             title=title,
             summary=summary,
         )
-    except TimeoutError:
-        return AnalysisResult(status="failed")
+        log_analysis_stage(
+            "ENTRY_RESULT",
+            result.status,
+            title_chars=len(result.title),
+            summary_chars=len(result.summary),
+        )
+        return result
+    except TimeoutError as exc:
+        log_analysis_stage(stage, "failed", error=exc)
+        result = AnalysisResult(status="failed")
     except httpx.HTTPStatusError as exc:
+        log_analysis_stage(stage, "failed", error=exc)
         if exc.response.status_code in UNSUPPORTED_HTTP_STATUSES:
-            return AnalysisResult(status="unsupported")
-        return AnalysisResult(status="failed")
-    except Exception:
-        return AnalysisResult(status="failed")
+            result = AnalysisResult(status="unsupported")
+        else:
+            result = AnalysisResult(status="failed")
+    except Exception as exc:
+        log_analysis_stage(stage, "failed", error=exc)
+        result = AnalysisResult(status="failed")
+    log_analysis_stage("ENTRY_RESULT", result.status, title_chars=0, summary_chars=0)
+    return result

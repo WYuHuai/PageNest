@@ -3,11 +3,16 @@ import json
 import httpx
 import pytest
 
+from collector import ai_client
 from collector.ai_client import (
     AIClient,
     AIResponseError,
+    DIAGNOSTIC_MESSAGE_LIMIT,
+    DIAGNOSTIC_LOGGER_NAME,
     chat_endpoint,
+    log_analysis_stage,
     request_timeout,
+    safe_error_message,
 )
 
 
@@ -203,3 +208,87 @@ async def test_malformed_response_structure_raises_controlled_error(monkeypatch)
 
     with pytest.raises(AIResponseError, match=r"choices\[0\]\.message\.content"):
         await complete()
+
+
+@pytest.mark.asyncio
+async def test_request_build_exception_records_safe_stage(monkeypatch, caplog):
+    def fail_build(**_options):
+        raise RuntimeError("payload construction failed")
+
+    monkeypatch.setattr(ai_client, "build_chat_payload", fail_build)
+    with caplog.at_level("INFO", logger=DIAGNOSTIC_LOGGER_NAME):
+        with pytest.raises(RuntimeError, match="payload construction failed"):
+            await complete()
+
+    assert "stage=REQUEST_BUILD status=failed" in caplog.text
+    assert "exception=RuntimeError" in caplog.text
+
+
+@pytest.mark.asyncio
+async def test_http_transport_exception_records_send_stage(monkeypatch, caplog):
+    def handler(request):
+        raise httpx.ConnectError("connection refused", request=request)
+
+    mock_client(monkeypatch, handler)
+    with caplog.at_level("INFO", logger=DIAGNOSTIC_LOGGER_NAME):
+        with pytest.raises(httpx.ConnectError):
+            await complete()
+
+    assert "stage=HTTP_SEND status=failed" in caplog.text
+    assert "exception=ConnectError" in caplog.text
+    assert "stage=HTTP_RESPONSE status=received" not in caplog.text
+
+
+def test_sensitive_exception_content_is_fully_redacted(caplog):
+    secret = "secret-value-that-must-never-appear"
+    image = "data:image/png;base64,QUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFB"
+    error = RuntimeError(
+        f"Authorization: Bearer {secret}; api_key={secret}; image={image}"
+    )
+
+    with caplog.at_level("INFO", logger=DIAGNOSTIC_LOGGER_NAME):
+        log_analysis_stage("HTTP_SEND", "failed", error=error)
+
+    assert "[redacted sensitive error message]" in caplog.text
+    assert secret not in caplog.text
+    assert "Authorization" not in caplog.text
+    assert "Bearer" not in caplog.text
+    assert "data:image" not in caplog.text
+    assert "base64" not in caplog.text
+    assert "QUFB" not in caplog.text
+
+
+def test_safe_error_message_is_length_limited():
+    message = safe_error_message(RuntimeError("safe failure " * 100))
+
+    assert len(message) <= DIAGNOSTIC_MESSAGE_LIMIT
+    assert message.endswith("…")
+
+
+@pytest.mark.asyncio
+async def test_success_records_request_and_http_response_boundaries(
+    monkeypatch, caplog
+):
+    mock_client(
+        monkeypatch,
+        lambda _request: httpx.Response(
+            200,
+            json={"choices": [{"message": {"content": "ok"}}]},
+        ),
+    )
+
+    with caplog.at_level("INFO", logger=DIAGNOSTIC_LOGGER_NAME):
+        result = await complete()
+
+    assert result.content == "ok"
+    for expected in (
+        "stage=AI_CLIENT_ENTER status=pass",
+        "stage=REQUEST_BUILD status=pass",
+        "stage=HTTP_SEND status=start",
+        "stage=HTTP_RESPONSE status=received",
+        "stage=HTTP_RESPONSE status=pass",
+    ):
+        assert expected in caplog.text
+    assert "test-key" not in caplog.text
+    assert "test-model" not in caplog.text
+    assert '"messages"' not in caplog.text

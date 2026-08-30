@@ -1,9 +1,23 @@
+import logging
+import re
 from dataclasses import dataclass
 
 import httpx
 
 
 STRUCTURED_FALLBACK_STATUSES = {400, 422}
+DIAGNOSTIC_MESSAGE_LIMIT = 240
+DIAGNOSTIC_LOGGER_NAME = "pagenest.notebook_analyzer"
+
+logger = logging.getLogger(DIAGNOSTIC_LOGGER_NAME)
+
+_SENSITIVE_MESSAGE = re.compile(
+    r"authorization|bearer\s+|api[ _-]?key|access[ _-]?token|service[ _-]?token|"
+    r"password|secret|data:image/|base64,",
+    re.IGNORECASE,
+)
+_HIGH_ENTROPY_VALUE = re.compile(r"[A-Za-z0-9+/=_-]{48,}")
+_WHITESPACE = re.compile(r"\s+")
 
 
 class AIResponseError(ValueError):
@@ -15,6 +29,67 @@ class ChatCompletion:
     content: str | None
     request_count: int
     structured: bool
+
+
+def safe_error_message(error: BaseException) -> str:
+    """Return a bounded diagnostic message only when it is clearly safe."""
+    try:
+        message = str(error)
+    except Exception:
+        return "[message unavailable]"
+    if not message:
+        return "[no message]"
+    if _SENSITIVE_MESSAGE.search(message) or _HIGH_ENTROPY_VALUE.search(message):
+        return "[redacted sensitive error message]"
+    message = _WHITESPACE.sub(" ", message).strip()
+    if len(message) > DIAGNOSTIC_MESSAGE_LIMIT:
+        message = message[: DIAGNOSTIC_MESSAGE_LIMIT - 1].rstrip() + "…"
+    return message or "[no message]"
+
+
+def log_analysis_stage(
+    stage: str,
+    status: str,
+    *,
+    error: BaseException | None = None,
+    attempt: int | None = None,
+    http_status: int | None = None,
+    structured: bool | None = None,
+    image_chars: int | None = None,
+    title_chars: int | None = None,
+    summary_chars: int | None = None,
+) -> None:
+    """Emit fixed-field diagnostics without provider, user, or payload content."""
+    details: list[str] = []
+    if attempt is not None:
+        details.append(f"attempt={attempt}")
+    if http_status is not None:
+        details.append(f"http_status={http_status}")
+    if structured is not None:
+        details.append(f"structured={str(structured).lower()}")
+    if image_chars is not None:
+        details.append(f"image_chars={image_chars}")
+    if title_chars is not None:
+        details.append(f"title_chars={title_chars}")
+    if summary_chars is not None:
+        details.append(f"summary_chars={summary_chars}")
+    suffix = f" {' '.join(details)}" if details else ""
+    if error is None:
+        logger.info(
+            "Notebook analyzer diagnostic stage=%s status=%s%s",
+            stage,
+            status,
+            suffix,
+        )
+        return
+    logger.error(
+        "Notebook analyzer diagnostic stage=%s status=%s exception=%s message=%s%s",
+        stage,
+        status,
+        type(error).__name__,
+        safe_error_message(error),
+        suffix,
+    )
 
 
 def chat_endpoint(api_url: str) -> str:
@@ -91,7 +166,13 @@ class AIClient:
         self._client: httpx.AsyncClient | None = None
 
     async def __aenter__(self) -> "AIClient":
-        self._client = httpx.AsyncClient(timeout=self.timeout)
+        log_analysis_stage("AI_CLIENT_ENTER", "start")
+        try:
+            self._client = httpx.AsyncClient(timeout=self.timeout)
+        except Exception as exc:
+            log_analysis_stage("AI_CLIENT_ENTER", "failed", error=exc)
+            raise
+        log_analysis_stage("AI_CLIENT_ENTER", "pass")
         return self
 
     async def __aexit__(self, exc_type, exc, traceback) -> None:
@@ -119,32 +200,92 @@ class AIClient:
         request_count = 0
         use_structured = structured and response_schema is not None
         while request_count < max_requests:
-            payload = build_chat_payload(
-                model_name=self.model_name,
-                messages=messages,
-                max_tokens=max_tokens,
-                temperature=temperature,
-                response_schema=response_schema if use_structured else None,
-                schema_name=schema_name,
-                reasoning_effort=reasoning_effort if use_structured else None,
+            attempt = request_count + 1
+            log_analysis_stage(
+                "REQUEST_BUILD", "start", attempt=attempt, structured=use_structured
             )
-            response = await self._client.post(
-                self.endpoint,
-                headers=self.headers,
-                json=payload,
+            try:
+                payload = build_chat_payload(
+                    model_name=self.model_name,
+                    messages=messages,
+                    max_tokens=max_tokens,
+                    temperature=temperature,
+                    response_schema=response_schema if use_structured else None,
+                    schema_name=schema_name,
+                    reasoning_effort=reasoning_effort if use_structured else None,
+                )
+            except Exception as exc:
+                log_analysis_stage(
+                    "REQUEST_BUILD",
+                    "failed",
+                    error=exc,
+                    attempt=attempt,
+                    structured=use_structured,
+                )
+                raise
+            log_analysis_stage(
+                "REQUEST_BUILD", "pass", attempt=attempt, structured=use_structured
             )
-            request_count += 1
+            log_analysis_stage(
+                "HTTP_SEND", "start", attempt=attempt, structured=use_structured
+            )
+            try:
+                response = await self._client.post(
+                    self.endpoint,
+                    headers=self.headers,
+                    json=payload,
+                )
+            except Exception as exc:
+                log_analysis_stage(
+                    "HTTP_SEND",
+                    "failed",
+                    error=exc,
+                    attempt=attempt,
+                    structured=use_structured,
+                )
+                raise
+            request_count = attempt
+            log_analysis_stage(
+                "HTTP_RESPONSE",
+                "received",
+                attempt=attempt,
+                http_status=response.status_code,
+                structured=use_structured,
+            )
             try:
                 response.raise_for_status()
             except httpx.HTTPStatusError as exc:
+                log_analysis_stage(
+                    "HTTP_RESPONSE",
+                    "failed",
+                    error=exc,
+                    attempt=attempt,
+                    http_status=response.status_code,
+                    structured=use_structured,
+                )
                 if use_structured and exc.response.status_code in STRUCTURED_FALLBACK_STATUSES:
                     use_structured = False
                     if request_count == max_requests:
                         return ChatCompletion(None, request_count, use_structured)
                     continue
                 raise
-            return ChatCompletion(
-                extract_content(response),
-                request_count,
-                use_structured,
+            try:
+                content = extract_content(response)
+            except Exception as exc:
+                log_analysis_stage(
+                    "HTTP_RESPONSE",
+                    "failed",
+                    error=exc,
+                    attempt=attempt,
+                    http_status=response.status_code,
+                    structured=use_structured,
+                )
+                raise
+            log_analysis_stage(
+                "HTTP_RESPONSE",
+                "pass",
+                attempt=attempt,
+                http_status=response.status_code,
+                structured=use_structured,
             )
+            return ChatCompletion(content, request_count, use_structured)

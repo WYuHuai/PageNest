@@ -5,6 +5,7 @@ import httpx
 import pytest
 from pydantic import ValidationError
 
+from collector.ai_client import DIAGNOSTIC_LOGGER_NAME
 from collector.config import settings
 from collector.notebooks import analyzer
 
@@ -565,3 +566,46 @@ async def test_knowledge_12_structured_schema_failure_still_retries_unstructured
     assert len(requests) == 2
     assert requests[0].get("structured", True) is True
     assert requests[1]["structured"] is False
+
+
+@pytest.mark.asyncio
+async def test_image_prepare_exception_records_stage_without_image_data(
+    monkeypatch, caplog
+):
+    image = "data:image/png;base64,PRIVATEIMAGEPAYLOAD"
+
+    def fail_prepare(value):
+        raise RuntimeError(f"image preparation failed for {value}")
+
+    monkeypatch.setattr(analyzer, "_prepare_image_reference", fail_prepare)
+    with caplog.at_level("INFO", logger=DIAGNOSTIC_LOGGER_NAME):
+        result = await analyzer.analyze_frame(image, "")
+
+    assert result == analyzer.AnalysisResult(status="failed")
+    assert "stage=IMAGE_PREPARE status=failed" in caplog.text
+    assert "exception=RuntimeError" in caplog.text
+    assert "[redacted sensitive error message]" in caplog.text
+    assert image not in caplog.text
+    assert "PRIVATEIMAGEPAYLOAD" not in caplog.text
+
+
+@pytest.mark.asyncio
+async def test_success_diagnostics_record_all_analyzer_boundaries(caplog, monkeypatch):
+    fake_client(monkeypatch, knowledge_content())
+
+    with caplog.at_level("INFO", logger=DIAGNOSTIC_LOGGER_NAME):
+        result = await analyzer.analyze_frame("data:image/png;base64,AAAA", "")
+
+    assert result.status == "complete"
+    for stage in (
+        "ANALYZE_INPUT",
+        "IMAGE_PREPARE",
+        "MESSAGE_BUILD",
+        "SCHEMA_BUILD",
+        "STRUCTURED_PARSE",
+        "FORMAT_SUMMARY",
+        "ENTRY_RESULT",
+    ):
+        assert f"stage={stage}" in caplog.text
+    assert "data:image" not in caplog.text
+    assert "AAAA" not in caplog.text

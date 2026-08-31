@@ -147,6 +147,162 @@ def test_knowledge_frame_analysis_validation_remains_strict(content):
         analyzer.KnowledgeFrameAnalysis.model_validate(decoded)
 
 
+def compat_payload(**overrides):
+    values = {
+        "is_knowledge_frame": True,
+        "title": "循环结构",
+        "overview": "画面说明了循环结构的基本执行过程。",
+        "key_points": ["重复执行循环体"],
+        "visible_details": ["画面中显示了循环代码"],
+        "context_note": "",
+    }
+    values.update(overrides)
+    return values
+
+
+def test_compat_01_complete_six_field_object_passes():
+    result = analyzer.KnowledgeFrameAnalysis.model_validate(compat_payload())
+    schema = analyzer.KnowledgeFrameAnalysis.model_json_schema()
+
+    assert result.title == "循环结构"
+    assert result.visible_details == ["画面中显示了循环代码"]
+    assert schema["required"] == ["title", "overview"]
+
+
+def test_compat_02_missing_visible_details_defaults_to_empty_list():
+    payload = compat_payload()
+    payload.pop("visible_details")
+
+    result = analyzer.KnowledgeFrameAnalysis.model_validate(payload)
+
+    assert result.visible_details == []
+
+
+def test_compat_03_missing_classification_derives_true_from_key_points():
+    payload = compat_payload(visible_details=[])
+    payload.pop("is_knowledge_frame")
+
+    result = analyzer.KnowledgeFrameAnalysis.model_validate(payload)
+
+    assert result.is_knowledge_frame is True
+
+
+def test_compat_04_missing_classification_derives_true_from_visible_details():
+    payload = compat_payload(key_points=[])
+    payload.pop("is_knowledge_frame")
+
+    result = analyzer.KnowledgeFrameAnalysis.model_validate(payload)
+
+    assert result.is_knowledge_frame is True
+
+
+def test_compat_05_missing_classification_derives_false_from_empty_lists():
+    payload = compat_payload(key_points=[], visible_details=[])
+    payload.pop("is_knowledge_frame")
+
+    result = analyzer.KnowledgeFrameAnalysis.model_validate(payload)
+
+    assert result.is_knowledge_frame is False
+
+
+def test_compat_06_real_failure_shape_passes_with_safe_defaults():
+    payload = compat_payload()
+    payload.pop("is_knowledge_frame")
+    payload.pop("visible_details")
+
+    result = analyzer.KnowledgeFrameAnalysis.model_validate(payload)
+
+    assert result.is_knowledge_frame is True
+    assert result.visible_details == []
+
+
+def test_compat_07_missing_key_points_defaults_to_empty_list():
+    payload = compat_payload()
+    payload.pop("key_points")
+
+    result = analyzer.KnowledgeFrameAnalysis.model_validate(payload)
+
+    assert result.key_points == []
+
+
+def test_compat_08_missing_context_note_defaults_to_empty_string():
+    payload = compat_payload()
+    payload.pop("context_note")
+
+    result = analyzer.KnowledgeFrameAnalysis.model_validate(payload)
+
+    assert result.context_note == ""
+
+
+@pytest.mark.parametrize(
+    "payload",
+    [
+        pytest.param(
+            {key: value for key, value in compat_payload().items() if key != "title"},
+            id="COMPAT-09-missing-title",
+        ),
+        pytest.param(
+            {
+                key: value
+                for key, value in compat_payload().items()
+                if key != "overview"
+            },
+            id="COMPAT-10-missing-overview",
+        ),
+        pytest.param(
+            {**compat_payload(), "reasoning": "not contracted"},
+            id="COMPAT-13-extra-field",
+        ),
+        pytest.param(
+            compat_payload(key_points="abc"),
+            id="COMPAT-14a-key-points-string",
+        ),
+        pytest.param(
+            compat_payload(visible_details={}),
+            id="COMPAT-14b-visible-details-object",
+        ),
+        pytest.param(
+            compat_payload(context_note=[]),
+            id="COMPAT-14c-context-note-list",
+        ),
+        pytest.param(
+            compat_payload(title=[]),
+            id="COMPAT-14d-title-list",
+        ),
+        pytest.param(
+            compat_payload(overview={}),
+            id="COMPAT-14e-overview-object",
+        ),
+        pytest.param(
+            compat_payload(is_knowledge_frame="true"),
+            id="COMPAT-15-wrong-bool-type",
+        ),
+    ],
+)
+def test_compat_invalid_objects_remain_rejected(payload):
+    with pytest.raises((ValidationError, ValueError)):
+        analyzer.KnowledgeFrameAnalysis.model_validate(payload)
+
+
+@pytest.mark.parametrize(
+    "content",
+    [
+        pytest.param("[]", id="COMPAT-11-top-level-array"),
+        pytest.param(
+            json.dumps([compat_payload()], ensure_ascii=False),
+            id="COMPAT-12-single-object-array",
+        ),
+        pytest.param(
+            "Analysis follows:\n" + json.dumps(compat_payload(), ensure_ascii=False),
+            id="COMPAT-16-prose-plus-json",
+        ),
+    ],
+)
+def test_compat_non_object_contracts_remain_rejected(content):
+    with pytest.raises((json.JSONDecodeError, ValueError)):
+        analyzer._validate_completion(content)
+
+
 @pytest.mark.asyncio
 async def test_retry_01_valid_first_response_uses_one_provider_call(monkeypatch):
     calls = fake_client(
@@ -237,6 +393,91 @@ async def test_retry_06_malformed_json_remains_rejected(monkeypatch):
     result = await analyzer.analyze_frame("data:image/png;base64,AAAA", "")
 
     assert result == analyzer.AnalysisResult(status="failed")
+
+
+@pytest.mark.asyncio
+async def test_compat_17_structured_parse_failure_uses_exactly_one_retry(monkeypatch):
+    calls = fake_client(
+        monkeypatch,
+        responses=[json.dumps([compat_payload()]), knowledge_content()],
+    )
+
+    result = await analyzer.analyze_frame("data:image/png;base64,AAAA", "")
+
+    requests = [call["request"] for call in calls if "request" in call]
+    assert result.status == "complete"
+    assert len(requests) == 2
+    assert requests[0].get("structured", True) is True
+    assert requests[1]["structured"] is False
+    assert requests[1]["max_requests"] == 1
+
+
+@pytest.mark.asyncio
+async def test_compat_18_retry_object_with_safe_omissions_completes(monkeypatch):
+    retry_payload = compat_payload()
+    retry_payload.pop("is_knowledge_frame")
+    retry_payload.pop("visible_details")
+    calls = fake_client(
+        monkeypatch,
+        responses=[json.dumps([compat_payload()]), json.dumps(retry_payload)],
+    )
+
+    result = await analyzer.analyze_frame("data:image/png;base64,AAAA", "")
+
+    assert result.status == "complete"
+    assert result.title == "循环结构"
+    assert "内容摘要" in result.summary
+    assert "关键知识点" in result.summary
+    assert len([call for call in calls if "request" in call]) == 2
+
+
+@pytest.mark.asyncio
+async def test_compat_19_invalid_retry_remains_failed_after_two_calls(monkeypatch):
+    calls = fake_client(
+        monkeypatch,
+        responses=[json.dumps([compat_payload()]), json.dumps({"title": "仍然无效"})],
+    )
+
+    result = await analyzer.analyze_frame("data:image/png;base64,AAAA", "")
+
+    assert result == analyzer.AnalysisResult(status="failed")
+    assert len([call for call in calls if "request" in call]) == 2
+
+
+def test_compat_20_non_knowledge_frame_behavior_is_unchanged():
+    payload = compat_payload(
+        is_knowledge_frame=False,
+        title="山间骑行",
+        overview="一名骑行者沿山路前进。",
+        key_points=[],
+        visible_details=[],
+    )
+
+    result = analyzer.KnowledgeFrameAnalysis.model_validate(payload)
+
+    assert result.is_knowledge_frame is False
+    assert analyzer.format_knowledge_summary(result) == (
+        "内容摘要\n一名骑行者沿山路前进。"
+    )
+
+
+@pytest.mark.asyncio
+async def test_compat_21_diagnostics_remain_secret_and_image_safe(
+    monkeypatch, caplog
+):
+    secret = "PRIVATE-PROVIDER-KEY-123456"
+    image = "data:image/png;base64,PRIVATEIMAGEPAYLOAD"
+    unsafe = json.dumps({"title": "A", "overview": "B", "api_key": secret})
+    fake_client(monkeypatch, responses=[unsafe, unsafe])
+
+    with caplog.at_level("INFO", logger=DIAGNOSTIC_LOGGER_NAME):
+        result = await analyzer.analyze_frame(image, "")
+
+    assert result == analyzer.AnalysisResult(status="failed")
+    assert "[redacted sensitive error message]" in caplog.text
+    assert secret not in caplog.text
+    assert image not in caplog.text
+    assert "PRIVATEIMAGEPAYLOAD" not in caplog.text
 
 
 @pytest.mark.asyncio

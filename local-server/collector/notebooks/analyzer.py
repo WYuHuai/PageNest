@@ -5,7 +5,7 @@ from dataclasses import dataclass
 from typing import Annotated, Literal
 
 import httpx
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 from ..ai_client import AIClient, log_analysis_stage
 from ..config import settings
@@ -46,16 +46,63 @@ title、overview、key_points、visible_details、context_note 中没有内容�
 
 KnowledgeItem = Annotated[str, Field(max_length=MAX_ANALYSIS_ITEM_CHARS)]
 
+_KNOWLEDGE_FRAME_FIELDS = frozenset(
+    {
+        "is_knowledge_frame",
+        "title",
+        "overview",
+        "key_points",
+        "visible_details",
+        "context_note",
+    }
+)
+
+
+def normalize_knowledge_frame_object(value: dict) -> dict:
+    """Apply only safe missing-field defaults to one decoded JSON object."""
+    extra_fields = set(value) - _KNOWLEDGE_FRAME_FIELDS
+    if extra_fields:
+        names = ", ".join(sorted(str(field) for field in extra_fields))
+        raise ValueError(f"Unexpected knowledge frame fields: {names}")
+
+    normalized = dict(value)
+    normalized.setdefault("key_points", [])
+    normalized.setdefault("visible_details", [])
+    normalized.setdefault("context_note", "")
+    if "is_knowledge_frame" not in normalized:
+        normalized_items: list[str] = []
+        for field in ("key_points", "visible_details"):
+            items = normalized[field]
+            if isinstance(items, list):
+                normalized_items.extend(
+                    item.strip() for item in items if isinstance(item, str)
+                )
+        normalized["is_knowledge_frame"] = any(normalized_items)
+    return normalized
+
 
 class KnowledgeFrameAnalysis(BaseModel):
-    model_config = ConfigDict(extra="forbid", str_strip_whitespace=True)
+    model_config = ConfigDict(extra="forbid", str_strip_whitespace=True, strict=True)
 
-    is_knowledge_frame: bool
+    is_knowledge_frame: bool = False
     title: str = Field(max_length=MAX_ANALYSIS_TITLE_CHARS)
     overview: str = Field(max_length=MAX_ANALYSIS_OVERVIEW_CHARS)
-    key_points: list[KnowledgeItem] = Field(max_length=MAX_ANALYSIS_LIST_ITEMS)
-    visible_details: list[KnowledgeItem] = Field(max_length=MAX_ANALYSIS_LIST_ITEMS)
-    context_note: str = Field(max_length=MAX_ANALYSIS_CONTEXT_CHARS)
+    key_points: list[KnowledgeItem] = Field(
+        default_factory=list,
+        max_length=MAX_ANALYSIS_LIST_ITEMS,
+    )
+    visible_details: list[KnowledgeItem] = Field(
+        default_factory=list,
+        max_length=MAX_ANALYSIS_LIST_ITEMS,
+    )
+    context_note: str = Field(default="", max_length=MAX_ANALYSIS_CONTEXT_CHARS)
+
+    @model_validator(mode="before")
+    @classmethod
+    def apply_safe_missing_defaults(cls, value):
+        if isinstance(value, dict):
+            return normalize_knowledge_frame_object(value)
+        return value
 
 
 @dataclass(frozen=True)

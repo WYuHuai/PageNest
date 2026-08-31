@@ -131,10 +131,6 @@ def test_structured_content_decoder_rejects_non_contract_content(content):
             id="VISION-PARSE-08",
         ),
         pytest.param(
-            knowledge_content(key_points=["1", "2", "3", "4", "5", "6"]),
-            id="VISION-PARSE-09",
-        ),
-        pytest.param(
             knowledge_content()[:-1] + ',"unexpected":true}',
             id="VISION-PARSE-10",
         ),
@@ -262,16 +258,20 @@ def test_compat_08_missing_context_note_defaults_to_empty_string():
             id="COMPAT-14b-visible-details-object",
         ),
         pytest.param(
+            compat_payload(visible_details=["有效细节"] * 5 + [{}]),
+            id="COMPAT-14c-invalid-item-beyond-list-bound",
+        ),
+        pytest.param(
             compat_payload(context_note=[]),
-            id="COMPAT-14c-context-note-list",
+            id="COMPAT-14d-context-note-list",
         ),
         pytest.param(
             compat_payload(title=[]),
-            id="COMPAT-14d-title-list",
+            id="COMPAT-14e-title-list",
         ),
         pytest.param(
             compat_payload(overview={}),
-            id="COMPAT-14e-overview-object",
+            id="COMPAT-14f-overview-object",
         ),
         pytest.param(
             compat_payload(is_knowledge_frame="true"),
@@ -478,6 +478,30 @@ async def test_compat_21_diagnostics_remain_secret_and_image_safe(
     assert secret not in caplog.text
     assert image not in caplog.text
     assert "PRIVATEIMAGEPAYLOAD" not in caplog.text
+
+
+@pytest.mark.asyncio
+async def test_compat_22_retry_with_one_extra_visible_detail_is_bounded(
+    monkeypatch,
+):
+    visible_details = [f"画面细节 {index}" for index in range(1, 7)]
+    calls = fake_client(
+        monkeypatch,
+        responses=[
+            json.dumps([compat_payload()], ensure_ascii=False),
+            json.dumps(
+                compat_payload(visible_details=visible_details),
+                ensure_ascii=False,
+            ),
+        ],
+    )
+
+    result = await analyzer.analyze_frame("data:image/png;base64,AAAA", "")
+
+    assert result.status == "complete"
+    assert all(detail in result.summary for detail in visible_details[:5])
+    assert visible_details[5] not in result.summary
+    assert len([call for call in calls if "request" in call]) == 2
 
 
 @pytest.mark.asyncio

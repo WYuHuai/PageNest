@@ -69,6 +69,18 @@ def normalize_knowledge_frame_object(value: dict) -> dict:
     normalized.setdefault("key_points", [])
     normalized.setdefault("visible_details", [])
     normalized.setdefault("context_note", "")
+    for field in ("key_points", "visible_details"):
+        items = normalized[field]
+        if (
+            isinstance(items, list)
+            and all(
+                isinstance(item, str)
+                and len(item.strip()) <= MAX_ANALYSIS_ITEM_CHARS
+                for item in items
+            )
+            and len(items) > MAX_ANALYSIS_LIST_ITEMS
+        ):
+            normalized[field] = items[:MAX_ANALYSIS_LIST_ITEMS]
     if "is_knowledge_frame" not in normalized:
         normalized_items: list[str] = []
         for field in ("key_points", "visible_details"):

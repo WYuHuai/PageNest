@@ -6,6 +6,7 @@ import pytest
 
 from collector.models import ArticleInput
 from collector.organizers import (
+    MAX_PROVIDER_REQUESTS,
     QUICK_RESULT_KEYS,
     call_hermes,
     probe_connection,
@@ -180,7 +181,7 @@ async def test_ai_invalid_json_is_repaired_with_conversation_context(monkeypatch
 
 
 @pytest.mark.asyncio
-async def test_ai_three_invalid_json_responses_preserve_last_raw(monkeypatch):
+async def test_ai_invalid_json_retry_is_bounded_to_two_requests(monkeypatch):
     configure_ai(monkeypatch)
     requests = []
 
@@ -193,9 +194,81 @@ async def test_ai_three_invalid_json_responses_preserve_last_raw(monkeypatch):
     result, raw, _elapsed, error = await call_hermes(article(), [])
 
     assert result is None
-    assert raw == "invalid-3"
+    assert raw == "invalid-2"
     assert error == "智能整理返回内容未通过结构校验"
-    assert len(requests) == 3
+    assert len(requests) == MAX_PROVIDER_REQUESTS == 2
+
+
+@pytest.mark.asyncio
+async def test_ai_accepts_one_fenced_json_object_without_retry(monkeypatch):
+    configure_ai(monkeypatch)
+    requests = []
+
+    def handler(request):
+        requests.append(json.loads(request.content))
+        content = f"```json\n{json.dumps(quick_result(), ensure_ascii=False)}\n```"
+        return httpx.Response(200, json={"choices": [{"message": {"content": content}}]})
+
+    mock_client(monkeypatch, handler)
+    result, _raw, _elapsed, error = await call_hermes(article(), [])
+
+    assert result is not None
+    assert error == ""
+    assert len(requests) == 1
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("invalid", [
+    '[{"normalized_title":"array"}]',
+    'Here is the result: {"normalized_title":"prose"}',
+])
+async def test_ai_rejects_array_and_prose_after_one_retry(monkeypatch, invalid):
+    configure_ai(monkeypatch)
+    requests = []
+
+    def handler(request):
+        requests.append(json.loads(request.content))
+        return httpx.Response(200, json={"choices": [{"message": {"content": invalid}}]})
+
+    mock_client(monkeypatch, handler)
+    result, _raw, _elapsed, error = await call_hermes(article(), [])
+
+    assert result is None
+    assert error == "智能整理返回内容未通过结构校验"
+    assert len(requests) == 2
+
+
+@pytest.mark.asyncio
+async def test_ai_rejects_structurally_valid_but_empty_summary(monkeypatch):
+    configure_ai(monkeypatch)
+    requests = []
+
+    def handler(request):
+        requests.append(json.loads(request.content))
+        return httpx.Response(200, json={"choices": [{"message": {"content": "{}"}}]})
+
+    mock_client(monkeypatch, handler)
+    result, _raw, _elapsed, error = await call_hermes(article(), [])
+
+    assert result is None
+    assert error == "智能整理返回内容未通过结构校验"
+    assert len(requests) == 2
+
+
+@pytest.mark.asyncio
+async def test_ai_error_does_not_expose_secret_like_transport_message(monkeypatch):
+    configure_ai(monkeypatch)
+
+    def leaked(_request):
+        raise httpx.ConnectError("Bearer super-secret-value API key=should-not-leak")
+
+    mock_client(monkeypatch, leaked)
+    result, _raw, _elapsed, error = await call_hermes(article(), [])
+
+    assert result is None
+    assert "super-secret-value" not in error
+    assert "should-not-leak" not in error
+    assert "redacted" in error
 
 
 @pytest.mark.asyncio

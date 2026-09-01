@@ -1,6 +1,6 @@
 from typing import Annotated, Literal
 
-from pydantic import AfterValidator, BaseModel, Field
+from pydantic import AfterValidator, BaseModel, ConfigDict, Field
 
 from .limits import (
     MAX_ARTICLE_HTML_CHARS,
@@ -107,6 +107,8 @@ class OrganizerSettingsInput(BaseModel):
 
 
 class ImageNote(BaseModel):
+    model_config = ConfigDict(extra="forbid", strict=True)
+
     image_filename: str = ""
     description: str = ""
     visible_text: str = ""
@@ -117,6 +119,8 @@ class ImageNote(BaseModel):
 
 
 class HermesResult(BaseModel):
+    model_config = ConfigDict(extra="forbid", strict=True)
+
     suggested_category: str = "阅读记录/待整理"
     normalized_title: str = ""
     one_sentence_summary: str = ""

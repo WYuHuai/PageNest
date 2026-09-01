@@ -149,6 +149,8 @@
   "aiOrganization": {"message": "AI organization"},
   "organizedInSeconds": {"message": "Organized in $1 seconds", "placeholders": {"seconds": {"content": "$1"}}},
   "bodyOnly": {"message": "Original content only"},
+  "aiSummaryFailedPageSaved": {"message": "AI summary failed; webpage saved"},
+  "aiNotConfiguredBeforeSave": {"message": "Configure an AI endpoint and model before using an AI summary mode."},
   "imageProcessing": {"message": "Image processing"},
   "totalTime": {"message": "Total time"},
   "seconds": {"message": "$1 seconds", "placeholders": {"seconds": {"content": "$1"}}},

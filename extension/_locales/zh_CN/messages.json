@@ -149,6 +149,8 @@
   "aiOrganization": {"message": "智能整理"},
   "organizedInSeconds": {"message": "整理成功 · $1 秒", "placeholders": {"seconds": {"content": "$1"}}},
   "bodyOnly": {"message": "仅保留正文"},
+  "aiSummaryFailedPageSaved": {"message": "AI 总结失败，网页已保存"},
+  "aiNotConfiguredBeforeSave": {"message": "请先配置可用的 AI 接口和模型，再使用 AI 总结模式。"},
   "imageProcessing": {"message": "图片处理"},
   "totalTime": {"message": "总耗时"},
   "seconds": {"message": "$1 秒", "placeholders": {"seconds": {"content": "$1"}}},

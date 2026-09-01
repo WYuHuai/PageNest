@@ -1,3 +1,4 @@
+import json
 import logging
 import re
 from dataclasses import dataclass
@@ -18,6 +19,14 @@ _SENSITIVE_MESSAGE = re.compile(
 )
 _HIGH_ENTROPY_VALUE = re.compile(r"[A-Za-z0-9+/=_-]{48,}")
 _WHITESPACE = re.compile(r"\s+")
+_COMPLETE_JSON_FENCE = re.compile(
+    r"```(?:json)?[ \t]*\r?\n(?P<content>.*?)\r?\n[ \t]*```",
+    re.IGNORECASE | re.DOTALL,
+)
+_TRAILING_JSON_FENCE = re.compile(
+    r"(?P<content>.*?)\r?\n[ \t]*```",
+    re.DOTALL,
+)
 
 
 class AIResponseError(ValueError):
@@ -45,6 +54,20 @@ def safe_error_message(error: BaseException) -> str:
     if len(message) > DIAGNOSTIC_MESSAGE_LIMIT:
         message = message[: DIAGNOSTIC_MESSAGE_LIMIT - 1].rstrip() + "…"
     return message or "[no message]"
+
+
+def decode_json_object(content: str) -> dict:
+    """Decode exactly one JSON object with only known fence noise."""
+    text = content.strip()
+    fenced = _COMPLETE_JSON_FENCE.fullmatch(text)
+    if fenced is None:
+        fenced = _TRAILING_JSON_FENCE.fullmatch(text)
+    if fenced is not None:
+        text = fenced.group("content").strip()
+    decoded = json.loads(text)
+    if not isinstance(decoded, dict):
+        raise ValueError("Structured content must contain one JSON object")
+    return decoded
 
 
 def log_analysis_stage(

@@ -20,6 +20,19 @@ def _tags(values: list[str]) -> str:
     return "".join(f'<span class="tag">#{html.escape(value.lstrip("#"))}</span>' for value in values)
 
 
+def _ai_failure_body(error: str) -> str:
+    reason = (
+        f'<p class="ai-failure-reason">{html.escape(error)}</p>'
+        if error
+        else ""
+    )
+    return (
+        "<h2>AI 总结未完成</h2>"
+        "<p>网页正文与图片已正常保存。</p>"
+        f"{reason}"
+    )
+
+
 def _render_system_metadata(article: ArticleInput, digest: str, category: str, embedded: int) -> str:
     source = article.canonical_url or article.url
     return "\n".join(
@@ -83,8 +96,8 @@ def _render_bilibili_opus_page(
           <p>{html.escape(result.abstract or result.one_sentence_summary or "未生成摘要。")}</p>
           {_items(result.key_points)}
         </section>'''
-    elif error:
-        ai_panel = f'<section class="collector-card muted"><h2>整理状态</h2><p>{html.escape(error)}</p></section>'
+    elif article.mode != "original":
+        ai_panel = f'<section class="collector-card muted">{_ai_failure_body(error)}</section>'
     return f'''<!doctype html>
 <html lang="zh-CN">
 <head>
@@ -148,8 +161,8 @@ def _render_feishu_document_page(
     ai_summary = ""
     if result:
         ai_summary = f'<section class="collector" data-pagenest-role="summary"><h2>AI 整理</h2><p>{html.escape(result.abstract or result.one_sentence_summary or "未生成摘要。")}</p></section>'
-    elif error:
-        ai_summary = f'<section class="collector muted"><h2>整理状态</h2><p>{html.escape(error)}</p></section>'
+    elif article.mode != "original":
+        ai_summary = f'<section class="collector muted">{_ai_failure_body(error)}</section>'
     return f'''<!doctype html>
 <html lang="zh-CN">
 <head>
@@ -231,6 +244,15 @@ def _render_xiaohongshu_note_page(
     metadata_json = json.dumps(metadata, ensure_ascii=False).replace("</", "<\\/")
     note = html.escape(article.user_note.strip() or "未填写收藏备注。")
     summary = html.escape(result.abstract or result.one_sentence_summary) if result else ""
+    ai_summary = (
+        f'<p data-pagenest-role="summary"><strong>AI 整理：</strong>{summary}</p>'
+        if summary
+        else (
+            f'<div class="ai-failure">{_ai_failure_body(error)}</div>'
+            if article.mode != "original"
+            else ""
+        )
+    )
     comments = _render_xhs_comments(article.comments)
     return f'''<!doctype html>
 <html lang="zh-CN">
@@ -247,7 +269,7 @@ def _render_xiaohongshu_note_page(
 <body>
 <main class="xhs-shell">
   <article class="xhs-card">{content}{comments}</article>
-  <section class="xhs-meta"><strong>我的收藏备注</strong><p data-pagenest-role="note">{note}</p>{f'<p data-pagenest-role="summary"><strong>AI 整理：</strong>{summary}</p>' if summary else ''}</section>
+  <section class="xhs-meta"><strong>我的收藏备注</strong><p data-pagenest-role="note">{note}</p>{ai_summary}</section>
   <footer class="xhs-footer">离线保存于 {html.escape(article.captured_at)} · 已内嵌 {embedded} 张图片 · <a href="{html.escape(article.url, quote=True)}">查看原网页</a></footer>
 </main>
 {COPY_SCRIPT}
@@ -262,8 +284,7 @@ def render_page(article: ArticleInput, result: HermesResult | None, content: str
         return _render_feishu_document_page(article, result, content, digest, category, images, error)
     if article.page_variant == "xiaohongshu-note":
         return _render_xiaohongshu_note_page(article, result, content, digest, category, images, error)
-    r = result or HermesResult(normalized_title=article.title, suggested_category=category, limitations=[error or "AI 未处理，已保留离线正文。"])
-    title = r.normalized_title or article.title
+    title = result.normalized_title or article.title if result else article.title
     embedded = len([item for item in images if "filename" in item])
     failed = len([item for item in images if "error" in item])
     metadata = _document_metadata(article, title, digest, category, embedded, result)
@@ -281,6 +302,20 @@ def render_page(article: ArticleInput, result: HermesResult | None, content: str
     image_status = f"{embedded} 张图片已内嵌"
     if failed:
         image_status += f" · {failed} 张失败"
+    ai_panel = ""
+    if result:
+        ai_panel = f'''<section class="panel">
+    <h2>AI 整理</h2>
+    <div class="summary-grid">
+      <div class="summary-card wide" data-pagenest-role="summary"><h3>内容摘要</h3><p>{html.escape(result.abstract or result.one_sentence_summary)}</p></div>
+      <div class="summary-card"><h3>核心观点</h3>{_items(result.key_points)}</div>
+      <div class="summary-card"><h3>可执行方法</h3>{_items(result.actionable_methods)}</div>
+    </div>
+  </section>'''
+    elif article.mode != "original":
+        ai_panel = f'<section class="panel ai-failure">{_ai_failure_body(error)}</section>'
+    deck = result.one_sentence_summary if result else "网页正文与图片已完整保存为离线页面。"
+    tags = _tags(result.obsidian_tags) if result else ""
     return f'''<!doctype html>
 <html lang="zh-CN">
 <head>
@@ -335,22 +370,15 @@ a{{color:var(--accent);text-decoration-thickness:.08em;text-underline-offset:.18
   <header class="hero">
     <div class="eyebrow">离线网页收藏</div>
     <h1>{html.escape(title)}</h1>
-    <p class="deck">{html.escape(r.one_sentence_summary or article.user_note or "网页正文、图片与排版已封装为一个离线页面。")}</p>
+    <p class="deck">{html.escape(deck)}</p>
     <div class="meta"><span class="pill">{html.escape(category)}</span><span class="pill">{html.escape(source_label)}</span><span class="pill">{html.escape(image_status)}</span><span class="pill">完全离线</span></div>
-    <div class="tags">{_tags(r.obsidian_tags)}</div>
+    <div class="tags">{tags}</div>
   </header>
   <section class="panel">
     <h2>我的收藏备注</h2>
     <p class="saved-note{' empty' if not article.user_note.strip() else ''}" data-pagenest-role="note">{html.escape(article.user_note.strip() or "未填写收藏备注。")}</p>
   </section>
-  <section class="panel">
-    <h2>AI 整理</h2>
-    <div class="summary-grid">
-      <div class="summary-card wide" data-pagenest-role="summary"><h3>内容摘要</h3><p>{html.escape(r.abstract or "未生成摘要，正文已完整保留。")}</p></div>
-      <div class="summary-card"><h3>核心观点</h3>{_items(r.key_points)}</div>
-      <div class="summary-card"><h3>可执行方法</h3>{_items(r.actionable_methods)}</div>
-    </div>
-  </section>
+  {ai_panel}
   <article class="article">
     <h2>网页正文</h2>
     <div class="article-body" data-pagenest-role="content">{content}</div>

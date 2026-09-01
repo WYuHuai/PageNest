@@ -141,6 +141,7 @@ async def _collect(article: ArticleInput) -> dict:
             "folder_path": str(duplicate.parent),
             "category": str(duplicate.parent.relative_to(vault)),
             "hermes_success": True,
+            "ai_status": "not_requested" if article.mode == "original" else "duplicate",
             "saved_images": 0,
             "saved_videos": 0,
             "failed_videos": 0,
@@ -233,8 +234,7 @@ async def _collect(article: ArticleInput) -> dict:
         destination.mkdir(parents=True, exist_ok=True)
         title = safe_title(article.title)
         final_path = _unique_page(destination, f"{datetime.now():%Y-%m-%d}_{title}")
-        combined_error = "；".join(value for value in (organizer_error, image_error) if value)
-        page = render_page(article, result, content, digest, category, images, combined_error)
+        page = render_page(article, result, content, digest, category, images, organizer_error)
         _write_page_atomic(final_path, page)
 
     saved_images = len([item for item in images if "filename" in item])
@@ -265,6 +265,11 @@ async def _collect(article: ArticleInput) -> dict:
         "vision_images": vision_count,
         "single_file": True,
         "hermes_success": bool(result),
+        "ai_status": (
+            "not_requested"
+            if article.mode == "original"
+            else "complete" if result else "failed"
+        ),
         "hermes_error": organizer_error,
         "image_error": image_error,
         "hermes_seconds": organizer_elapsed,

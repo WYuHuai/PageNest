@@ -349,7 +349,11 @@ function showResult(data) {
   const savedVideos=Number(data.saved_videos)||0;
   const failedVideos=Number(data.failed_videos)||0;
   const videoValue=failedVideos?t("videosWithFailures",[String(savedVideos),String(failedVideos)]):t("videoCount",String(savedVideos));
-  const organizerValue=data.hermes_success?t("organizedInSeconds",Number(data.hermes_seconds||0).toFixed(1)):t("bodyOnly");
+  const organizerValue=data.ai_status==="complete"
+    ?t("organizedInSeconds",Number(data.hermes_seconds||0).toFixed(1))
+    :["failed","unavailable"].includes(data.ai_status)
+      ?t("aiSummaryFailedPageSaved")
+      :t("bodyOnly");
   $("result").innerHTML=`<h2>${escapeHtml(heading)}</h2><div class="result-grid"><b>${escapeHtml(t("category"))}</b><span>${escapeHtml(data.category)}</span><b>${escapeHtml(t("offlinePage"))}</b><span>${escapeHtml(page)}</span><b>${escapeHtml(t("embeddedImages"))}</b><span>${escapeHtml(t("imageCount",String(Number(data.saved_images)||0)))}</span><b>${escapeHtml(t("embeddedVideos"))}</b><span>${escapeHtml(videoValue)}</span><b>${escapeHtml(t("fileFormat"))}</b><span>${escapeHtml(t("singleFileNoAssets"))}</span><b>${escapeHtml(t("aiOrganization"))}</b><span>${escapeHtml(organizerValue)}</span><b>${escapeHtml(t("imageProcessing"))}</b><span>${escapeHtml(t("seconds",Number(data.image_seconds||0).toFixed(1)))}</span><b>${escapeHtml(t("totalTime"))}</b><span>${escapeHtml(t("seconds",Number(data.total_seconds||0).toFixed(1)))}</span></div>${placementHtml}<div class="result-actions"><button id="openFolder">${escapeHtml(t("openFolder"))}</button><button id="copyPath">${escapeHtml(t("copyPath"))}</button><button id="openObsidian">${escapeHtml(t("openInObsidian"))}</button></div>`;
   $("openFolder").onclick=()=>api("/api/open-folder",{path:data.folder_path});
   $("copyPath").onclick=()=>navigator.clipboard.writeText(page);
@@ -386,6 +390,14 @@ async function api(path, body, retryPairing=true) {
     throw error;
   } finally {
     clearTimeout(timeout);
+  }
+}
+
+async function preflightAiMode(payload, request=api) {
+  if(payload.mode==="original") return;
+  const settings=await request("/api/ai-settings");
+  if(!settings?.api_url||!settings?.model_name) {
+    throw new Error(t("aiNotConfiguredBeforeSave"));
   }
 }
 
@@ -462,6 +474,7 @@ $("save").onclick=async()=>{
     article.user_note=$("note").value;
     article.mode=$("mode").value;
     article.category=$("category").value;
+    await preflightAiMode(article);
     await prepareCaptureForSave(article);
     const data=await collectWithServiceCapabilities(article);
     showResult(data);

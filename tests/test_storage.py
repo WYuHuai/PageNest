@@ -396,10 +396,11 @@ def test_page_template_is_offline_and_polished():
     assert '后续行动' not in rendered
 
 
-def test_page_always_shows_an_empty_saved_note():
+def test_original_mode_has_no_fake_ai_panel():
     rendered = render_page(article(user_note=''), None, '<p>正文</p>', 'abc', '阅读记录/待整理', [])
-    assert '我的收藏备注' in rendered
-    assert '未填写收藏备注。' in rendered
+    assert 'AI 整理' not in rendered
+    assert '未生成摘要' not in rendered
+    assert '暂无' not in rendered
 
 
 
@@ -461,6 +462,7 @@ async def test_quick_mode_runs_text_organizer_while_images_download(tmp_path: Pa
     result = await collect(article(mode="quick", category="auto"))
 
     assert result["hermes_success"] is True
+    assert result["ai_status"] == "complete"
 
 
 @pytest.mark.asyncio
@@ -487,12 +489,54 @@ async def test_ai_failure_does_not_block_capture_save(mode, tmp_path: Path, monk
     assert result["ok"] is True
     assert result["duplicate"] is False
     assert result["hermes_success"] is False
+    assert result["ai_status"] == "failed"
     assert result["hermes_error"] == f"{mode} organizer unavailable"
     assert result["saved_images"] == 1
     assert page.is_file()
     assert "图片之前" in rendered
     assert "图片之后" in rendered
     assert "data:image/png;base64," in rendered
+    assert "AI 总结未完成" in rendered
+    assert "网页正文与图片已正常保存。" in rendered
+    assert "未生成摘要" not in rendered
+    assert "<h3>核心观点</h3><p class=\"empty\">暂无</p>" not in rendered
+
+
+@pytest.mark.parametrize(
+    "variant",
+    ["standard", "bilibili-opus", "feishu-document", "xiaohongshu-note"],
+)
+def test_ai_failure_is_explicit_in_every_web_renderer(variant):
+    captured = article(mode="quick", page_variant=variant)
+    rendered = render_page(
+        captured,
+        None,
+        "<p>正文</p>",
+        "abc",
+        "阅读记录/待整理",
+        [],
+        "provider offline",
+    )
+
+    assert "AI 总结未完成" in rendered
+    assert "网页正文与图片已正常保存。" in rendered
+    assert "provider offline" in rendered
+
+
+def test_original_mode_ignores_ai_error_panel_in_every_web_renderer():
+    for variant in ("standard", "bilibili-opus", "feishu-document", "xiaohongshu-note"):
+        captured = article(mode="original", page_variant=variant)
+        rendered = render_page(
+            captured,
+            None,
+            "<p>正文</p>",
+            "abc",
+            "阅读记录/待整理",
+            [],
+            "should not appear",
+        )
+        assert "AI 总结未完成" not in rendered
+        assert "should not appear" not in rendered
 
 
 

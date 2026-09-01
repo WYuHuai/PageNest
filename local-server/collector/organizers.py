@@ -76,7 +76,7 @@ def prompt_for(article: ArticleInput, images: list[dict]) -> str:
     image_context = [{k: v for k, v in image.items() if k != "data_url"} for image in images]
     return json.dumps({
         "task": "整理这篇网页文章并按指定 JSON 结构返回",
-        "title": article.title, "url": article.url, "user_note": article.user_note,
+        "title": article.title, "url": article.url,
         "article_text": clipped, "image_context": image_context,
         "required_keys": list(HermesResult.model_fields) if article.mode == "deep" else QUICK_RESULT_KEYS,
     }, ensure_ascii=False)

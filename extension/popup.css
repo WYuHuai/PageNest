@@ -29,8 +29,7 @@ body {
 
 button,
 input,
-select,
-textarea {
+select {
   font: inherit;
 }
 
@@ -362,8 +361,7 @@ h1 {
 }
 
 select,
-input,
-textarea {
+input {
   width: 100%;
   margin-top: 5px;
   border: 1px solid transparent;
@@ -380,15 +378,8 @@ input {
   padding: 0 12px;
 }
 
-textarea {
-  min-height: 56px;
-  padding: 9px 12px;
-  resize: none;
-}
-
 select:focus,
-input:focus,
-textarea:focus {
+input:focus {
   border-color: #8ea2ff;
   box-shadow: 0 0 0 3px rgba(30, 69, 251, .09);
 }

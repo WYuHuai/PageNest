@@ -391,7 +391,9 @@ def test_page_template_is_offline_and_polished():
     assert "default-src 'none'" in rendered
     assert '离线网页收藏' in rendered and 'Hermes 离线网页收藏' not in rendered
     assert '机器人教程' in rendered and '完整摘要' in rendered and '#机器人' in rendered
-    assert '我的收藏备注' in rendered and '用于机器人项目的设计参考' in rendered
+    assert '我的收藏备注' not in rendered
+    assert '用于机器人项目的设计参考' not in rendered
+    assert 'data-pagenest-role="note"' not in rendered
     assert '与现有项目的关系' not in rendered
     assert '后续行动' not in rendered
 
@@ -415,7 +417,7 @@ def test_feishu_template_restores_title_and_labels():
     assert "\u2060" not in rendered and "\u200b" not in rendered and "\u202c" not in rendered
     assert '<h1 class="doc-document-title">DIY\u6559\u7a0b - \u98de\u4e66\u4e91\u6587\u6863</h1>' in rendered
     assert "\u79bb\u7ebf\u5355\u6587\u4ef6" in rendered
-    assert "\u6211\u7684\u6536\u85cf\u5907\u6ce8" in rendered
+    assert "\u6211\u7684\u6536\u85cf\u5907\u6ce8" not in rendered
     assert "????????" not in rendered
 
 
@@ -537,6 +539,23 @@ def test_original_mode_ignores_ai_error_panel_in_every_web_renderer():
         )
         assert "AI 总结未完成" not in rendered
         assert "should not appear" not in rendered
+
+
+def test_legacy_user_note_payload_still_validates_but_new_renderers_ignore_it():
+    captured = article(user_note="旧客户端备注")
+    assert captured.user_note == "旧客户端备注"
+    for variant in ("standard", "bilibili-opus", "feishu-document", "xiaohongshu-note"):
+        rendered = render_page(
+            captured.model_copy(update={"page_variant": variant}),
+            None,
+            "<p>正文</p>",
+            "abc",
+            "阅读记录/待整理",
+            [],
+        )
+        assert "旧客户端备注" not in rendered
+        assert "收藏备注" not in rendered
+        assert 'data-pagenest-role="note"' not in rendered
 
 
 
@@ -899,7 +918,8 @@ def test_bilibili_opus_uses_dedicated_offline_layout():
     assert 'class="bili-logo">bilibili' in rendered
     assert 'data-hermes-kind="opus-card"' in rendered
     assert 'hermes-capture-version" content="7"' in rendered
-    assert "我的收藏备注" in rendered and "稍后阅读" in rendered
+    assert "我的收藏备注" not in rendered and "稍后阅读" not in rendered
+    assert 'data-pagenest-role="note"' not in rendered
     assert "正文内容" in rendered and PNG in rendered
     assert 'class="hero"' not in rendered
 

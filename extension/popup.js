@@ -471,7 +471,6 @@ $("save").onclick=async()=>{
     const update=()=>{$("progress").textContent=t("savingElapsed",String(Math.floor((Date.now()-started)/1000)))};
     update();
     timer=setInterval(update,1000);
-    article.user_note=$("note").value;
     article.mode=$("mode").value;
     article.category=$("category").value;
     await preflightAiMode(article);

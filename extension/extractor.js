@@ -69,7 +69,6 @@ async function buildCapture(adapter, context) {
     source_name: sourceInfo.source_name || "",
     language: document.documentElement.lang || "",
     selected_text: getSelection()?.toString().trim() || "",
-    user_note: "",
     article_html: clone.outerHTML,
     article_text: articleText,
     document_styles: sourceInfo.source_kind === "local-html" ? String(found.document_styles || "") : "",

@@ -88,7 +88,6 @@ def _render_bilibili_opus_page(
     embedded = len([item for item in images if "filename" in item])
     metadata = _document_metadata(article, article.title, digest, category, embedded, result)
     metadata_json = json.dumps(metadata, ensure_ascii=False).replace("</", "<\\/")
-    note = html.escape(article.user_note.strip() or "未填写收藏备注。")
     ai_panel = ""
     if result:
         ai_panel = f'''<section class="collector-card" data-pagenest-role="summary">
@@ -135,7 +134,6 @@ body{{background:radial-gradient(circle at 12% 28%,rgba(255,255,255,.82),transpa
 <header class="bili-topbar"><div class="bili-logo">bilibili</div><nav class="bili-nav"><span>首页</span><span>番剧</span><span>直播</span><span>游戏中心</span><span>会员购</span><span>漫画</span><span>赛事</span></nav><div class="bili-search">搜索</div><div class="bili-login">登录</div></header>
 <main class="bili-layout">
   <article class="bili-card"><div class="article-body" data-pagenest-role="content">{content}</div></article>
-  <section class="collector-card"><h2>我的收藏备注</h2><p data-pagenest-role="note">{note}</p></section>
   {ai_panel}
   <footer class="bili-footer">离线保存于 {html.escape(article.captured_at)} · {embedded} 张图片已内嵌 · <a href="{html.escape(article.url, quote=True)}">查看原始 B 站笔记</a></footer>
 </main>
@@ -157,7 +155,6 @@ def _render_feishu_document_page(
     visible_title = _clean_text(article.title) or "未命名文档"
     metadata = _document_metadata(article, visible_title, digest, category, embedded, result)
     metadata_json = json.dumps(metadata, ensure_ascii=False).replace("</", "<\\/")
-    note = html.escape(article.user_note.strip() or "未填写收藏备注。")
     ai_summary = ""
     if result:
         ai_summary = f'<section class="collector" data-pagenest-role="summary"><h2>AI 整理</h2><p>{html.escape(result.abstract or result.one_sentence_summary or "未生成摘要。")}</p></section>'
@@ -200,7 +197,6 @@ def _render_feishu_document_page(
 <main class="doc-page">
   <h1 class="doc-document-title">{html.escape(visible_title)}</h1>
   <div class="doc-body" data-pagenest-role="content">{content}</div>
-  <section class="collector"><h2>我的收藏备注</h2><p data-pagenest-role="note">{note}</p></section>
   {ai_summary}
   <footer class="doc-footer">离线保存于 {html.escape(article.captured_at)} · <a href="{html.escape(article.url, quote=True)}">查看原始飞书文档</a></footer>
 </main>
@@ -242,7 +238,6 @@ def _render_xiaohongshu_note_page(
     title = _clean_text(article.title) or "小红书笔记"
     metadata = _document_metadata(article, title, digest, category, embedded, result)
     metadata_json = json.dumps(metadata, ensure_ascii=False).replace("</", "<\\/")
-    note = html.escape(article.user_note.strip() or "未填写收藏备注。")
     summary = html.escape(result.abstract or result.one_sentence_summary) if result else ""
     ai_summary = (
         f'<p data-pagenest-role="summary"><strong>AI 整理：</strong>{summary}</p>'
@@ -269,7 +264,7 @@ def _render_xiaohongshu_note_page(
 <body>
 <main class="xhs-shell">
   <article class="xhs-card">{content}{comments}</article>
-  <section class="xhs-meta"><strong>我的收藏备注</strong><p data-pagenest-role="note">{note}</p>{ai_summary}</section>
+  {f'<section class="xhs-meta">{ai_summary}</section>' if ai_summary else ''}
   <footer class="xhs-footer">离线保存于 {html.escape(article.captured_at)} · 已内嵌 {embedded} 张图片 · <a href="{html.escape(article.url, quote=True)}">查看原网页</a></footer>
 </main>
 {COPY_SCRIPT}
@@ -338,8 +333,6 @@ h1{{font-size:clamp(32px,5vw,58px);line-height:1.18;letter-spacing:-.035em;margi
 .meta{{display:flex;flex-wrap:wrap;gap:9px;margin-top:28px}}.pill,.tag{{font:600 13px/1.2 ui-sans-serif,system-ui;padding:8px 11px;border-radius:999px;background:var(--accent-soft);color:var(--accent)}}
 .panel{{margin-top:18px;padding:28px clamp(22px,4vw,42px);border-radius:18px}}
 .panel h2,.article>h2{{font:700 22px/1.3 ui-sans-serif,system-ui;margin:0 0 16px}}
-.saved-note{{margin:0;padding:18px 20px;border-left:4px solid var(--accent);border-radius:0 12px 12px 0;background:var(--accent-soft);white-space:pre-wrap}}
-.saved-note.empty{{color:var(--muted);font-style:italic}}
 .summary-grid{{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}}.summary-card{{padding:20px;border-radius:14px;background:var(--paper);border:1px solid var(--line)}}.summary-card.wide{{grid-column:1/-1}}
 .summary-card h3{{font:700 13px/1.2 ui-sans-serif,system-ui;color:var(--muted);margin:0 0 10px;text-transform:uppercase;letter-spacing:.08em}}
 .summary-card p{{margin:0}}ul{{padding-left:1.25em;margin:8px 0}}li{{margin:.45em 0}}.empty{{color:var(--muted)}}
@@ -374,10 +367,6 @@ a{{color:var(--accent);text-decoration-thickness:.08em;text-underline-offset:.18
     <div class="meta"><span class="pill">{html.escape(category)}</span><span class="pill">{html.escape(source_label)}</span><span class="pill">{html.escape(image_status)}</span><span class="pill">完全离线</span></div>
     <div class="tags">{tags}</div>
   </header>
-  <section class="panel">
-    <h2>我的收藏备注</h2>
-    <p class="saved-note{' empty' if not article.user_note.strip() else ''}" data-pagenest-role="note">{html.escape(article.user_note.strip() or "未填写收藏备注。")}</p>
-  </section>
   {ai_panel}
   <article class="article">
     <h2>网页正文</h2>

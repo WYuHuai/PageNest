@@ -133,7 +133,8 @@ async def save_images(article: ArticleInput, assets: Path) -> tuple[list[dict], 
                 with Image.open(BytesIO(body)) as image:
                     width, height = image.size
                     detected_format = image.format or ""
-                if width < 80 and height < 80:
+                minimum_size = 12 if article.page_variant == "wechat-article" else 80
+                if width < minimum_size and height < minimum_size:
                     continue
             except Exception:
                 if not mime.startswith("image/"):

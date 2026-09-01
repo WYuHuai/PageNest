@@ -187,7 +187,10 @@ globalThis.HermesExtractorCore = (() => {
       }
     }
   }
-  function collectImages(root, positionPrefix = "") {
+  function collectImages(root, positionPrefix = "", options = {}) {
+    const minimumImageSize = Number.isFinite(options.minimumImageSize)
+      ? Math.max(0, options.minimumImageSize)
+      : 50;
     const images = [];
     [...root.querySelectorAll("img")].forEach((img, order) => {
       const url = resolveImage(img, location.href);
@@ -195,7 +198,7 @@ globalThis.HermesExtractorCore = (() => {
       const rect = img.getBoundingClientRect();
       const width = Math.max(img.naturalWidth || 0, Math.round(rect.width));
       const height = Math.max(img.naturalHeight || 0, Math.round(rect.height));
-      if (width > 0 && height > 0 && width < 50 && height < 50) return;
+      if (width > 0 && height > 0 && width < minimumImageSize && height < minimumImageSize) return;
       const figure = img.closest("figure");
       const position_id = markImagePosition(
         img,

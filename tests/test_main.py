@@ -64,6 +64,7 @@ def test_meta_reports_explicit_service_capabilities(monkeypatch):
             "bilibili-opus",
             "feishu-document",
             "xiaohongshu-note",
+            "wechat-article",
         ],
         "capabilities": ["vault-selection", "search-index-v1", "video-notebook-v1"],
     }

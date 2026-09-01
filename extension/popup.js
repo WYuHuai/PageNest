@@ -129,6 +129,7 @@ function inlineImagePolicy(capture) {
   const hostname = new URL(capture.url || location.href).hostname;
   if (capture.source_kind === "local-html") return {maxImages: 40, maxBytes: 80 * 1024 * 1024};
   if (capture.page_variant === "feishu-document") return {maxImages: 200, maxBytes: 160 * 1024 * 1024};
+  if (hostname === "mp.weixin.qq.com") return {maxImages: 120, maxBytes: 120 * 1024 * 1024};
   if (/(^|\.)xiaohongshu\.com$/i.test(hostname)) return {maxImages: 40, maxBytes: 80 * 1024 * 1024};
   return null;
 }

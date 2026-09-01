@@ -116,12 +116,26 @@ def _safe_value(property_name: str, value: str) -> bool:
     return True
 
 
-def sanitize_inline_style(source: str) -> str:
+def _safe_positioning(property_name: str, value: str) -> bool:
+    if property_name == "position":
+        normalized = re.sub(r"\s*!important\s*$", "", value, flags=re.IGNORECASE).strip().lower()
+        return normalized in {"static", "relative"}
+    return property_name not in {
+        "bottom", "inset", "left", "right", "top", "transform",
+        "transform-origin", "z-index",
+    }
+
+
+def sanitize_inline_style(source: str, *, allow_positioning: bool = True) -> str:
     declarations: list[str] = []
     for part in _split_top_level(_strip_comments(str(source or "")), ";"):
         name, value = _declaration_parts(part)
         normalized = name if name.startswith("--") else name.lower()
-        if _safe_property(normalized) and _safe_value(normalized, value):
+        if (
+            _safe_property(normalized)
+            and _safe_value(normalized, value)
+            and (allow_positioning or _safe_positioning(normalized, value))
+        ):
             declarations.append(f"{normalized}:{value}")
     return ";".join(declarations)
 

@@ -272,6 +272,61 @@ def _render_xiaohongshu_note_page(
 </body>
 </html>'''
 
+
+def _render_wechat_article_page(
+    article: ArticleInput,
+    result: HermesResult | None,
+    content: str,
+    digest: str,
+    category: str,
+    images: list[dict],
+    error: str,
+) -> str:
+    embedded = len([item for item in images if "filename" in item])
+    title = result.normalized_title or article.title if result else article.title
+    metadata = _document_metadata(article, title, digest, category, embedded, result)
+    metadata_json = json.dumps(metadata, ensure_ascii=False).replace("</", "<\\/")
+    ai_panel = ""
+    if result:
+        ai_panel = f'''<section class="wechat-ai" data-pagenest-role="summary">
+          <h2>AI 整理</h2>
+          <p>{html.escape(result.abstract or result.one_sentence_summary)}</p>
+          {_items(result.key_points)}
+        </section>'''
+    elif article.mode != "original":
+        ai_panel = f'<section class="wechat-ai muted">{_ai_failure_body(error)}</section>'
+    return f'''<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; img-src data:; media-src data:; style-src 'unsafe-inline'; script-src 'nonce-hermes-offline'; base-uri 'none'; form-action 'none'">
+{_render_system_metadata(article, digest, category, embedded)}
+<title>{html.escape(title)}</title>
+<style>
+:root{{--ink:#222;--muted:#7a7f87;--line:#e7e7e7;--paper:#fff;--shell:#f3f4f5;--wechat:#07c160}}
+*{{box-sizing:border-box}}body{{margin:0;background:var(--shell);color:var(--ink);font:17px/1.75 -apple-system,BlinkMacSystemFont,"Segoe UI","Microsoft YaHei",sans-serif}}
+.wechat-shell{{width:min(780px,100%);margin:0 auto;padding:24px 18px 64px;background:var(--paper);min-height:100vh}}
+.wechat-article{{overflow-wrap:anywhere}}.wechat-article .rich_media_title,.wechat-article #activity-name{{margin:0 0 14px;font-size:30px;line-height:1.35;font-weight:700}}
+.wechat-article .rich_media_meta_list{{display:flex;align-items:center;flex-wrap:wrap;gap:8px 14px;margin:0 0 28px;color:var(--muted);font-size:14px}}
+.wechat-article img{{max-width:100%;height:auto;vertical-align:middle}}.wechat-article table{{max-width:100%;border-collapse:collapse}}.wechat-article pre{{max-width:100%;overflow:auto}}
+.wechat-ai{{margin:30px 0 0;padding:20px 22px;border:1px solid var(--line);border-left:4px solid var(--wechat);border-radius:10px;background:#fbfffc}}.wechat-ai h2{{margin:0 0 8px;font-size:18px}}.wechat-ai p{{margin:0;white-space:pre-wrap}}.wechat-ai.muted{{color:var(--muted)}}
+.wechat-footer{{margin-top:34px;padding-top:18px;border-top:1px solid var(--line);color:var(--muted);font-size:13px;text-align:center}}.wechat-footer a{{color:#576b95}}
+{CODE_BLOCK_CSS}
+@media(max-width:600px){{.wechat-shell{{padding:18px 16px 50px}}.wechat-article .rich_media_title,.wechat-article #activity-name{{font-size:26px}}}}
+</style>
+</head>
+<body>
+<main class="wechat-shell">
+  <article class="wechat-article" data-pagenest-role="content">{content}</article>
+  {ai_panel}
+  <footer class="wechat-footer">离线保存于 {html.escape(article.captured_at)} · 已内嵌 {embedded} 张图片 · <a href="{html.escape(article.url, quote=True)}">查看原始微信文章</a></footer>
+</main>
+{COPY_SCRIPT}
+<script type="application/json" id="hermes-metadata">{metadata_json}</script>
+</body>
+</html>'''
+
 def render_page(article: ArticleInput, result: HermesResult | None, content: str, digest: str, category: str, images: list[dict], error: str = "") -> str:
     if article.page_variant == "bilibili-opus":
         return _render_bilibili_opus_page(article, result, content, digest, category, images, error)
@@ -279,6 +334,8 @@ def render_page(article: ArticleInput, result: HermesResult | None, content: str
         return _render_feishu_document_page(article, result, content, digest, category, images, error)
     if article.page_variant == "xiaohongshu-note":
         return _render_xiaohongshu_note_page(article, result, content, digest, category, images, error)
+    if article.page_variant == "wechat-article":
+        return _render_wechat_article_page(article, result, content, digest, category, images, error)
     title = result.normalized_title or article.title if result else article.title
     embedded = len([item for item in images if "filename" in item])
     failed = len([item for item in images if "error" in item])

@@ -201,10 +201,15 @@ async def _collect(article: ArticleInput) -> dict:
         localized_html, removed_placeholders = prune_invalid_images(localized_html)
         image_placement["removed_placeholders"] = removed_placeholders
         localized_html, media_placement = place_media(localized_html, saved_media)
+        preserve_visual_styles = (
+            article.source_kind == "local-html"
+            or article.page_variant == "wechat-article"
+        )
         content = sanitize_content(
             localized_html,
             article.article_text or article.selected_text,
-            preserve_visual_styles=article.source_kind == "local-html",
+            preserve_visual_styles=preserve_visual_styles,
+            restrict_positioning_styles=article.page_variant == "wechat-article",
         )
 
         if quick_task:

@@ -170,6 +170,7 @@ def sanitize_content(
     fallback_text: str = "",
     *,
     preserve_visual_styles: bool = False,
+    restrict_positioning_styles: bool = False,
 ) -> str:
     """Keep readable article structure while removing active or remote content."""
     soup = BeautifulSoup(source_html or "", "html.parser")
@@ -230,7 +231,10 @@ def sanitize_content(
                     del tag.attrs[attribute]
                 continue
             if preserve_visual_styles and attribute == "style":
-                style = sanitize_inline_style(str(tag.get("style", "")))
+                style = sanitize_inline_style(
+                    str(tag.get("style", "")),
+                    allow_positioning=not restrict_positioning_styles,
+                )
                 if style:
                     tag["style"] = style
                 else:

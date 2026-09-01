@@ -506,7 +506,7 @@ async def test_ai_failure_does_not_block_capture_save(mode, tmp_path: Path, monk
 
 @pytest.mark.parametrize(
     "variant",
-    ["standard", "bilibili-opus", "feishu-document", "xiaohongshu-note"],
+    ["standard", "bilibili-opus", "feishu-document", "xiaohongshu-note", "wechat-article"],
 )
 def test_ai_failure_is_explicit_in_every_web_renderer(variant):
     captured = article(mode="quick", page_variant=variant)
@@ -526,7 +526,7 @@ def test_ai_failure_is_explicit_in_every_web_renderer(variant):
 
 
 def test_original_mode_ignores_ai_error_panel_in_every_web_renderer():
-    for variant in ("standard", "bilibili-opus", "feishu-document", "xiaohongshu-note"):
+    for variant in ("standard", "bilibili-opus", "feishu-document", "xiaohongshu-note", "wechat-article"):
         captured = article(mode="original", page_variant=variant)
         rendered = render_page(
             captured,
@@ -544,7 +544,7 @@ def test_original_mode_ignores_ai_error_panel_in_every_web_renderer():
 def test_legacy_user_note_payload_still_validates_but_new_renderers_ignore_it():
     captured = article(user_note="旧客户端备注")
     assert captured.user_note == "旧客户端备注"
-    for variant in ("standard", "bilibili-opus", "feishu-document", "xiaohongshu-note"):
+    for variant in ("standard", "bilibili-opus", "feishu-document", "xiaohongshu-note", "wechat-article"):
         rendered = render_page(
             captured.model_copy(update={"page_variant": variant}),
             None,

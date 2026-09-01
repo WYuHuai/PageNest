@@ -23,7 +23,7 @@ def article(variant: str) -> ArticleInput:
 
 @pytest.mark.parametrize(
     "variant",
-    ["standard", "bilibili-opus", "feishu-document", "xiaohongshu-note"],
+    ["standard", "bilibili-opus", "feishu-document", "xiaohongshu-note", "wechat-article"],
 )
 def test_every_renderer_emits_the_pagenest_contract(variant: str):
     rendered = render_page(article(variant), None, "<p>contract body</p>", "contract-hash", "阅读记录", [])

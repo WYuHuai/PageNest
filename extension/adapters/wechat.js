@@ -59,13 +59,16 @@ function normalizeOrdinaryNestedHeadings(clone, context) {
   const sourceRoot = context.sourceElement;
   const articleRoot = sourceRoot?.matches?.("#js_content")
     ? sourceRoot
-    : sourceRoot?.closest?.("#js_content");
-  if (!sourceRoot || !articleRoot || !articleRoot.contains(sourceRoot)) return;
+    : sourceRoot?.querySelector?.("#js_content");
+  const cloneRoot = clone?.matches?.("#js_content")
+    ? clone
+    : clone?.querySelector?.("#js_content");
+  if (!sourceRoot || !articleRoot || !cloneRoot) return;
 
   const getComputedStyle = context.document?.defaultView?.getComputedStyle?.bind(context.document.defaultView);
   if (!getComputedStyle) return;
-  const sourceHeadings = [...sourceRoot.querySelectorAll(WECHAT_HEADING_SELECTOR)];
-  const cloneHeadings = [...clone.querySelectorAll(WECHAT_HEADING_SELECTOR)];
+  const sourceHeadings = [...articleRoot.querySelectorAll(WECHAT_HEADING_SELECTOR)];
+  const cloneHeadings = [...cloneRoot.querySelectorAll(WECHAT_HEADING_SELECTOR)];
   if (sourceHeadings.length !== cloneHeadings.length) return;
 
   let articleStyle;
@@ -74,7 +77,7 @@ function normalizeOrdinaryNestedHeadings(clone, context) {
   } catch (_) {
     return;
   }
-  const groups = invalidHeadingGroups(sourceRoot, sourceHeadings);
+  const groups = invalidHeadingGroups(articleRoot, sourceHeadings);
   const normalize = new Set();
   for (const group of groups) {
     try {
@@ -90,21 +93,58 @@ function normalizeOrdinaryNestedHeadings(clone, context) {
     .forEach(index => replaceHeadingWithDiv(cloneHeadings[index]));
 }
 
+const WECHAT_NON_ARTICLE_SELECTORS = [
+  "#js_pc_qr_code",
+  "#js_tags",
+  ".rich_media_tool",
+  ".rich_media_extra",
+  ".qr_code_pc",
+  ".reward_area",
+  ".comment_area",
+  "[class*='share']",
+  "[class*='recommend']",
+  "[class*='advertisement']",
+];
+
+function textOf(root, selector) {
+  return String(root?.querySelector?.(selector)?.textContent || "").trim();
+}
+
+function transformWechatArticle(clone, context) {
+  normalizeOrdinaryNestedHeadings(clone, context);
+  for (const selector of WECHAT_NON_ARTICLE_SELECTORS) {
+    clone.querySelectorAll?.(selector).forEach(element => element.remove());
+  }
+}
+
 HermesAdapters.register({
   name: "wechat",
-  detect: ({location}) => /(^|\.)(weixin\.qq\.com|wechat\.com)$/.test(location.hostname),
+  specialized: true,
+  detect: ({location}) => String(location.hostname || "").toLowerCase() === "mp.weixin.qq.com",
   extract: async ({document}) => {
-    for (const selector of ["#js_content", ".rich_media_content", ".rich_media_area_primary"]) {
-      const element = document.querySelector(selector);
-      if (PageNestContentQuality.isReadableArticle(element?.innerText || element?.textContent)) {
-        return {element, method: `wechat:${selector}`};
-      }
-    }
-    return null;
+    const content = document.querySelector("#js_content") || document.querySelector(".rich_media_content");
+    if (!PageNestContentQuality.isReadableArticle(content?.innerText || content?.textContent)) return null;
+    const element = content.closest?.(".rich_media_area_primary")
+      || document.querySelector(".rich_media_area_primary")
+      || content;
+    return {
+      element,
+      title: textOf(element, "#activity-name"),
+      author: textOf(element, "#js_name") || textOf(element, ".rich_media_meta_text"),
+      published_at: textOf(element, "#publish_time"),
+      site_name: "微信公众号",
+      page_variant: "wechat-article",
+      images: HermesExtractorCore.collectImages(element, "", {minimumImageSize: 12}),
+      method: "wechat:article-root",
+    };
   },
-  transformClone: normalizeOrdinaryNestedHeadings,
+  transformClone: transformWechatArticle,
   validate: result => Boolean(
     result?.element
-    && PageNestContentQuality.isReadableArticle(result.element.innerText || result.element.textContent),
+    && PageNestContentQuality.isReadableArticle(
+      result.element.querySelector?.("#js_content")?.innerText
+      || result.element.innerText
+      || result.element.textContent,
+    ),
   ),
 });

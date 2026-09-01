@@ -210,8 +210,8 @@ function storage(initial){
   assert.match(popupHtml,/class="tab-slider"/);
   assert.match(popupHtml,/id="tabBar"[^>]*data-active="save"/);
   assert.equal((popupHtml.match(/class="mode-guide"/g)||[]).length,1);
-  assert.match(popupHtml,/网页 \+ AI 文字总结/);
-  assert.match(popupHtml,/网页 \+ AI 图文总结/);
+  assert.match(popupHtml,/较慢 · 完整保存网页，并调用 AI 阅读正文生成总结/);
+  assert.match(popupHtml,/最慢 · 完整保存网页，并调用 AI 阅读正文和图片/);
   assert.ok(popupHtml.indexOf("保存位置")<popupHtml.indexOf('id="serviceStatus"'));
   assert.match(popupJs,/function showView\(name\)/);
   assert.match(popupJs,/\$\("tabBar"\)\.dataset\.active=name/);

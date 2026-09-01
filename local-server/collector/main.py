@@ -59,6 +59,7 @@ SUPPORTED_PAGE_VARIANTS = (
     "bilibili-opus",
     "feishu-document",
     "xiaohongshu-note",
+    "wechat-article",
 )
 SERVICE_CAPABILITIES = ("vault-selection", "search-index-v1", "video-notebook-v1")
 

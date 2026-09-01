@@ -1,6 +1,6 @@
 # Certification reviewer notes
 
-Use the complete v1.10.1 reviewer copy in
+Use the complete v1.10.2 reviewer copy in
 [`store-assets/edge/reviewer-notes.md`](../store-assets/edge/reviewer-notes.md).
 
 The shortest test follows the fresh-install Welcome page, downloads

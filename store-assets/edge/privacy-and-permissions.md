@@ -17,14 +17,14 @@ user's Obsidian Vault.
 | Loopback host access | Communicates with the user's locally installed, token-protected PageNest Service on `127.0.0.1`/`localhost`. The installer selects the first available supported port. |
 | `<all_urls>` | Allows user-invoked capture on ordinary websites and permits reading page resources needed for a self-contained note, including signed cross-origin images on supported sites. It is not used to collect browsing history. |
 
-The permission set did not increase in v1.10.1. PageNest does not request
+The permission set did not increase in v1.10.2. PageNest does not request
 `tabCapture` or `offscreen` permission. Video Notebook uses a direct
 `HTMLVideoElement` frame only after the user presses its shortcut.
 
 ## Data and privacy
 
 The extension handles the URL, title, visible article content, images, links,
-supported media metadata, and optional note from the page the user explicitly
+and supported media metadata from the page the user explicitly
 captures. It does not export browser cookies or passwords, collect broad
 browsing history, run advertising or analytics, or send data to PageNest-owned
 cloud infrastructure.

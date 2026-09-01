@@ -1,6 +1,6 @@
 # PageNest Microsoft Edge Add-ons submission kit
 
-The public v1.10.1 extension package supports Simplified Chinese (`zh_CN`, the
+The public v1.10.2 extension package supports Simplified Chinese (`zh_CN`, the
 default locale) and English (`en`). Full listing copy, five 1280×800 screenshots,
 permission answers, reviewer notes, and the Partner Center checklist live under
 `store-assets/edge/`.
@@ -11,9 +11,9 @@ Build the final kit after all release files are tracked:
 python scripts/package_store.py
 ```
 
-Output: `release/store-v1.10.1/`.
+Output: `release/store-v1.10.2/`.
 
-- Upload only `pagenest-web-store-v1.10.1.zip` as the extension package.
+- Upload only `pagenest-web-store-v1.10.2.zip` as the extension package.
 - Use `PARTNER_CENTER_CHECKLIST.md` for listing metadata and image uploads.
 - The Update API can upload/publish the package but cannot change listing
   languages, descriptions, search terms, screenshots, or promotional assets.

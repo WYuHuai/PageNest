@@ -5,8 +5,8 @@ not need to be identical.
 
 | Component | Current version | Compatibility |
 | --- | --- | --- |
-| Edge/Chrome extension | 1.10.1 | Local service 1.10.x |
-| Windows local service | 1.10.1 | Extension 1.10.x |
+| Edge/Chrome extension | 1.10.2 | Local service 1.10.x |
+| Windows local service | 1.10.2 | Extension 1.10.x |
 | PageNest Viewer | 1.5.0 | `.pagenest` format 1.x, legacy `.hermes`, Obsidian 1.5.0+ |
 
 The extension and local service exchange a capture payload, so their major and

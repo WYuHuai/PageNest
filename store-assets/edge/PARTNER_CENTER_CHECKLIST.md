@@ -26,5 +26,5 @@ steps in Partner Center after the final package passes certification checks.
 9. Save the listing, review every language preview, then choose **Publish**.
 
 Before publishing, confirm the uploaded package is exactly
-`pagenest-web-store-v1.10.1.zip` from the final store kit and that its SHA-256
+`pagenest-web-store-v1.10.2.zip` from the final store kit and that its SHA-256
 matches the kit's `SHA256SUMS.txt`.

@@ -21,7 +21,7 @@
           getMessage: key => messages[key]?.message || "",
           getUILanguage: () => "zh-CN",
         },
-        runtime: {getManifest: () => ({version: "1.10.1"})},
+        runtime: {getManifest: () => ({version: "1.10.2"})},
       };
       frame.PageNestI18n.localizeDocument(frame.document);
       const state = new URL(location.href).searchParams.get("state") || "missing";

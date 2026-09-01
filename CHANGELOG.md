@@ -4,6 +4,30 @@ All notable user-facing changes are recorded here.
 
 ## Unreleased
 
+## 1.10.2 - 2026-09-01
+
+### Added
+
+- Generate structured knowledge notes for user-invoked Video Notebook frames,
+  including content summaries, key knowledge, visible details, and bounded
+  insufficient-context guidance.
+- Add a narrowly scoped `wechat-article` capture and rendering path.
+
+### Improved
+
+- Accept more safe real-provider structured response variants while continuing
+  to reject arrays, prose wrappers, extra fields, and wrong field types.
+- Bound Web Capture AI work to at most two provider requests and clearly report
+  failure without discarding the captured webpage.
+- Preserve safe WeChat article layout, color, border, background, flex/grid,
+  inline emoji, and small-image details more faithfully.
+- Clarify the relative speed and AI behavior of all three save modes.
+
+### Removed
+
+- Remove collection notes from new Web Capture UI, payloads, and rendered pages
+  while retaining the deprecated protocol field for older extension clients.
+
 ## 1.10.1 - 2026-08-25
 
 ### Added

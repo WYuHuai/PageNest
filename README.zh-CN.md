@@ -4,7 +4,7 @@
 <p align="center">把网页保存为一个自包含的 <code>.pagenest</code> 文件，再用专属网页模式 Viewer 直接在 Obsidian 里打开。</p>
 
 <p align="center">
-  <a href="https://github.com/WYuHuai/PageNest/releases/tag/v1.10.1"><img alt="PageNest v1.10.1" src="https://img.shields.io/badge/release-v1.10.1-1E45FB"></a>
+  <a href="https://github.com/WYuHuai/PageNest/releases/tag/v1.10.2"><img alt="PageNest v1.10.2" src="https://img.shields.io/badge/release-v1.10.2-1E45FB"></a>
   <a href="https://github.com/WYuHuai/PageNest/actions/workflows/ci.yml"><img alt="CI" src="https://github.com/WYuHuai/PageNest/actions/workflows/ci.yml/badge.svg"></a>
   <img alt="Windows 验证状态" src="https://img.shields.io/badge/Windows-11%20干净安装已验证%20%7C%2010%20尚未完整验证-0078D4?logo=windows">
   <img alt="Edge 和 Chrome" src="https://img.shields.io/badge/浏览器-Edge%20%7C%20Chrome-4285F4">
@@ -85,7 +85,7 @@ PageNest 不承诺对所有网站逐像素复刻。它的目标是保留更多�
 
 ### 1. 安装 Edge 扩展
 
-从 Microsoft Edge Add-ons 安装 PageNest，然后第一次打开扩展。
+从 [Microsoft Edge Add-ons](https://microsoftedge.microsoft.com/addons/detail/lbefpoljnlieecogeihhdmgnmjmjkmmd) 安装 PageNest，然后第一次打开扩展。商店版本会在 Microsoft 认证完成后自动更新。
 
 ### 2. 跟随首次使用引导
 
@@ -102,14 +102,14 @@ PageNest 不承诺对所有网站逐像素复刻。它的目标是保留更多�
 安装器目前没有 Authenticode 签名，Windows SmartScreen 可能显示**未知发布者**。
 PageNest 不要求关闭 Microsoft Defender。
 
-### 2. 加载浏览器扩展
+### 可选：手动加载浏览器扩展
 
-Edge 扩展商店版本正式上线前：
+仅在需要立即使用尚未完成商店认证的 GitHub 最新版、开发或故障恢复时采用。先从对应 GitHub Release 下载 Extension ZIP 并完整解压；Edge 不能直接加载 ZIP。
 
 1. 打开 `edge://extensions/`（Chrome 使用 `chrome://extensions/`）。
 2. 开启**开发人员模式**。
 3. 点击**加载解压缩的扩展**。
-4. 选择 `%LOCALAPPDATA%\Programs\PageNest\Extension`。
+4. 选择包含 `manifest.json` 的解压目录，或安装器提供的 `%LOCALAPPDATA%\Programs\PageNest\Extension` 恢复副本。
 
 ### 3. 启用 PageNest Viewer
 

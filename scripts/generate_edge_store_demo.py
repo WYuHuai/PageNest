@@ -34,7 +34,12 @@ def build_demo() -> Path:
                 video_timestamp_seconds=42,
                 image_data=image_data("promo-marquee-1400x560.png"),
                 title="课程开场：建立本地知识收藏",
-                summary="视觉 AI 识别到 PageNest 品牌开场画面，并将它记录为视频时间线的第一个关键节点。",
+                summary=(
+                    "内容摘要\n介绍 PageNest 的本地知识收藏定位。\n\n"
+                    "关键知识点\n• 网页与视频笔记保存到自己的 Vault\n"
+                    "• 视频截图按时间线组织\n\n"
+                    "画面关键信息\n• PageNest 品牌开场画面"
+                ),
                 analysis_status="complete",
             ),
             NotebookEntry(
@@ -46,7 +51,12 @@ def build_demo() -> Path:
                     ROOT / "store-assets" / "edge" / "screenshots",
                 ),
                 title="保存完整网页的操作演示",
-                summary="画面展示扩展完成正文识别后，用户选择保存模式、目标文件夹和收藏备注，然后写入自己的 Vault。",
+                summary=(
+                    "内容摘要\n画面展示新版扩展完成正文识别后，选择保存模式和目标文件夹。\n\n"
+                    "关键知识点\n• 网页模式不调用 AI\n"
+                    "• AI 模式失败时仍保留原网页\n\n"
+                    "画面关键信息\n• 三种模式显示清晰的相对耗时说明"
+                ),
                 analysis_status="complete",
             ),
             NotebookEntry(
@@ -55,7 +65,12 @@ def build_demo() -> Path:
                 video_timestamp_seconds=428,
                 image_data=image_data("01-popup-save.png"),
                 title="PageNest 网页收藏入口",
-                summary="扩展 Popup 已完成正文识别，用户可以选择保存模式、Vault 文件夹和可选备注，然后生成本地离线页面。",
+                summary=(
+                    "内容摘要\n扩展 Popup 已完成正文识别，用户可以选择保存模式和 Vault 文件夹。\n\n"
+                    "关键知识点\n• 新收藏不再包含收藏备注\n"
+                    "• 保存结果为本地单文件页面\n\n"
+                    "画面关键信息\n• PageNest 1.10.2 保存界面"
+                ),
                 analysis_status="complete",
             ),
         ],

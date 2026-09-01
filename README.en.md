@@ -4,7 +4,7 @@
 <p align="center">Save a webpage as one self-contained <code>.pagenest</code> file, then reopen it inside Obsidian with a dedicated web-style Viewer.</p>
 
 <p align="center">
-  <a href="https://github.com/WYuHuai/PageNest/releases/tag/v1.10.1"><img alt="PageNest v1.10.1" src="https://img.shields.io/badge/release-v1.10.1-1E45FB"></a>
+  <a href="https://github.com/WYuHuai/PageNest/releases/tag/v1.10.2"><img alt="PageNest v1.10.2" src="https://img.shields.io/badge/release-v1.10.2-1E45FB"></a>
   <a href="https://github.com/WYuHuai/PageNest/actions/workflows/ci.yml"><img alt="CI" src="https://github.com/WYuHuai/PageNest/actions/workflows/ci.yml/badge.svg"></a>
   <img alt="Windows validation" src="https://img.shields.io/badge/Windows-11%20clean%20install%20validated%20%7C%2010%20not%20fully%20validated-0078D4?logo=windows">
   <img alt="Edge and Chrome" src="https://img.shields.io/badge/Browser-Edge%20%7C%20Chrome-4285F4">
@@ -97,7 +97,7 @@ local, portable, and readable inside your vault.
 
 ### 1. Install the Edge extension
 
-Install PageNest from Microsoft Edge Add-ons, then open it once.
+Install PageNest from [Microsoft Edge Add-ons](https://microsoftedge.microsoft.com/addons/detail/lbefpoljnlieecogeihhdmgnmjmjkmmd), then open it once. The public store version updates automatically after Microsoft certification.
 
 ### 2. Follow the first-run guide
 
@@ -115,14 +115,17 @@ Fallback download: [`PageNest-Setup.exe`](https://github.com/WYuHuai/PageNest/re
 The installer is currently unsigned. Windows SmartScreen may display
 **Unknown publisher**; PageNest does not require disabling Microsoft Defender.
 
-### 2. Load the browser extension
+### Optional: manually load the browser extension
 
-Until the Edge Add-ons listing is published:
+Use this only when you need the newest GitHub version before its store update,
+or for development and recovery. Download the Extension ZIP from the matching
+GitHub Release and extract it first; Edge cannot load the ZIP directly.
 
 1. Open `edge://extensions/` (or `chrome://extensions/`).
 2. Enable **Developer mode**.
 3. Choose **Load unpacked**.
-4. Select `%LOCALAPPDATA%\Programs\PageNest\Extension`.
+4. Select the extracted extension folder containing `manifest.json`, or the
+   installer's `%LOCALAPPDATA%\Programs\PageNest\Extension` recovery copy.
 
 ### 3. Enable PageNest Viewer
 

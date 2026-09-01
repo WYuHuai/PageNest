@@ -4,7 +4,7 @@
 <p align="center">完整保存网页，在 B 站视频关键处截下画面，并按时间线整理到 Obsidian；AI 标题与摘要可选，原始内容始终优先保留。</p>
 
 <p align="center">
-  <a href="https://github.com/WYuHuai/PageNest/releases/tag/v1.10.1"><img alt="PageNest v1.10.1" src="https://img.shields.io/badge/release-v1.10.1-1E45FB"></a>
+  <a href="https://github.com/WYuHuai/PageNest/releases/tag/v1.10.2"><img alt="PageNest v1.10.2" src="https://img.shields.io/badge/release-v1.10.2-1E45FB"></a>
   <a href="https://github.com/WYuHuai/PageNest/actions/workflows/ci.yml"><img alt="CI" src="https://github.com/WYuHuai/PageNest/actions/workflows/ci.yml/badge.svg"></a>
   <img alt="Windows" src="https://img.shields.io/badge/Windows-11%20validated-0078D4?logo=windows">
   <img alt="Microsoft Edge" src="https://img.shields.io/badge/Browser-Microsoft%20Edge-0A84FF?logo=microsoftedge">
@@ -74,13 +74,13 @@ PageNest 是一款面向 Windows、Microsoft Edge 和 Obsidian 的本地优先�
 
 PageNest 的完整功能由 **Edge 扩展 + Windows 本地组件**共同提供。普通用户不需要理解端口、token 或内部服务。
 
-> **当前版本提示（截至 2026 年 8 月 26 日）：** Edge Add-ons 仍展示 PageNest `1.8.1`。`1.10.1` 更新正在审核，预计审核流程约需 7 个工作日。商店完成更新前，建议使用下面的 **手动安装** 获取当前版本。
+> **当前版本提示（截至 2026 年 9 月 1 日）：** Edge Add-ons 已正式上线 PageNest `1.10.1`。商店版可正常使用并会在 `1.10.2` 通过认证后自动更新；需要立即使用 `1.10.2` 的用户可以采用下面的手动安装方式。
 
 ### 手动安装
 
-> **GitHub 提供 ZIP 下载，但不能直接在 Edge 里安装 ZIP，必须先解压。** 当前 Edge Add-ons 仍是旧版本，因此这是现阶段安装 `1.10.1` 扩展的合适方式。
+> **GitHub 提供 ZIP 下载，但不能直接在 Edge 里安装 ZIP，必须先解压。** 手动加载适合需要立即使用 GitHub 最新版本或进行开发、故障恢复的用户。
 
-1. 下载当前版本的 **[Extension ZIP](https://github.com/WYuHuai/PageNest/releases/download/v1.10.1/pagenest-browser-extension-v1.10.1.zip)**。
+1. 下载当前版本的 **[Extension ZIP](https://github.com/WYuHuai/PageNest/releases/download/v1.10.2/pagenest-browser-extension-v1.10.2.zip)**。
 2. 把 ZIP 完整解压到一个固定文件夹；不要直接选择 ZIP 文件，也不要在压缩软件预览窗口中加载。
 3. 在 Edge 地址栏打开 `edge://extensions`。
 4. 打开右上角的 **开发人员模式**。
@@ -93,9 +93,9 @@ PageNest 的完整功能由 **Edge 扩展 + Windows 本地组件**共同提供�
 
 ### 推荐安装
 
-Edge Add-ons 更新到 `1.10.1` 后，推荐使用商店版本，以便后续自动更新：
+推荐使用 Edge Add-ons 商店版本，以便后续自动更新：
 
-1. 从 Microsoft Edge Add-ons 安装 **PageNest 网页与视频笔记**，并确认版本不低于 `1.10.1`。
+1. 从 **[Microsoft Edge Add-ons](https://microsoftedge.microsoft.com/addons/detail/lbefpoljnlieecogeihhdmgnmjmjkmmd)** 安装 **PageNest 网页与视频笔记**。当前公开版本为 `1.10.1`，`1.10.2` 通过认证后会由商店自动更新。
 2. 第一次打开扩展，点击 **安装 PageNest**；也可以直接下载并运行稳定安装包：**[PageNest-Setup.exe](https://github.com/WYuHuai/PageNest/releases/latest/download/PageNest-Setup.exe)**。
 3. 安装完成后回到扩展，点击 **重新检测**。
 4. 看到 **✓ PageNest 已连接**即可开始使用。
@@ -126,7 +126,7 @@ Video Notebook 目前以已经实机验证的 B 站视频场景为准。B 站播
 
 ### 能不能不用 GitHub？
 
-Edge Add-ons 更新到 `1.10.1` 后可以不用 GitHub：直接从商店安装扩展，再按扩展内的 **安装 PageNest** 引导运行 Windows Installer。当前审核期间如果需要安装 `1.10.1`，则需要使用 GitHub 的 **手动安装** 步骤。
+可以。直接从 [Microsoft Edge Add-ons](https://microsoftedge.microsoft.com/addons/detail/lbefpoljnlieecogeihhdmgnmjmjkmmd) 安装扩展，再按扩展内的 **安装 PageNest** 引导运行 Windows Installer。只有需要立即使用尚在商店认证中的新版本、开发或故障恢复时，才需要 GitHub 手动安装步骤。
 
 ### Obsidian 是否必需？
 
@@ -148,9 +148,9 @@ PageNest 生成的是本地 `.pagenest` 文件；官方安装和阅读流程以 
 
 ## 开发者与架构
 
-内部数据流与安全边界见[架构文档](docs/architecture.md)、[版本兼容说明](docs/version-compatibility.md)和 [v1.10.1 Release Notes](docs/release-notes-v1.10.1.md)。源码构建、测试和贡献约定见 [CONTRIBUTING.md](CONTRIBUTING.md)。
+内部数据流与安全边界见[架构文档](docs/architecture.md)、[版本兼容说明](docs/version-compatibility.md)和 [v1.10.2 Release Notes](docs/release-notes-v1.10.2.md)。源码构建、测试和贡献约定见 [CONTRIBUTING.md](CONTRIBUTING.md)。
 
-需要独立组件的用户可以在 [GitHub Release](https://github.com/WYuHuai/PageNest/releases/tag/v1.10.1) 中取得 Extension、Service 和 Viewer 压缩包；Edge Add-ons 更新到当前版本后，普通用户可改用商店扩展与 Windows Installer。
+需要独立组件的用户可以在 [GitHub Release](https://github.com/WYuHuai/PageNest/releases/tag/v1.10.2) 中取得 Extension、Service 和 Viewer 压缩包；普通用户推荐使用商店扩展与 Windows Installer。
 
 ## License
 

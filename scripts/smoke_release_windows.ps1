@@ -210,10 +210,12 @@ try {
     $offlinePage = Get-Content -Raw -Encoding UTF8 $page
     if (
         $offlinePage -notmatch "Clean release smoke test" -or
-        $offlinePage -notmatch "print\('hermes'\)" -or
-        $offlinePage -notmatch "Disposable clean-install verification"
+        $offlinePage -notmatch "print\('hermes'\)"
     ) {
         throw "Generated .pagenest page is missing expected offline content"
+    }
+    if ($offlinePage -match "Disposable clean-install verification") {
+        throw "Deprecated user note was rendered into a new .pagenest page"
     }
 
     Write-Output "Windows release smoke passed"
